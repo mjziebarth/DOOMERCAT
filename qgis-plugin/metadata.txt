@@ -1,0 +1,38 @@
+; the next section is mandatory
+
+[general]
+name=Data-Optimized Oblique MERCATor
+email=ziebarth@gfz-potsdam.de
+author=Malte J. Ziebarth, Sebastian von Specht, Georg Veh (design)
+qgisMinimumVersion=3.0
+description=Derive a Laborde oblique Mercator projection that minimizes
+    distortion for a given data set.
+about=This plugin optimizes origin and orientation of a Laborde oblique
+    mercator projection such that the distortion is minimized for the
+    selected data. Different norms can be used to change the minimization
+    algorithm between minimizing mean squared distortion and maximum
+    distortion. As a result, a projection string is returned.
+version=version 1.0
+tracker=https://github.com/mjziebarth/DOOMERCAT/issues
+repository=https://github.com/mjziebarth/DOOMERCAT
+; end of mandatory metadata
+
+; start of optional metadata
+category=Raster
+changelog=
+    1.0 - First stable release
+
+tags=projection,crs,mercator,optimize
+
+; these metadata can be empty, they will eventually become mandatory.
+homepage=
+icon=:/plugins/doomercat/icon.png
+
+; experimental flag (applies to the single version)
+experimental=False
+
+; deprecated flag (applies to the whole plugin and not only to the uploaded version)
+deprecated=False
+
+; if empty, it will be automatically set to major version + .99
+qgisMaximumVersion=
