@@ -299,6 +299,7 @@ class DOOMERCATPlugin:
 		# Help dialog:
 		dialog_layout.addWidget(self.tbHelp, 0, 4, row-1, 1)
 		self.tbHelp.setHtml(help_html)
+		self.tbHelp.setMinimumWidth(280)
 
 
 
