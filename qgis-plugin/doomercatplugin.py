@@ -139,18 +139,13 @@ class DOOMERCATPlugin:
 		self.tabLayout = QTabWidget(self.dialog)
 		self.tabLayout.setMinimumWidth(480)
 		self.tabLayout.currentChanged.connect(self.checkOptimizeEnable)
-		txt = QLabel("Optimize a Laborde oblique Mercator\nprojection for a "
-		             "spatial data set \nminimizing distortion.",
-		             self.dialog)
 		dialog_layout = QGridLayout(self.dialog)
 		row = 0
-		dialog_layout.addWidget(txt, row, 0, 1, 3)
 		self.svg_widget = QSvgWidget(self._icon_path + ".svg")
 		self.svg_widget.customContextMenuRequested.connect(self.switchIcon)
 		self.svg_widget.setContextMenuPolicy(Qt.CustomContextMenu)
 		dialog_layout.addWidget(self.svg_widget, row, 2, 4, 2,
 		                        alignment=Qt.AlignCenter | Qt.AlignRight)
-		row += 1
 		dialog_layout.addWidget(QLabel("Cost function exponent:", self.dialog),
 		                        row,0)
 		dialog_layout.addWidget(self.sbExponent, row, 1)

@@ -1,4 +1,16 @@
 ## Data-Optimized Oblique MERCATor
+The Data-Optimized Oblique MERCATor (DOOMERCAT)
+plugin optimizes the parameters of an oblique
+Mercator projection based on a spatial data set.
+It minimizes the distortion at the points of
+the data set according to a cost function that
+effectively determines how the distortion at a
+single point should be balanced with the
+distortion of the other points.
+
+For detailed information see the accompanying
+paper [1].
+
 ### Parameters
 The **cost function exponent** determines how
 the residual distance between the points on
@@ -71,3 +83,5 @@ resulting projection. If the box is checked,
 an affine transformation is performed that
 ensures that North is upwards at the
 projection center.
+
+[1] von Specht, Ziebarth, Veh (in prep.)
