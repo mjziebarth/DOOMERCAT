@@ -71,7 +71,6 @@ class DOOMERCATPlugin:
 		                         "projection.")
 #		self.action.setStatusTip("This is status tip")
 		self.action.triggered.connect(self.run)
-		self.iface.mapCanvas().layersChanged.connect(self.checkOptimizeEnable)
 
 		# add toolbar button and menu item
 		self.iface.addToolBarIcon(self.action)
@@ -89,14 +88,6 @@ class DOOMERCATPlugin:
 
 		# Populate the configuration dialog:
 		self.tbHelp = QTextBrowser(self.dialog)
-		self.btnOptimize = QPushButton("&Optimize",self.dialog)
-		self.btnOptimize.clicked.connect(self.optimizeClicked)
-		self.btnSave = QPushButton("&Save", self.dialog)
-		self.btnSave.clicked.connect(self.nameDialog.exec)
-		self.btnSave.setEnabled(False)
-		self.btnApply = QPushButton("&Apply",self.dialog)
-		self.btnApply.clicked.connect(self.applyProjection)
-		self.btnApply.setEnabled(False)
 		self.leEllipsoidA = QLineEdit(self.dialog)
 		self.leEllipsoidA.setEnabled(False)
 		self.leEllipsoidA.setMaximumWidth(75)
@@ -138,7 +129,6 @@ class DOOMERCATPlugin:
 		self.cbUse = QCheckBox(self.dialog)
 		self.tabLayout = QTabWidget(self.dialog)
 		self.tabLayout.setMinimumWidth(480)
-		self.tabLayout.currentChanged.connect(self.checkOptimizeEnable)
 		dialog_layout = QGridLayout(self.dialog)
 		row = 0
 		self.svg_widget = QSvgWidget(self._icon_path + ".svg")
@@ -205,7 +195,6 @@ class DOOMERCATPlugin:
 		tab1_layout.addWidget(tab1_widget1)
 		tab1_layout1.addWidget(QLabel("File:"))
 		self.leShapefilePath = QLineEdit(tab1)
-		self.leShapefilePath.textChanged.connect(self.checkOptimizeEnable)
 		tab1_layout1.addWidget(self.leShapefilePath)
 		self.btnShapefileFinder = QPushButton("...", tab1)
 		self.btnShapefileFinder.setMaximumWidth(20)
@@ -287,6 +276,25 @@ class DOOMERCATPlugin:
 		row += 1
 		dialog_layout.addWidget(self.leResult, row, 0, 1, 5)
 		row += 1
+
+		# Only set up the buttons here since otherwise, their focus might be
+		# covered by something else:
+		self.btnOptimize = QPushButton("&Optimize",self.dialog)
+		self.btnOptimize.clicked.connect(self.optimizeClicked)
+		self.btnOptimize.setEnabled(True)
+		self.btnSave = QPushButton("&Save", self.dialog)
+		self.btnSave.clicked.connect(self.nameDialog.exec)
+		self.btnSave.setEnabled(True)
+		self.btnSave.setEnabled(False)
+		self.btnApply = QPushButton("&Apply",self.dialog)
+		self.btnApply.clicked.connect(self.applyProjection)
+		self.btnApply.setEnabled(True)
+		self.btnApply.setEnabled(False)
+
+		self.tabLayout.currentChanged.connect(self.checkOptimizeEnable)
+		self.leShapefilePath.textChanged.connect(self.checkOptimizeEnable)
+		self.iface.mapCanvas().layersChanged.connect(self.checkOptimizeEnable)
+
 		dialog_layout.addWidget(self.btnOptimize, row, 0)
 		dialog_layout.addWidget(self.btnApply, row, 3)
 		dialog_layout.addWidget(self.btnSave, row, 1, 1, 2)
