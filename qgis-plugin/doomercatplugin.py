@@ -618,7 +618,8 @@ class DOOMERCATPlugin:
 		                            lbda_max=1e10, use=use,
 		                            ellipsoid= None if ellps == 'custom'
 		                                       else ellps,
-		                            f=f, a=1e3*a_km)
+		                            f = f if ellps == 'custom' else None,
+		                            a = 1e3*a_km if ellps == 'custom' else None)
 		worker.signals.result.connect(self.receiveResult)
 		worker.signals.error.connect(self.receiveError)
 		worker.signals.finished.connect(self.workerFinished)
