@@ -235,12 +235,12 @@ class DOOMERCATPlugin:
 		tab2_layout = QGridLayout(tab2)
 		tab2_layout.setColumnStretch(1,1)
 		tab2_layout.addWidget(QLabel("Layer:"), 0, 0, 1, 1)
-		self.cbWeightedRasterLayer = QComboBox()
+		self.cbWeightedRasterLayer = QComboBox(tab2)
 		self.cbWeightedRasterLayer.currentIndexChanged\
 		     .connect(self.cbWeightedLayerChanged)
 		tab2_layout.addWidget(self.cbWeightedRasterLayer, 0, 1, 1, 1)
 		tab2_layout.addWidget(QLabel("Weighting band:"), 1, 0, 1, 1)
-		self.cbWeightingBand = QComboBox()
+		self.cbWeightingBand = QComboBox(tab2)
 		tab2_layout.addWidget(self.cbWeightingBand, 1, 1, 1, 1)
 
 		#
@@ -252,12 +252,12 @@ class DOOMERCATPlugin:
 		tab3_layout.setColumnStretch(0,0)
 		tab3_layout.setColumnStretch(1,1)
 		tab3_layout.addWidget(QLabel("Layer:"), 0, 0, 1, 1)
-		self.cbWeightedVectorLayer = QComboBox()
+		self.cbWeightedVectorLayer = QComboBox(tab3)
 		self.cbWeightedVectorLayer.currentIndexChanged\
 		      .connect(self.cbWeightedLayerChanged)
 		tab3_layout.addWidget(self.cbWeightedVectorLayer, 0, 1, 1, 1)
 		tab3_layout.addWidget(QLabel("Weighting attribute:"), 1, 0, 1, 1)
-		self.cbWeightingAttribute = QComboBox()
+		self.cbWeightingAttribute = QComboBox(tab3)
 		tab3_layout.addWidget(self.cbWeightingAttribute, 1, 1, 1, 1)
 
 
@@ -295,8 +295,8 @@ class DOOMERCATPlugin:
 		self.leShapefilePath.textChanged.connect(self.checkOptimizeEnable)
 		self.iface.mapCanvas().layersChanged.connect(self.checkOptimizeEnable)
 
-		dialog_layout.addWidget(self.btnOptimize, row, 0)
-		dialog_layout.addWidget(self.btnApply, row, 3)
+		dialog_layout.addWidget(self.btnOptimize, row, 0, 1, 1)
+		dialog_layout.addWidget(self.btnApply, row, 3, 1, 1)
 		dialog_layout.addWidget(self.btnSave, row, 1, 1, 2)
 		self.dialog.setLayout(dialog_layout)
 		self.dialog.setWindowTitle("Data-Optimized Oblique MERCATor")
