@@ -132,7 +132,7 @@ class LabordeObliqueMercator(LOMBase):
 	"""
 	def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
 	             sigma_k0=0.02, initial_lambda=10, nu=0.99,
-	             lbda_min=1e-10, lbda_max=1e10, ellipsoid='WGS84',
+	             lbda_min=1e-10, lbda_max=1e10, ellipsoid=None,
 	             use='all', f=None, a=None,
 	             lonc=None, lat_0=None, alpha=None, k0=None,
 	             logger=None):
@@ -146,6 +146,17 @@ class LabordeObliqueMercator(LOMBase):
 		lbda_max = float(lbda_max)
 
 		# Ellipsoid parameters:
+		if ellipsoid is None:
+			if f is None and a is None:
+				ellipsoid = "WGS84"
+			elif f is None or a is None:
+				raise RuntimeError("If one of 'a' and 'f' is given, both have "
+				                   "to be specified.")
+		else:
+			if f is not None or a is not None:
+				raise RuntimeError("Conflicting definition: Ellipsoid defined "
+				                   "both through 'ellipsoid' keyword and 'a' "
+				                   "and 'f' keywords.")
 		if f is None:
 			f = 1.0 / _ellipsoids[ellipsoid][1]
 		else:
