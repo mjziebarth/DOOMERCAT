@@ -1,6 +1,6 @@
 # Data-Optimized Oblique MERCATor QGis plugin code.
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
