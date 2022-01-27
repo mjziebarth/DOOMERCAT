@@ -564,8 +564,7 @@ class DOOMERCATPlugin:
 
 		xy = []
 		weight = []
-		for i in range(layer.featureCount()):
-			feat = layer.getFeature(i)
+		for feat in layer.getFeatures():
 			if not feat.isValid():
 				continue
 
@@ -579,8 +578,8 @@ class DOOMERCATPlugin:
 			vertices = geom.vertices()
 			while vertices.hasNext():
 				p = vertices.next()
-				xy += [(p.x(), p.y())]
-				weight += [w]
+				xy.append((p.x(), p.y()))
+				weight.append(w)
 
 		xy = np.array(xy)
 		weight = np.array(weight)
