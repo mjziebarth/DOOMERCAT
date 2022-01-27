@@ -641,6 +641,10 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 				else:
 					W = w * deltapow
 
+			elif w is not None:
+				# Handle given weights for p=2 here:
+				W = w
+
 			# A-prior information about k0:
 			h = float(k0 < k0_ap)
 			iS1_pdiff = -h*iS1 @ np.array((0,0,0,0, k0_ap-k0))
