@@ -614,7 +614,7 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 			J, delta = jacobian(q, k0, vize, lambda_c, lambda_, phi, p, f=f)
 
 			# Handle the delta:
-			delta = abs(delta)
+			np.abs(delta,out=delta)
 
 			# Reweight if pnorm != 2:
 			if p != 2:
@@ -626,12 +626,13 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 
 					# Compute power of normed residuals and assure stability
 					# of dominant (maximum) residual:
-					deltapow = (delta/deltamax)**(pnorm-2)
+					deltapow = delta/deltamax
+					np.power(deltapow, pnorm-2, out=deltapow)
 					deltapow[imax] = 1.0
 				else:
 					# Here the maximum weight just needs to be limited:
 					deltapow = delta**(pnorm-2)
-					deltapow[deltapow > 1e4] = 1e4
+					np.minimum(deltapow, 1e4, out=deltapow)
 
 					# Normalize to the highest weight:
 					deltapow /= deltapow.max()
