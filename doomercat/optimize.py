@@ -425,6 +425,163 @@ def compute_azimuth(q, vize, f):
 	return azimuth
 
 
+def _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, pnorms, lambda_, phi, w,
+              initial_lambda, lbda_min, lbda_max, nu, f, Nmax, logger):
+    """
+    Inner loop of the Levenberg-Marquardt algorithm.
+    """
+    # Initialize some temporary variables:
+    lbda = float(initial_lambda)
+    e2 = f*(2-f)
+    e = sqrt(e2)
+
+    vize = compute_vize(q * (1./abs(q)), e2)
+
+    best_config = (np.inf, q, k0)
+
+    # A-priori information:
+    sigma2_k0 = sigma_k0**2
+    iS1 = np.diag((0,0,0,0,1./sigma2_k0))
+
+    for p in pnorms:
+        # We change norms here, so reset the cost, which is not intercomparable.
+        delta_cost = 0.0
+        cost = cost_function_convenient(lambda_, phi, q, k0, vize,
+                                        lambda_c, p)[0]
+        cost_new = cost
+        W = None
+
+        lbda = max(lbda,initial_lambda)
+
+        if logger is not None:
+            logger.log(20, "Optimize pnorm=" + str(p))
+
+        for i in range(Nmax):
+            J, delta = jacobian(q, k0, vize, lambda_c, lambda_, phi, p, f=f)
+
+            # Handle the delta:
+            np.abs(delta,out=delta)
+
+            # Reweight if pnorm != 2:
+            if p != 2:
+                if p > 2:
+                    # Determine maximum which will dominate the sum of
+                    # powered residuals for high pnorms:
+                    imax = np.argmax(delta)
+                    deltamax = delta[imax]
+
+                    # Compute power of normed residuals and assure stability
+                    # of dominant (maximum) residual:
+                    deltapow = delta/deltamax
+                    np.power(deltapow, pnorm-2, out=deltapow)
+                    deltapow[imax] = 1.0
+                else:
+                    # Here the maximum weight just needs to be limited:
+                    deltapow = delta**(pnorm-2)
+                    np.minimum(deltapow, 1e4, out=deltapow)
+
+                    # Normalize to the highest weight:
+                    deltapow /= deltapow.max()
+
+                if w is None:
+                    W = deltapow
+                else:
+                    W = w * deltapow
+
+            elif w is not None:
+                # Handle given weights for p=2 here:
+                W = w
+
+            # A-prior information about k0:
+            h = float(k0 < k0_ap)
+            iS1_pdiff = -h*iS1 @ np.array((0,0,0,0, k0_ap-k0))
+
+            # Inversion here!
+            if W is None:
+                JW = J.T
+            else:
+                # Use a memory-efficient version of JW = J.T @ np.diag(W):
+                JW = J.T * W[np.newaxis,:]
+            JWd = JW @ delta
+            JWJ = JW @ J
+            I = np.diag(np.diag(JWJ))
+            M1 = np.linalg.inv(JWJ + lbda * I + h*iS1)
+            dp0 =  -M1 @ (JWd + iS1_pdiff)
+            q0 = Quaternion(q.r+dp0[0], q.i+dp0[1], q.j+dp0[2], q.k+dp0[3])
+            vize0 = compute_vize(q0 * (1./abs(q0)), e2)
+            cost0 = cost_function_convenient(lambda_, phi, q0, k0+dp0[4], vize0,
+                                             lambda_c, p, f=f)[0]
+
+            M1 = np.linalg.inv(JWJ + lbda / nu * I + h*iS1)
+            dp1 =  - M1 @ (JWd + iS1_pdiff)
+            q1 = Quaternion(q.r+dp1[0], q.i+dp1[1], q.j+dp1[2], q.k+dp1[3])
+            vize1 = compute_vize(q1 * (1./abs(q1)), e2)
+            cost1 = cost_function_convenient(lambda_, phi, q1, k0+dp1[4], vize1,
+                                             lambda_c, p,  f=f)[0]
+
+            M1 = np.linalg.inv(JWJ + lbda * nu * I + h*iS1)
+            dp2 =  - M1 @ (JWd + iS1_pdiff)
+            q2 = Quaternion(q.r+dp2[0], q.i+dp2[1], q.j+dp2[2], q.k+dp2[3])
+            vize2 = compute_vize(q2 * (1./abs(q2)), e2)
+            cost2 = cost_function_convenient(lambda_, phi, q2, k0+dp2[4], vize2,
+                                             lambda_c, p, f=f)[0]
+
+            if cost0 <= cost1 and cost0 <= cost2:
+                q = q0
+                k0 = k0+dp0[4]
+                vize = vize0
+                cost_new = cost0
+            elif cost1 <= cost0 and cost1 <= cost2:
+                q = q1
+                k0 = k0+dp1[4]
+                vize = vize1
+                lbda /= nu
+                cost_new = cost1
+            elif cost2 <= cost0 and cost2 <= cost1:
+                q = q2
+                k0 = k0+dp2[4]
+                vize = vize2
+                lbda *= nu
+                cost_new = cost2
+            else:
+                lbda /= nu
+
+            if lbda < lbda_min:
+                lbda = lbda_min
+            elif lbda > lbda_max:
+                lbda = lbda_max
+
+            # Exit condition:
+            if abs(cost_new - cost) < 1e-12 and N is None:
+                if p == PNORMS[0] and i == 0:
+                    # The convergence failed since for the first
+                    # p-norm, the smallest one (likely 2), the convergence
+                    # stopped after one iteration.
+                    raise OptimizeError(reason='convergence',
+                              lonc=np.rad2deg(lambda_c),
+                              lat_0=np.rad2deg(vize),
+                              alpha=None, k0=k0)
+                break
+
+            cost = cost_new
+
+            if cost < best_config[0]:
+                best_config = (cost, q, k0)
+
+            # Logging:
+            if logger is not None:
+                logger.log(20, "Step[" + str(i) + "]: cost=" + str(cost))
+                if hasattr(logger, "exit") and logger.exit():
+                    # Concurrent exit requested. Raise an error.
+                    raise RuntimeError("Early exit requested.")
+
+    # Take the minimum cost:
+    cost, q, k0 = best_config
+
+    return cost, q, compute_vize(q * (1./abs(q)), e2), k0
+
+
+
 def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
                         k0_ap=0.98, sigma_k0=0.02, initial_lambda=10,
                         nu=0.99, N=None, lbda_min=1e-10, lbda_max=1e10,
@@ -538,13 +695,6 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 	# Initial parameters:
 	f = float(f)
 	nu = float(nu)
-	lbda = float(initial_lambda)
-	e2 = f*(2-f)
-	e = sqrt(e2)
-
-	# A-priori information:
-	sigma2_k0 = sigma_k0**2
-	iS1 = np.diag((0,0,0,0,1./sigma2_k0))
 
 	# Select the nodes which to use:
 	x = ellipsoid_projection(lon, lat, 0.0, 1.0, f)
@@ -591,140 +741,15 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 		if reproducible:
 			setstate(rng_state)
 
-	vize = np.mean(phi)
 	k0 = 1.0
 
 	# Log start of optimization loop:
 	if logger is not None:
 		logger.log(20, "Enter optimization loop.")
 
-	for p in PNORMS:
-		# We change norms here, so reset the cost, which is not intercomparable.
-		delta_cost = 0.0
-		cost = cost_function_convenient(lambda_, phi, q, k0, vize, lambda_c, p)[0]
-		cost_new = cost
-		W = None
-
-		lbda = max(lbda,initial_lambda)
-
-		if logger is not None:
-			logger.log(20, "Optimize pnorm=" + str(p))
-
-		for i in range(Nmax):
-			J, delta = jacobian(q, k0, vize, lambda_c, lambda_, phi, p, f=f)
-
-			# Handle the delta:
-			np.abs(delta,out=delta)
-
-			# Reweight if pnorm != 2:
-			if p != 2:
-				if p > 2:
-					# Determine maximum which will dominate the sum of
-					# powered residuals for high pnorms:
-					imax = np.argmax(delta)
-					deltamax = delta[imax]
-
-					# Compute power of normed residuals and assure stability
-					# of dominant (maximum) residual:
-					deltapow = delta/deltamax
-					np.power(deltapow, pnorm-2, out=deltapow)
-					deltapow[imax] = 1.0
-				else:
-					# Here the maximum weight just needs to be limited:
-					deltapow = delta**(pnorm-2)
-					np.minimum(deltapow, 1e4, out=deltapow)
-
-					# Normalize to the highest weight:
-					deltapow /= deltapow.max()
-
-				if w is None:
-					W = deltapow
-				else:
-					W = w * deltapow
-
-			elif w is not None:
-				# Handle given weights for p=2 here:
-				W = w
-
-			# A-prior information about k0:
-			h = float(k0 < k0_ap)
-			iS1_pdiff = -h*iS1 @ np.array((0,0,0,0, k0_ap-k0))
-
-			# Inversion here!
-			if W is None:
-				JW = J.T
-			else:
-				# Use a memory-efficient version of JW = J.T @ np.diag(W):
-				JW = J.T * W[np.newaxis,:]
-			JWd = JW @ delta
-			JWJ = JW @ J
-			I = np.diag(np.diag(JWJ))
-			M1 = np.linalg.inv(JWJ + lbda * I + h*iS1)
-			dp0 =  -M1 @ (JWd + iS1_pdiff)
-			q0 = Quaternion(q.r+dp0[0], q.i+dp0[1], q.j+dp0[2], q.k+dp0[3])
-			vize0 = compute_vize(q0 * (1./abs(q0)), e2)
-			cost0 = cost_function_convenient(lambda_, phi, q0, k0+dp0[4], vize0,
-			                                 lambda_c, p, f=f)[0]
-
-			M1 = np.linalg.inv(JWJ + lbda / nu * I + h*iS1)
-			dp1 =  - M1 @ (JWd + iS1_pdiff)
-			q1 = Quaternion(q.r+dp1[0], q.i+dp1[1], q.j+dp1[2], q.k+dp1[3])
-			vize1 = compute_vize(q1 * (1./abs(q1)), e2)
-			cost1 = cost_function_convenient(lambda_, phi, q1, k0+dp1[4], vize1,
-			                                 lambda_c, p,  f=f)[0]
-
-			M1 = np.linalg.inv(JWJ + lbda * nu * I + h*iS1)
-			dp2 =  - M1 @ (JWd + iS1_pdiff)
-			q2 = Quaternion(q.r+dp2[0], q.i+dp2[1], q.j+dp2[2], q.k+dp2[3])
-			vize2 = compute_vize(q2 * (1./abs(q2)), e2)
-			cost2 = cost_function_convenient(lambda_, phi, q2, k0+dp2[4], vize2,
-			                                 lambda_c, p, f=f)[0]
-
-			if cost0 <= cost1 and cost0 <= cost2:
-				q = q0
-				k0 = k0+dp0[4]
-				vize = vize0
-				cost_new = cost0
-			elif cost1 <= cost0 and cost1 <= cost2:
-				q = q1
-				k0 = k0+dp1[4]
-				vize = vize1
-				lbda /= nu
-				cost_new = cost1
-			elif cost2 <= cost0 and cost2 <= cost1:
-				q = q2
-				k0 = k0+dp2[4]
-				vize = vize2
-				lbda *= nu
-				cost_new = cost2
-			else:
-				lbda /= nu
-
-			if lbda < lbda_min:
-				lbda = lbda_min
-			elif lbda > lbda_max:
-				lbda = lbda_max
-
-			# Exit condition:
-			if abs(cost_new - cost) < 1e-12 and N is None:
-				if p == PNORMS[0] and i == 0:
-					# The convergence failed since for the first
-					# p-norm, the smallest one (likely 2), the convergence
-					# stopped after one iteration.
-					raise OptimizeError(reason='convergence',
-					          lonc=np.rad2deg(lambda_c),
-					          lat_0=np.rad2deg(vize),
-					          alpha=None, k0=k0)
-				break
-
-			cost = cost_new
-
-			# Logging:
-			if logger is not None:
-				logger.log(20, "Step[" + str(i) + "]: cost=" + str(cost))
-				if hasattr(logger, "exit") and logger.exit():
-					# Concurrent exit requested. Raise an error.
-					raise RuntimeError("Early exit requested.")
+	cost, q, vize, k0 \
+	   = _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, PNORMS, lambda_, phi,
+	               w, initial_lambda, lbda_min, lbda_max, nu, f, Nmax, logger)
 
 	# Now compute the angle parameter:
 	azimuth = compute_azimuth(q, vize, f)
