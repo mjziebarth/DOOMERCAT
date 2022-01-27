@@ -566,6 +566,8 @@ class DOOMERCATPlugin:
 		weight = []
 		for i in range(layer.featureCount()):
 			feat = layer.getFeature(i)
+			if not feat.isValid():
+				continue
 
 			# Feature weight:
 			w = float(feat[a_id])
