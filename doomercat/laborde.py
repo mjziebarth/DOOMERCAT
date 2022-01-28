@@ -22,17 +22,15 @@
 
 import numpy as np
 
-def ellipsoid_projection(lon, lat, h, a, f):
+def ellipsoid_projection_radian(lon, lat, h, a, f):
 	"""
 	Project longitude and latitude coordinates to Euclidean reference
 	system.
 
 	Parameters:
-	   lon, lat: Geographic coordinates in degrees.
+	   lon, lat: Geographic coordinates in radians.
 	   h :       Height above ellipsoid.
 	"""
-	lon = np.deg2rad(lon)
-	lat = np.deg2rad(lat)
 	coslon = np.cos(lon)
 	sinlon = np.sin(lon)
 	coslat = np.cos(lat)
@@ -47,6 +45,19 @@ def ellipsoid_projection(lon, lat, h, a, f):
 	xyz[:,2] = (b**2/a**2 * CF + h) * sinlat
 
 	return xyz
+
+
+def ellipsoid_projection(lon, lat, h, a, f):
+	"""
+	Project longitude and latitude coordinates to Euclidean reference
+	system.
+
+	Parameters:
+	   lon, lat: Geographic coordinates in degrees.
+	   h :       Height above ellipsoid.
+	"""
+	return ellipsoid_projection_radian(np.deg2rad(lon), np.deg2rad(lat),
+	                                   h, a, f)
 
 
 def laborde_variables(lambda_, phi, vize, lambda_c, f):
