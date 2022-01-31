@@ -28,8 +28,8 @@ from warnings import warn
 
 import numpy as np
 
-from .laborde import ellipsoid_projection, laborde_variables, laborde_sub,\
-                     laborde_projection
+from .laborde import ellipsoid_projection_radian, laborde_variables, \
+                     laborde_sub, laborde_projection
 from .quaternion import Quaternion, UnitQuaternion, qrot
 from .lomerror import OptimizeError
 
@@ -136,14 +136,18 @@ def rotate_mercator_residual(U, V, W, q, k0):
 	return delta, c, pq
 
 
-def cost_function(delta, pnorm):
+def cost_function(delta, pnorm, w, k0, k0_ap, sigma_k0):
 	"""
 	Compute the cost from a number of residuals.
 	"""
-	return np.sum(abs(delta)**pnorm) ** (1./pnorm)
+	cost = np.sum(w * abs(delta)**pnorm) ** (1./pnorm)
+	if k0 < k0_ap:
+		cost += (k0-k0_ap)**2 / sigma_k0**2
+	return cost
 
 
-def cost_function_convenient(lambda_, phi, q, k0, vize, lambda_c, pnorm, f=1/298.):
+def cost_function_convenient(lambda_, phi, w, q, k0, vize, lambda_c, k0_ap,
+                             sigma_k0, pnorm, f=1/298.):
 	"""
 	Another API for cost_function.
 	"""
@@ -155,7 +159,7 @@ def cost_function_convenient(lambda_, phi, q, k0, vize, lambda_c, pnorm, f=1/298
 
 
 	# 3) Compute cost:
-	cost = cost_function(delta, pnorm)
+	cost = cost_function(delta, pnorm, w, k0, k0_ap, sigma_k0)
 
 	return cost, delta
 
@@ -426,10 +430,12 @@ def compute_azimuth(q, vize, f):
 
 
 def _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, pnorms, lambda_, phi, w,
-              initial_lambda, lbda_min, lbda_max, nu, f, Nmax, logger):
+              initial_lambda, lbda_min, lbda_max, nu, f, N, Nmax,
+              exit_delta, logger):
     """
     Inner loop of the Levenberg-Marquardt algorithm.
     """
+    print("_lm_inner Nmax:",Nmax)
     # Initialize some temporary variables:
     lbda = float(initial_lambda)
     e2 = f*(2-f)
@@ -446,8 +452,8 @@ def _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, pnorms, lambda_, phi, w,
     for p in pnorms:
         # We change norms here, so reset the cost, which is not intercomparable.
         delta_cost = 0.0
-        cost = cost_function_convenient(lambda_, phi, q, k0, vize,
-                                        lambda_c, p)[0]
+        cost = cost_function_convenient(lambda_, phi, w, q, k0, vize, lambda_c,
+                                        k0_ap, sigma_k0, p)[0]
         cost_new = cost
         W = None
 
@@ -505,26 +511,35 @@ def _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, pnorms, lambda_, phi, w,
             JWd = JW @ delta
             JWJ = JW @ J
             I = np.diag(np.diag(JWJ))
+            # TESTING:
+            # We do not want the dampening to affect k0.
+            # k0 already has prior information.
+            I[4,4] = 0.0
             M1 = np.linalg.inv(JWJ + lbda * I + h*iS1)
             dp0 =  -M1 @ (JWd + iS1_pdiff)
             q0 = Quaternion(q.r+dp0[0], q.i+dp0[1], q.j+dp0[2], q.k+dp0[3])
             vize0 = compute_vize(q0 * (1./abs(q0)), e2)
-            cost0 = cost_function_convenient(lambda_, phi, q0, k0+dp0[4], vize0,
-                                             lambda_c, p, f=f)[0]
+            # lambda_, phi, w, q, k0, vize, lambda_c, k0_ap,
+            #                 sigma_k0, pnorm, f=1/298.
+            cost0 = cost_function_convenient(lambda_, phi, w, q0, k0+dp0[4],
+                                             vize0, lambda_c, k0_ap, sigma_k0,
+                                             p, f=f)[0]
 
             M1 = np.linalg.inv(JWJ + lbda / nu * I + h*iS1)
             dp1 =  - M1 @ (JWd + iS1_pdiff)
             q1 = Quaternion(q.r+dp1[0], q.i+dp1[1], q.j+dp1[2], q.k+dp1[3])
             vize1 = compute_vize(q1 * (1./abs(q1)), e2)
-            cost1 = cost_function_convenient(lambda_, phi, q1, k0+dp1[4], vize1,
-                                             lambda_c, p,  f=f)[0]
+            cost1 = cost_function_convenient(lambda_, phi, w, q1, k0+dp1[4],
+                                             vize1, lambda_c, k0_ap, sigma_k0,
+                                             p, f=f)[0]
 
             M1 = np.linalg.inv(JWJ + lbda * nu * I + h*iS1)
             dp2 =  - M1 @ (JWd + iS1_pdiff)
             q2 = Quaternion(q.r+dp2[0], q.i+dp2[1], q.j+dp2[2], q.k+dp2[3])
             vize2 = compute_vize(q2 * (1./abs(q2)), e2)
-            cost2 = cost_function_convenient(lambda_, phi, q2, k0+dp2[4], vize2,
-                                             lambda_c, p, f=f)[0]
+            cost2 = cost_function_convenient(lambda_, phi, w, q2, k0+dp2[4],
+                                             vize2, lambda_c, k0_ap, sigma_k0,
+                                             p, f=f)[0]
 
             if cost0 <= cost1 and cost0 <= cost2:
                 q = q0
@@ -552,8 +567,8 @@ def _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, pnorms, lambda_, phi, w,
                 lbda = lbda_max
 
             # Exit condition:
-            if abs(cost_new - cost) < 1e-12 and N is None:
-                if p == PNORMS[0] and i == 0:
+            if abs(cost_new - cost) < exit_delta and N is None:
+                if p == pnorms[0] and i == 0:
                     # The convergence failed since for the first
                     # p-norm, the smallest one (likely 2), the convergence
                     # stopped after one iteration.
@@ -570,6 +585,8 @@ def _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, pnorms, lambda_, phi, w,
 
             # Logging:
             if logger is not None:
+                if i > Nmax:
+                    raise RuntimeError("i=",i,">Nmax=",Nmax)
                 logger.log(20, "Step[" + str(i) + "]: cost=" + str(cost))
                 if hasattr(logger, "exit") and logger.exit():
                     # Concurrent exit requested. Raise an error.
@@ -585,7 +602,8 @@ def _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, pnorms, lambda_, phi, w,
 def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
                         k0_ap=0.98, sigma_k0=0.02, initial_lambda=10,
                         nu=0.99, N=None, lbda_min=1e-10, lbda_max=1e10,
-                        use='all', reproducible=True, logger=None):
+                        use='all', reproducible=True, logger=None,
+                        best_of=1, k0_start=1.0):
 	"""
 	The main optimization routine to determine the parameters
 	of the optimum Laborde oblique Mercator projection (LOM).
@@ -657,6 +675,9 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 	   k0    : Scale factor at the central point.
 	"""
 
+	if k0_start < 1e-3 or k0_start > 2.0:
+		raise ValueError("k0_start has to be between 1e-3 and 2.0")
+
 	if N is None:
 		Nmax = 1400
 	else:
@@ -675,10 +696,6 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 			PNORMS = [2,pnorm]
 
 	# Make sure we have numpy arrays:
-	if not isinstance(lon, np.ndarray):
-		lon = np.array(lon)
-	if not isinstance(lat, np.ndarray):
-		lat = np.array(lat)
 	if weight is not None:
 		w = np.array(weight,copy=True)
 		# Test for NaN:
@@ -692,64 +709,143 @@ def levenberg_marquardt(lon, lat, weight=None, pnorm=2, f=1/298.257223563,
 		# Use None for none-existent weights:
 		w = None
 
+	# Convert to radians:
+	phi = np.deg2rad(lat)
+	lambda_ = np.deg2rad(lon)
+
 	# Initial parameters:
 	f = float(f)
 	nu = float(nu)
 
 	# Select the nodes which to use:
-	x = ellipsoid_projection(lon, lat, 0.0, 1.0, f)
+	x = ellipsoid_projection_radian(lambda_, phi, 0.0, 1.0, f)
 	M = max(lon.size, lat.size)
-	if use != 'all':
+	if use == 'all':
+		lambda_work = lambda_
+		phi_work = phi
+		w_work = w
+	else:
 		use = int(use)
 		if use < 2:
 			raise ValueError("At least two points have to be used.")
 		if use < M:
 			mask = reduce_iteratively(x, use, logger=logger)
 			x = x[mask,:]
-			lon = lon[mask]
-			lat = lat[mask]
-			if w is not None:
-				w = w[mask]
+			lambda_work = lambda_[mask]
+			phi_work = phi[mask]
+			if w is None:
+				w_work = None
+			else:
+				w_work = w[mask]
 			M = use
 		else:
 			warn("The number of points to use is larger than the actual "
 			     "number of points.")
 
 	# Convert coordinates to radian:
-	phi = np.deg2rad(lat)
-	lambda_ = np.deg2rad(lon)
 	lambda_c = np.arctan2(np.mean(np.sin(lambda_)), np.mean(np.cos(lambda_)))
 
 	# Initial guess:
 	if len(x) < 2:
 		raise OptimizeError(reason='data_count')
-	elif len(x) <= 20:
-		q = Quaternion(0, *initial_guess(x, w))
+
+	if best_of == 1:
+		if len(x) <= 20:
+			q = Quaternion(0, *initial_guess(x, w_work))
+		else:
+			# Limit the number of data points to 20, so that we compute only 400 pairs.
+			# Otherwise, the quadratic increase of the pairwise computation supersedes
+			# the number of operations of the main loop and the initial guess will
+			# dominate the computation time consumption - not something we want.
+			if reproducible:
+				# Seed the RNG reproducibly. To prevent unintended consequences for
+				# programs using the python RNG, save and restor its state:
+				rng_state = getstate()
+				seed(78962)
+
+			q = Quaternion(0, *initial_guess(x[sample(list(range(len(x))),20),
+			                                  :],w))
+
+			if reproducible:
+				setstate(rng_state)
+
+		# Log start of optimization loop:
+		if logger is not None:
+			logger.log(20, "Enter optimization loop.")
+
+		cost, q, vize, k0 \
+		   = _lm_inner(q, k0_start, k0_ap, sigma_k0, lambda_c, PNORMS,
+		               lambda_work, phi_work, w_work, initial_lambda, lbda_min,
+		               lbda_max, nu, f, N, Nmax, 1e-8, logger)
+
+	elif best_of < 1:
+		raise ValueError("'best_of' needs to be at least 1.")
+
 	else:
-		# Limit the number of data points to 20, so that we compute only 400 pairs.
-		# Otherwise, the quadratic increase of the pairwise computation supersedes
-		# the number of operations of the main loop and the initial guess will
-		# dominate the computation time consumption - not something we want.
+		# Multiple iterations are requested.
+		#best_config = (np.inf, np.NaN, np.NaN, np.NaN)
+		configs = []
 		if reproducible:
-			# Seed the RNG reproducibly. To prevent unintended consequences for
-			# programs using the python RNG, save and restor its state:
-			rng_state = getstate()
-			seed(78962)
+			rng = np.random.default_rng(45477564783787)
+		else:
+			rng = np.random.default_rng()
 
-		q = Quaternion(0, *initial_guess(x[sample(list(range(len(x))),20),:],w))
+		for i in range(best_of):
+			# Get a random starting condition:
+			q = UnitQuaternion(0.0, *rng.random(3))
 
-		if reproducible:
-			setstate(rng_state)
+			if use is not 'all':
+				select = rng.choice(M, use)
+				lambda_work = lambda_[select]
+				phi_work = phi[select]
+				if w is not None:
+					w_work = w[select]
 
-	k0 = 1.0
+			if logger is not None:
+				logger.log(20, "Enter optimization loop.")
 
-	# Log start of optimization loop:
-	if logger is not None:
-		logger.log(20, "Enter optimization loop.")
+			try:
+				cost, q, vize, k0 \
+				   = _lm_inner(q, k0_start, k0_ap, sigma_k0, lambda_c, PNORMS,
+				               lambda_work, phi_work, w_work, initial_lambda,
+				               lbda_min, lbda_max, nu, f, N, 200, 1e-4, logger)
+			except OptimizeError as err:
+				if i != best_of-1 and len(configs) > 0:
+					continue
+				else:
+					raise err
 
-	cost, q, vize, k0 \
-	   = _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, PNORMS, lambda_, phi,
-	               w, initial_lambda, lbda_min, lbda_max, nu, f, Nmax, logger)
+			# Compute the full cost:
+			cost = cost_function_convenient(lambda_work, phi_work, w_work, q,
+			                                k0, vize, lambda_c, k0_ap, sigma_k0,
+			                                PNORMS[-1], f=f)[0]
+
+			#if cost < best_config[0]:
+			#	best_config = (cost, q, vize, k0)
+			configs.append((cost, q, vize, k0))
+
+		print("best configs Nmax:",Nmax)
+
+		# Take the best configurations:
+		best_configs = sorted(configs, key=lambda x : x[0])[:10]
+		for i,conf in enumerate(best_configs):
+			cost, q, vize, k0 = conf
+
+			if logger is not None:
+				logger.log(20, "Enter optimization loop.")
+
+			# One more optimization with the full data:
+			cost, q, vize, k0 \
+			   = _lm_inner(q, k0, k0_ap, sigma_k0, lambda_c, PNORMS,
+			               lambda_, phi, w, initial_lambda,
+			               lbda_min, lbda_max, nu, f, N, Nmax, 1e-8, logger)
+
+			best_configs[i] = (cost, q, vize, k0)
+
+		# Now choose the best of the best:
+		cost, q, vize, k0 = sorted(best_configs, key=lambda x : x[0])[0]
+
+
 
 	# Now compute the angle parameter:
 	azimuth = compute_azimuth(q, vize, f)
