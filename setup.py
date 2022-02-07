@@ -25,11 +25,7 @@ sources = ['functions.cpp','arithmetic.cpp','cost.cpp','ctypesinterface.cpp',
            'projecteddata.cpp']
 
 cpp_ext = Extension('doomercat._cppextensions',
-                    #define_macros = [('MAJOR_VERSION', '1'),
-                    #                 ('MINOR_VERSION', '0')],
                     include_dirs = ['cpp/include'],
-                    #libraries = ['tcl83'],
-                    #library_dirs = ['/usr/local/lib'],
                     sources = ['cpp/src/' + f for f in sources])
 
 # Setup:
