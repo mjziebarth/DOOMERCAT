@@ -36,14 +36,14 @@
 
 extern "C" {
 	int compute_cost(const size_t N, const double* lon,const double* lat,
-	                 double lon_cyl, double lat_cyl, double k0,  double f,
-	                 unsigned int pnorm, double k0_ap, double sigma_k0,
-	                 double* result);
+	                 const double* w, double lon_cyl, double lat_cyl, double k0,
+	                 double f, unsigned int pnorm, double k0_ap,
+	                 double sigma_k0, double* result);
 
 	int compute_cost_and_derivatives(const size_t N, const double* lon,
-	                 const double* lat, double lon_cyl, double lat_cyl,
-	                 double k0, double f,  unsigned int pnorm, double k0_ap,
-	                 double sigma_k0, double* result);
+	                 const double* lat, const double* w, double lon_cyl,
+	                 double lat_cyl, double k0, double f,  unsigned int pnorm,
+	                 double k0_ap, double sigma_k0, double* result);
 
 	int perform_billo_gradient_descent(const size_t N, const double* lon,
 	                 const double* lat, double f,
@@ -52,8 +52,8 @@ extern "C" {
 	                 double* result);
 
 	int perform_bfgs(const size_t N, const double* lon, const double* lat,
-	                 double f, unsigned int pnorm, double k0_ap,
-	                 double sigma_k0, double lon0, double lat0,
+	                 const double* w, double f, unsigned int pnorm,
+	                 double k0_ap, double sigma_k0, double lon0, double lat0,
 	                 const size_t Nmax, double* result, unsigned int* n_steps);
 }
 
@@ -67,8 +67,8 @@ using doomercat::billo_gradient_descent;
 
 
 int compute_cost(const size_t N, const double* lon, const double* lat,
-                 double lon_cyl, double lat_cyl, double k0, double f,
-                 unsigned int pnorm, double k0_ap, double sigma_k0,
+                 const double* w, double lon_cyl, double lat_cyl, double k0,
+                 double f, unsigned int pnorm, double k0_ap, double sigma_k0,
                  double* result)
 {
 	/* Compute the cost for a data set given a cylinder. */
@@ -77,7 +77,7 @@ int compute_cost(const size_t N, const double* lon, const double* lat,
 
 	// Init the data set:
 	std::shared_ptr<DataSet> data
-		= std::make_shared<DataSet>(N, lon, lat, nullptr);
+		= std::make_shared<DataSet>(N, lon, lat, w);
 
 	// Project and compute cost function:
 	LabordeProjectedDataSet pd(data, cyl);
@@ -89,8 +89,9 @@ int compute_cost(const size_t N, const double* lon, const double* lat,
 
 
 int compute_cost_and_derivatives(const size_t N, const double* lon,
-        const double* lat, double lon_cyl, double lat_cyl, double k0, double f,
-        unsigned int pnorm, double k0_ap, double sigma_k0, double* result)
+        const double* lat, const double* w, double lon_cyl, double lat_cyl,
+        double k0, double f, unsigned int pnorm, double k0_ap, double sigma_k0,
+        double* result)
 {
 	/* Compute the cost for a data set given a cylinder. */
 	std::shared_ptr<LabordeCylinder>
@@ -98,7 +99,7 @@ int compute_cost_and_derivatives(const size_t N, const double* lon,
 
 	// Init the data set:
 	std::shared_ptr<DataSet> data
-		= std::make_shared<DataSet>(N, lon, lat, nullptr);
+		= std::make_shared<DataSet>(N, lon, lat, w);
 
 	// Project and compute cost function:
 	LabordeProjectedDataSet pd(data, cyl);
@@ -147,14 +148,18 @@ int perform_billo_gradient_descent(const size_t N, const double* lon,
 	return 0;
 }
 
-int perform_bfgs(const size_t N, const double* lon, const double* lat, double f,
-                 unsigned int pnorm, double k0_ap, double sigma_k0, double lon0,
-                 double lat0, const size_t Nmax, double* result,
-                 unsigned int* n_steps)
+int perform_bfgs(const size_t N, const double* lon, const double* lat,
+                 const double* w, double f, unsigned int pnorm, double k0_ap,
+                 double sigma_k0, double lon0, double lat0, const size_t Nmax,
+                 double* result, unsigned int* n_steps)
 {
+	// Sanity check on weights (probably very much redundant):
+	if (w == 0)
+		w = nullptr;
+
 	// Init the data set:
 	std::shared_ptr<DataSet> data
-		= std::make_shared<DataSet>(N, lon, lat, nullptr);
+		= std::make_shared<DataSet>(N, lon, lat, w);
 
 	/* Initial cylinder: */
 	std::shared_ptr<LabordeCylinder> cyl0
