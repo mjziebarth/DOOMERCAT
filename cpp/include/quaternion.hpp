@@ -107,9 +107,6 @@ public:
 
 	Quaternion& operator/=(const T&);
 
-	template<typename T2, typename = std::enable_if_t<std::is_same<T2,double>::value>>
-	Quaternion operator*(const Quaternion<T2>&) const;
-
 	template<typename T2, typename = std::enable_if_t<!std::is_same<T2,double>::value>>
 	Quaternion<T2> operator*(const Quaternion<T2>&) const;
 
@@ -184,21 +181,6 @@ Quaternion<T> Quaternion<T>::operator*(const Quaternion<T>& p) const
 	      std::move((_r * p._k) + (_i * p._j) - (_j * p._i) + (_k * p._r)));
 }
 
-
-template<typename T>
-template<typename T2, typename>//, std::enable_if_t<std::is_same<T2,double>::value>>
-Quaternion<T> Quaternion<T>::operator*(const Quaternion<T2>& p) const
-{
-	static_assert(!std::is_same<T,double>::value, "Instantiate wrong "
-	                                              "Quaternion multiplication");
-	/* As long as we can multiply T and T2, we can formulate Quaternion
-	 * multiplication: */
-	return Quaternion(
-	      std::move((_r * p.r()) - (_i * p.i()) - (_j * p.j()) - (_k * p.k())),
-	      std::move((_r * p.i()) + (_i * p.r()) + (_j * p.k()) - (_k * p.j())),
-	      std::move((_r * p.j()) - (_i * p.k()) + (_j * p.r()) + (_k * p.i())),
-	      std::move((_r * p.k()) + (_i * p.j()) - (_j * p.i()) + (_k * p.r())));
-}
 
 template<>
 template<typename T2, typename>// = std::enable_if_t<!std::is_same<T2,double>::value>>
