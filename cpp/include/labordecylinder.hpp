@@ -44,6 +44,8 @@ public:
 
 	real5v azimuth() const;
 
+	real5v lat_0() const;
+
 	const real5v& k0() const;
 
 	const Quaternion<real5v>& rotation_quaternion() const;

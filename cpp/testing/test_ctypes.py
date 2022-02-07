@@ -129,7 +129,7 @@ def bfgs_optimize(data_lon, data_lat, pnorm, k0_ap, sigma_k0, f, lon0, lat0, Nma
     Nmax = int(Nmax)
     assert Nmax > 0
 
-    result = np.zeros((Nmax,4))
+    result = np.zeros((Nmax,6))
     M = np.zeros(1,dtype=np.uint)
     res = _doomercat_so.perform_bfgs(c_size_t(N),
                                      data_lon.ctypes.data_as(POINTER(c_double)),

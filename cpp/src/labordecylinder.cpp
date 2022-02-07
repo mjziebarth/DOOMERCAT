@@ -142,7 +142,12 @@ real5v LabordeCylinder::azimuth() const
 	if (_axis[1].value() > 0)
 		return -azimuth;
 
-	return azimuth;
+	return rad2deg(azimuth);
+}
+
+real5v LabordeCylinder::lat_0() const
+{
+	return rad2deg(vize);
 }
 
 const real5v& LabordeCylinder::k0() const

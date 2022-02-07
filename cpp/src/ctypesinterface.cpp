@@ -174,12 +174,16 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
 
 	/* Return the results: */
 	for (size_t i=0; i<history.size(); ++i){
-		result[4*i]   = history[i].cost;
+		result[6*i]   = history[i].cost;
+		result[6*i+1] = history[i].cylinder.lat_0().value();
+		result[6*i+2] = history[i].cylinder.azimuth().value();
+		result[6*i+3] = history[i].cylinder.k0().value();
+		// For debugging, save lon & lat at which the cylinder axis strike
+		// the Laborde sphere:
 		vec3_5v ax = history[i].cylinder.axis();
-		result[4*i+1] = rad2deg(std::atan2(ax[1].value(), ax[0].value()));
-		result[4*i+2] = rad2deg(std::asin(std::min(std::max(ax[2].value(),
+		result[6*i+4] = rad2deg(std::atan2(ax[1].value(), ax[0].value()));
+		result[6*i+5] = rad2deg(std::asin(std::min(std::max(ax[2].value(),
 		                                                    -1.0), 1.0)));
-		result[4*i+3] = history[i].cylinder.k0().value();
 	}
 
 	if (n_steps)
