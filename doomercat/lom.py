@@ -19,9 +19,18 @@
 # limitations under the Licence.
 
 import numpy as np
-from .optimize import levenberg_marquardt
+from math import atan2, degrees
+from .cppextensions import bfgs_optimize
 from .lombase import LOMBase, _has_pyproj
 from .defs import _ellipsoids
+
+def compute_lonc_estimate(lon: np.ndarray) -> float:
+    """
+    Computes a first estimate of the central longitude.
+    """
+    x = np.cos(np.deg2rad(lon)).mean()
+    y = np.sin(np.deg2rad(lon)).mean()
+    return degrees(atan2(y,x))
 
 class LabordeObliqueMercator(LOMBase):
 	"""
@@ -36,9 +45,8 @@ class LabordeObliqueMercator(LOMBase):
 	(1) Optimize the LOM for a set of points:
 
 	LabordeObliqueMercator(lon, lat, weight=None, pnorm=2, k0_ap=0.98,
-	                       sigma_k0=0.02, initial_lambda=10, nu=0.99,
-	                       lbda_min=1e-10, lbda_max=1e10, ellipsoid='WGS84',
-	                       use='all', a=None, f=None)
+	                       sigma_k0=0.02, ellipsoid='WGS84', f=None, a=None,
+	                       Nmax=200)
 
 	   lon, lat       : Iterable sets of longitude and latitude coordinates
 	                    of the data set.
@@ -63,38 +71,19 @@ class LabordeObliqueMercator(LOMBase):
 	                    small k_0, i.e. the standard deviation of
 	                    the quadratic branch of the k_0 potential.
 	                    Default: 0.02
-	   initial_lambda : Start value of the variable dampening factor of the
-	                    Levenberg-Marquardt algorithm.
-	                    Default: 2
-	   nu             : Step scaling value of the dampening factor of the
-	                    Levenberg-Marquardt algorithm.
-	                    Default: 0.99
-	   lbda_min       : Minimum dampening value of the Levenberg-Marquardt
-	                    algorithm.
-	                    Default: 1e-10
-	   lbda_max       : Maximum dampening value of the Levenberg-Marquardt
-	                    algorithm.
-	                    Default: 1e10
 	   ellipsoid      : Name of the reference ellipsoid. Must be one of
 	                    'WGS84' and 'GRS80'. Can be overriden by using the
 	                    a and f parameters.
 	                    Default: 'WGS84'
+	   f              : If not None, the flattening of the reference rotational
+	                    ellipsoid.
+	                    Default: None
 	   a              : If not None, the large axis of of the reference
 	                    rotational ellipsoid. Only used for projection,
 	                    irrelevant for the optimization.
 	                    Default: None
-	   f              : If not None, the flattening of the reference rotational
-	                    ellipsoid.
-	                    Default: None
-	   use            : How many points to use for the optimization.
-	                    If 'all', all points of the data set are
-	                    used. If a number is given, only that many
-	                    of the points are used, potentially speeding
-	                    up and stabilizing the inversion. The points
-	                    to use are then selected by iteratively
-	                    removing a point of the spatially closest
-	                    pair until only *use* nodes remain.
-	                    Default: 'all'
+	   Nmax           : Maximum number of iterations of the BFGS algorithm.
+	                    Default: 200
 
 
 	(2) Give the parameters of the LOM to allow projecting:
@@ -131,19 +120,15 @@ class LabordeObliqueMercator(LOMBase):
 	doi: 10.3133/pp1396
 	"""
 	def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
-	             sigma_k0=0.02, initial_lambda=10, nu=0.99,
-	             lbda_min=1e-10, lbda_max=1e10, ellipsoid=None,
-	             use='all', f=None, a=None,
-	             lonc=None, lat_0=None, alpha=None, k0=None,
+	             sigma_k0=0.02, ellipsoid=None, f=None, a=None,
+	             lonc=None, lat_0=None, alpha=None, k0=None, Nmax=200,
 	             logger=None):
 		# Initialization.
 		# 1) Sanity checks:
 		assert ellipsoid in _ellipsoids or ellipsoid is None
 		assert pnorm >= 2
-		initial_lambda = float(initial_lambda)
-		nu = float(nu)
-		lbda_min = float(lbda_min)
-		lbda_max = float(lbda_max)
+		Nmax = int(Nmax)
+		assert Nmax > 0
 
 		# Ellipsoid parameters:
 		if ellipsoid is None:
@@ -180,17 +165,27 @@ class LabordeObliqueMercator(LOMBase):
 
 			assert lon.shape == lat.shape
 
+			# Handle lonc. If it is given, we shift the longitudes
+			# accordingly:
+			if lonc is None:
+				lonc = compute_lonc_estimate(lon)
+				print("lonc=",lonc)
+			else:
+				lonc = float(lonc)
+			if lonc != 0.0:
+				lon = lon - lonc
+
+			# Initial guess for the cylinder axis:
+			# TODO
+			cyl_lon0, cyl_lat0 = 0.0, 10.0
+
 			if logger is not None:
-				logger.log(20, "Starting Levenberg-Marquardt optimization.")
+				logger.log(20, "Starting BFGS optimization.")
 
 			# Optimize the Laborde oblique Mercator:
-			lonc, lat_0, alpha, k0 = \
-			   levenberg_marquardt(lon, lat, weight=weight, pnorm=pnorm,
-			                       k0_ap=k0_ap, sigma_k0=sigma_k0,
-			                       initial_lambda=initial_lambda,
-			                       nu=nu, lbda_min=lbda_min,
-			                       lbda_max=lbda_max, f=f,
-			                       use=use, logger=logger)
+			lat_0, alpha, k0 = \
+			    bfgs_optimize(lon, lat, weight, pnorm, k0_ap, sigma_k0, f,
+			                  cyl_lon0, cyl_lat0, Nmax)
 
 		else:
 			# Case 2: The parameters are given directly.

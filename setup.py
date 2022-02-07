@@ -18,7 +18,19 @@
 # limitations under the Licence.
 
 # Imports:
-from setuptools import setup
+from setuptools import setup, Extension
+
+sources = ['functions.cpp','arithmetic.cpp','cost.cpp','ctypesinterface.cpp',
+           'dataset.cpp','labordecylinder.cpp','optimize.cpp',
+           'projecteddata.cpp']
+
+cpp_ext = Extension('doomercat._cppextensions',
+                    #define_macros = [('MAJOR_VERSION', '1'),
+                    #                 ('MINOR_VERSION', '0')],
+                    include_dirs = ['cpp/include'],
+                    #libraries = ['tcl83'],
+                    #library_dirs = ['/usr/local/lib'],
+                    sources = ['cpp/src/' + f for f in sources])
 
 # Setup:
 
@@ -36,5 +48,6 @@ setup(
 	provides=['doomercat'],
 	scripts=[],
 	install_requires=['numpy'],
+	ext_modules=[cpp_ext],
 	license='EUPLv1.2',
 )

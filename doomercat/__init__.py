@@ -19,5 +19,5 @@
 
 from .lom import LabordeObliqueMercator
 from .shapefile import points_from_shapefile
-from .optimize import levenberg_marquardt
+from .cppextensions import bfgs_optimize
 from .lomerror import OptimizeError
