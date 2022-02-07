@@ -182,8 +182,6 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
 		result[4*i+3] = history[i].cylinder.k0().value();
 	}
 
-	std::cout << "nsteps: " << history.size() << "\n" << std::flush;
-
 	if (n_steps)
 		*n_steps = history.size();
 
