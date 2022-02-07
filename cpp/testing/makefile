@@ -17,7 +17,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-CPPFLAGS=-I../include/ -Wall
+CPPFLAGS=-I../include/ -Wall -O3
 
 HEADERS=../include/arithmetic.hpp ../include/autodouble.hpp \
         ../include/quaternion.hpp ../include/types.hpp \
@@ -66,5 +66,5 @@ optimize.o: $(ALLHEADERS) ../src/optimize.cpp
 	g++ $(CPPFLAGS) -c ../src/optimize.cpp
 
 doomercat.so: $(ALLHEADERS) $(ALLSOURCES)
-	g++ $(CPPFLAGS) -O3 -g0 -march=native -fPIC $(ALLSOURCES) -shared \
+	g++ $(CPPFLAGS) -g0 -march=native -fPIC $(ALLSOURCES) -shared \
 	   -o doomercat.so -Wl,-z,defs
