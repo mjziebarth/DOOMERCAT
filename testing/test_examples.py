@@ -56,7 +56,7 @@ def test_australia_small_circle():
 
     Test here the impact of the starting point.
     """
-    lon, lat = np.loadtxt('data/small-circle-australia.txt').T
+    lon, lat = read_geojson('data/small-circle-australia.geojson')
 
     LOM = LabordeObliqueMercator(lon=lon, lat=lat, k0_ap=0.0,
                                  cyl_lon0=-25.0, cyl_lat0=-50.0)
