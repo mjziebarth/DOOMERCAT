@@ -31,7 +31,7 @@ def test_basic_setup():
 	LOM = LabordeObliqueMercator(lon=lon, lat=lat)
 
 	# Test agains reference values:
-	assert abs(LOM.lat_0() - 10.502155816474) < 1e-8
-	assert abs(LOM.lonc()  - 23.200227098947323) < 1e-8
-	assert abs(LOM.alpha() - 70.00650639728384) < 1e-8
-	assert abs(LOM.k0()    - 0.9999765620798453) < 1e-8
+	assert abs(LOM.lat_0() - 10.53730561) < 1e-8
+	assert abs(LOM.lonc()  - 23.20022710) < 1e-8
+	assert abs(LOM.alpha() - 69.34166766) < 1e-8
+	assert abs(LOM.k0()    - 1.00000000) < 1e-8
