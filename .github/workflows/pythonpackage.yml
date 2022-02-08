@@ -36,4 +36,5 @@ jobs:
         pytest testing/test_import.py
         # Now run the full test suite:
         pip install pyproj
+        cd testing
         pytest
