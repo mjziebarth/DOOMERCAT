@@ -22,7 +22,7 @@ import numpy as np
 
 # See if we can import the shapefile module:
 try:
-	import shapefile
+	import shapefile # type: ignore
 	_has_shapefile = True
 except:
 	_has_shapefile = False

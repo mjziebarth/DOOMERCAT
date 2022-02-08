@@ -29,7 +29,7 @@ from .defs import _ellipsoids
 # default to _has_pyproj=False. The check can be performed by trying
 # to import from the namespace that QGIS provides to the plugins:
 try:
-	from qgis.core import Qgis
+	from qgis.core import Qgis # type: ignore
 	_is_qgis = True
 except:
 	_is_qgis = False
