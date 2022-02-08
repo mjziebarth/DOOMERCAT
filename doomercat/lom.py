@@ -84,6 +84,11 @@ class LabordeObliqueMercator(LOMBase):
 	                    Default: None
 	   Nmax           : Maximum number of iterations of the BFGS algorithm.
 	                    Default: 200
+	   cyl_lon0       : Initial longitude of the cylinder axis when starting
+	                    the optimization.
+	                    Default: 0.0
+	   cyl_lat0       : Initial latitude of the cylinder axis.
+	                    Default: 10.0
 
 
 	(2) Give the parameters of the LOM to allow projecting:
@@ -121,8 +126,8 @@ class LabordeObliqueMercator(LOMBase):
 	"""
 	def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
 	             sigma_k0=0.02, ellipsoid=None, f=None, a=None,
-	             lonc=None, lat_0=None, alpha=None, k0=None, Nmax=200,
-	             logger=None):
+	             cyl_lon0=0.0, cyl_lat0=10.0, lonc=None, lat_0=None, alpha=None,
+	             k0=None, Nmax=200, logger=None):
 		# Initialization.
 		# 1) Sanity checks:
 		assert ellipsoid in _ellipsoids or ellipsoid is None
@@ -176,8 +181,8 @@ class LabordeObliqueMercator(LOMBase):
 				lon = lon - lonc
 
 			# Initial guess for the cylinder axis:
-			# TODO
-			cyl_lon0, cyl_lat0 = 0.0, 10.0
+			cyl_lon0 = float(cyl_lon0)
+			cyl_lat0 = float(cyl_lat0)
 
 			if logger is not None:
 				logger.log(20, "Starting BFGS optimization.")
