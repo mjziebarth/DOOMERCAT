@@ -46,6 +46,8 @@ public:
 	const T& j() const;
 	const T& k() const;
 
+	std::array<T,3> imag() const;
+
 	Quaternion<T> operator*(const Quaternion<T>&) const;
 //	Quaternion operator*(const T&) const;
 //	Quaternion operator/(const T&) const;
@@ -60,10 +62,13 @@ public:
 
 	Quaternion conj() const;
 
-	std::array<T,3> imag() const;
 
 	Quaternion& operator*=(const Quaternion& r);
 	*/
+
+	/* qrot(q.conj(), *this, q): */
+	template<typename T2>
+	ImaginaryQuaternion<T2> rotate(const Quaternion<T2>& q) const;
 
 private:
 	T _i,_j,_k;
@@ -79,6 +84,53 @@ Quaternion<T> ImaginaryQuaternion<T>::operator*(const Quaternion<T>& p) const
 	            std::move(  (_i * p.j()) - (_j * p.i()) + (_k * p.r())));
 }
 
+template<typename T>
+const T& ImaginaryQuaternion<T>::i() const
+{
+	return _i;
+}
+
+template<typename T>
+const T& ImaginaryQuaternion<T>::j() const
+{
+	return _j;
+}
+
+template<typename T>
+const T& ImaginaryQuaternion<T>::k() const
+{
+	return _k;
+}
+
+template<typename T>
+std::array<T,3> ImaginaryQuaternion<T>::imag() const
+{
+	return std::array<T,3>({_i, _j, _k});
+}
+
+template<typename T>
+template<typename T2>
+ImaginaryQuaternion<T2>
+ImaginaryQuaternion<T>::rotate(const Quaternion<T2>& q) const
+{
+	/* Explicit formula for qrot(q.conj(), *this, q) computed
+	 * with Sympy, where q is an ordinary quaternion. */
+	return ImaginaryQuaternion<T2>(// i =
+	                                   q.i()*( _i*q.i() + _j*q.j() + _k*q.k())
+	                                 - q.j()*( _i*q.j() - _j*q.i() + _k*q.r())
+	                                 + q.k()*(-_i*q.k() + _j*q.r() + _k*q.i())
+	                                 + q.r()*( _i*q.r() + _j*q.k() - _k*q.j()),
+	                              // j =
+	                                   q.i()*( _i*q.j() - _j*q.i() + _k*q.r())
+	                                 + q.j()*( _i*q.i() + _j*q.j() + _k*q.k())
+	                                 - q.k()*( _i*q.r() + _j*q.k() - _k*q.j())
+	                                 + q.r()*(-_i*q.k() + _j*q.r() + _k*q.i()),
+	                              // k =
+	                                 - q.i()*(-_i*q.k() + _j*q.r() + _k*q.i())
+	                                 + q.j()*( _i*q.r() + _j*q.k() - _k*q.j())
+	                                 + q.k()*( _i*q.i() + _j*q.j() + _k*q.k())
+	                                 + q.r()*( _i*q.j() - _j*q.i() + _k*q.r()));
+}
 
 
 
