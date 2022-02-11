@@ -35,7 +35,7 @@
 
 
 enum BFGS_exit_code_t {
-	MAX_ITERATIONS, CONVERGED, RHO_DIVERGENCE, LINESEARCH_FAIL
+	MAX_ITERATIONS, CONVERGED, RHO_DIVERGENCE, LINESEARCH_FAIL, COST_DIVERGENCE
 };
 
 template<typename point_t>
@@ -55,19 +55,18 @@ BFGS_result_t<typename lina::point_t>
          const size_t Nmax, const double epsilon
     )
 {
-	typedef typename lina::real_t real_t;
 	typedef typename lina::point_t point_t;
 	typedef typename lina::matrix_dxd_t Mdxd_t;
 	typedef typename lina::column_vectord_t vd_t;
-	typedef typename lina::row_vectord_t row_vd_t;
 
 	/* Follows Nocedal & Wright: Numerical Optimization */
-	Mdxd_t Hk(lina::identity());
+	Mdxd_t Hk(1e-3 * lina::identity());
+	Hk(4,4) *= 1e-5;
 	const Mdxd_t I(lina::identity());
 
 	/* Configuration of the Wolfe condition: */
-	const double c1 = 1e-4;
-	const double c2 = 0.9;
+	constexpr double c1 = 1e-4;
+	constexpr double c2 = 0.9;
 
 	/* Init the starting point from the value given: */
 	vd_t xk;
@@ -84,6 +83,7 @@ BFGS_result_t<typename lina::point_t>
 	vd_t grad_fk;
 	lina::init_column_vectord(grad_fk, gradient(x0));
 	double cost0 = cost(x0);
+	size_t Hk_age = 0;
 	for (size_t i=0; i<Nmax-1; ++i){
 		// From xk, compute the point:
 		lina::fill_array(P, xk);
@@ -98,8 +98,18 @@ BFGS_result_t<typename lina::point_t>
 			std::cout << ")\n";
 		#endif
 
+		// Check finiteness of cost function:
+		if (std::isnan(cost0) || std::isinf(cost0)){
+			/* This might happen due to bad numerical problems. Exit
+			 * before this influences anything else. */
+			result.exit_code = COST_DIVERGENCE;
+			std::cout << "COST_DIVERGENCE!\n" << std::flush;
+			break;
+		}
+
+
 		// Compute the search direction:
-		vd_t pk = - (Hk * grad_fk);
+		vd_t pk = (Hk_age > 3) ? - (Hk * grad_fk) : -1.0 * grad_fk;
 
 
 		#ifdef DEBUG
@@ -117,9 +127,12 @@ BFGS_result_t<typename lina::point_t>
 		constexpr double ALPHA_REDUX = 0.5;
 		const double alpha_min = 1e-10 * lina::norm(xk) / lina::norm(pk);
 		const size_t jmax_down
-		   = std::min(static_cast<size_t>(std::floor(std::log(alpha_min)
-		                                             / std::log(ALPHA_REDUX))),
-		              static_cast<size_t>(100));
+		   = std::max(
+		        std::min(static_cast<size_t>(
+		                    std::floor(std::log(alpha_min)
+		                                      / std::log(ALPHA_REDUX))),
+		                 static_cast<size_t>(100)),
+		        static_cast<size_t>(10));
 		double alpha = 1.0;
 		vd_t xkp1(xk + alpha * pk);
 		point_t Pp1;
@@ -127,15 +140,16 @@ BFGS_result_t<typename lina::point_t>
 		vd_t grad_fkp1;
 		lina::init_column_vectord(grad_fkp1, gradient(Pp1));
 		double cost1 = cost(Pp1);
+
 		const double grad_fk_dot_pk = lina::dot(grad_fk, pk);
 		bool wolfe_success = false;
 		bool wolfe_1 = false;
 		bool wolfe_2 = false;
 		for (size_t j=0; j<jmax_down; ++j)
 		{
-			wolfe_1 = cost1 <= cost0 + c1 * alpha * grad_fk_dot_pk;   // Wolfe 1, 3.6a
+			wolfe_1 = cost1 <= cost0 + c1 * alpha * grad_fk_dot_pk; // Wolfe 1, 3.6a
 			wolfe_2 = lina::dot(grad_fkp1,pk) >= c2 * grad_fk_dot_pk; // Wolfe 2, 3.6b
-			if (wolfe_1 && wolfe_2)
+			if (wolfe_1 && (wolfe_2 || Hk_age <= 3))
 			{
 				wolfe_success = true;
 				break;
@@ -153,15 +167,22 @@ BFGS_result_t<typename lina::point_t>
 				/* The sufficient reduction was not fulfilled. But maybe
 				 * the Hessian changed a lot, so we might gain something
 				 * from proceeding for another small step: */
+				result.exit_code = MAX_ITERATIONS;
 			} else {
 				/* No sufficient reduction possible. */
 				result.exit_code = LINESEARCH_FAIL;
-				return result;
+
+				/* Switch back to gradient descent: */
+				Hk = lina::identity();
+				Hk_age = 0;
+				continue;
 			}
 			#ifdef DEBUG
 			std::cout << "Wolfe failed. W1=" << wolfe_1 << ", W2="
-			          << wolfe_2 << "\n";
+				      << wolfe_2 << "\n";
 			#endif
+		} else {
+			result.exit_code = MAX_ITERATIONS;
 		}
 
 
@@ -208,6 +229,7 @@ BFGS_result_t<typename lina::point_t>
 		Hk = (I - rhok * sk * lina::transpose(yk)) * Hk
 		             * (I - rhok * yk * lina::transpose(sk))
 		     + rhok * sk * lina::transpose(sk);
+		++Hk_age;
 
 		// Early exit:
 		if (lina::norm(grad_fk) < epsilon){
