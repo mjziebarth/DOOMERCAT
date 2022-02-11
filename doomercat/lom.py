@@ -23,14 +23,8 @@ from math import atan2, degrees
 from .cppextensions import bfgs_optimize
 from .lombase import LOMBase, _has_pyproj
 from .defs import _ellipsoids
+from .initial import initial_parameters
 
-def compute_lonc_estimate(lon: np.ndarray) -> float:
-    """
-    Computes a first estimate of the central longitude.
-    """
-    x = np.cos(np.deg2rad(lon)).mean()
-    y = np.sin(np.deg2rad(lon)).mean()
-    return degrees(atan2(y,x))
 
 class LabordeObliqueMercator(LOMBase):
 	"""
@@ -125,7 +119,7 @@ class LabordeObliqueMercator(LOMBase):
 	doi: 10.3133/pp1396
 	"""
 	def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
-	             sigma_k0=0.02, ellipsoid=None, f=None, a=None,
+	             sigma_k0=0.002, ellipsoid=None, f=None, a=None,
 	             cyl_lon0=0.0, cyl_lat0=10.0, lonc=None, lat_0=None, alpha=None,
 	             k0=None, Nmax=200, logger=None):
 		# Initialization.
@@ -170,27 +164,23 @@ class LabordeObliqueMercator(LOMBase):
 
 			assert lon.shape == lat.shape
 
-			# Handle lonc. If it is given, we shift the longitudes
-			# accordingly:
-			if lonc is None:
-				lonc = compute_lonc_estimate(lon)
-				print("lonc=",lonc)
-			else:
-				lonc = float(lonc)
-			if lonc != 0.0:
-				lon = lon - lonc
-
-			# Initial guess for the cylinder axis:
+			# Initial guess for the cylinder axis and central point:
+			(cyl_lon0, cyl_lat0), (lonc0, lat_0) = initial_parameters(lon, lat)
 			cyl_lon0 = float(cyl_lon0)
 			cyl_lat0 = float(cyl_lat0)
+			lonc0 = float(lonc0)
 
 			if logger is not None:
 				logger.log(20, "Starting BFGS optimization.")
 
 			# Optimize the Laborde oblique Mercator:
-			lat_0, alpha, k0 = \
+			result = \
 			    bfgs_optimize(lon, lat, weight, pnorm, k0_ap, sigma_k0, f,
-			                  cyl_lon0, cyl_lat0, Nmax)
+			                  cyl_lon0, cyl_lat0, lonc0, Nmax)
+			lonc = result.lonc
+			lat_0 = result.lat_0
+			alpha = result.alpha
+			k0 = result.k0
 
 		else:
 			# Case 2: The parameters are given directly.
