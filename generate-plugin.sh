@@ -17,8 +17,33 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+set -e
+
 
 # TODO Do some basic tests:
+
+
+# Make sure that the C++ code is compiled into dynamic libraries:
+if [ "$1" = "--portable" ]; then
+    if [ ! -f doomercat/_cppextensions.so ]; then
+        echo "Compiling portable linux shared object..."
+        echo "(to build optimized native version, call script without '--portable' option)"
+        python -c "from compile import compile_linux;compile_linux(native=False)"
+    fi
+else
+    if [ ! -f doomercat/_cppextensions_native.so ]; then
+        echo "Compiling native linux shared object..."
+        echo "(to build portable version, call script with '--portable' option)"
+        python -c "from compile import compile_linux;compile_linux()"
+    fi
+fi
+if [ ! -f doomercat/_cppextensions.dll ]; then
+    if [ "$1" = "--portable" ]; then
+        echo "Compiling portable windows shared library..."
+        python -c "from compile import cross_compile_win;cross_compile_win()"
+    fi
+fi
+
 
 # Create the plugin directory:
 mkdir -p build/doomercat_plugin
@@ -27,11 +52,29 @@ mkdir -p build/doomercat_plugin
 python build-help.py
 
 # Copy the DOOMERCAT module:
-cp doomercat/__init__.py doomercat/defs.py doomercat/laborde.py \
-   doomercat/lom.py doomercat/lombase.py doomercat/optimize.py \
-   doomercat/quaternion.py doomercat/shapefile.py doomercat/lomerror.py \
+cp doomercat/__init__.py doomercat/defs.py doomercat/lom.py \
+   doomercat/lombase.py doomercat/shapefile.py doomercat/lomerror.py \
+   doomercat/cppextensions.py \
    build/doomercat_plugin
 mv build/doomercat_plugin/__init__.py build/doomercat_plugin/doomercat.py
+
+# Copy the C++ libraries:
+if [ "$1" = "--portable" ]; then
+    cp  doomercat/_cppextensions.so doomercat/_cppextensions.dll \
+        build/doomercat_plugin
+    if [ -f build/doomercat_plugin/_cppextensions_native.so ]; then
+        rm build/doomercat_plugin/_cppextensions_native.so
+    fi
+else
+    # Native-only linux plugin:
+    cp doomercat/_cppextensions_native.so build/doomercat_plugin
+    if [ -f build/doomercat_plugin/_cppextensions.so ]; then
+        rm build/doomercat_plugin/_cppextensions.so
+    fi
+    if [ -f build/doomercat_plugin/_cppextensions.dll ]; then
+        rm build/doomercat_plugin/_cppextensions.dll
+    fi
+fi
 
 # Copy the relevant python and config files for the plugin:
 cp qgis-plugin/__init__.py qgis-plugin/doomercatplugin.py \

@@ -17,7 +17,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-CPPFLAGS=-I../include/ -Wall -O3
+CPPFLAGS=-I../include/ -Wall -O3 -march=native
 
 HEADERS=../include/arithmetic.hpp ../include/autodouble.hpp \
         ../include/quaternion.hpp ../include/types.hpp \
@@ -30,7 +30,7 @@ ALLHEADERS = $(HEADERS) ../include/dataset.hpp ../include/projecteddata.hpp \
 ALLSOURCES = ../src/dataset.cpp ../src/projecteddata.cpp ../src/cost.cpp \
              ../src/arithmetic.cpp ../src/labordecylinder.cpp \
              ../src/functions.cpp ../src/ctypesinterface.cpp \
-             ../src/optimize.cpp
+             ../src/optimize.cpp ../src/linalg.cpp
 
 all: testing doomercat.so
 
@@ -64,6 +64,9 @@ functions.o: $(HEADERS) ../src/functions.cpp
 
 optimize.o: $(ALLHEADERS) ../src/optimize.cpp
 	g++ $(CPPFLAGS) -c ../src/optimize.cpp
+
+linalg.o: $(ALLHEADERS) ../src/linalg.cpp
+	g++ $(CPPFLAGS) -c ../src/linalg.cpp
 
 doomercat.so: $(ALLHEADERS) $(ALLSOURCES)
 	g++ $(CPPFLAGS) -g0 -march=native -fPIC $(ALLSOURCES) -shared \
