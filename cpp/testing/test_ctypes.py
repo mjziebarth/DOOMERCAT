@@ -45,7 +45,7 @@ def compute_cost(lon, lat, data_lon, data_lat, w, k0, pnorm, k0_ap, sigma_k0,
     return float(result)
 
 
-def compute_cost_and_gradient(lon, lat, data_lon, data_lat, w, k0, pnorm,
+def compute_cost_and_gradient(lon, lat, data_lon, data_lat, w, lonc, k0, pnorm,
                               k0_ap, sigma_k0, f):
     """
     Computes the cost function and its derivatives.
@@ -61,6 +61,7 @@ def compute_cost_and_gradient(lon, lat, data_lon, data_lat, w, k0, pnorm,
     assert w.size == N
     lon = float(lon)
     lat = float(lat)
+    lonc = float(lonc)
     k0 = float(k0)
     pnorm = int(pnorm)
     k0_ap = float(k0_ap)
@@ -72,7 +73,8 @@ def compute_cost_and_gradient(lon, lat, data_lon, data_lat, w, k0, pnorm,
                                      data_lon.ctypes.data_as(POINTER(c_double)),
                                      data_lat.ctypes.data_as(POINTER(c_double)),
                                      w.ctypes.data_as(POINTER(c_double)),
-                                     c_double(lon), c_double(lat), c_double(k0),
+                                     c_double(lon), c_double(lat), c_double(lonc),
+                                     c_double(k0),
                                      c_double(f), c_uint(pnorm),
                                      c_double(k0_ap), c_double(sigma_k0),
                                      result.ctypes.data_as(POINTER(c_double)))
