@@ -71,6 +71,7 @@ public:
 
 	static autodouble exp(const autodouble& x);
 	static autodouble log(const autodouble& x);
+	static autodouble log_move(autodouble&& x);
 	static autodouble sqrt(const autodouble& x);
 	static autodouble sqrt(autodouble&& x);
 	static autodouble pow(const autodouble& x, const autodouble& a);
@@ -84,6 +85,8 @@ public:
 	static autodouble asin(const autodouble& x);
 	static autodouble acos(const autodouble& x);
 	static autodouble atan(const autodouble& x);
+	static autodouble atan(autodouble&& x);
+	static autodouble atan2(const autodouble& y, const autodouble& x);
 	static autodouble atanh(const autodouble& x);
 	static autodouble atanh_move(autodouble&& x);
 
@@ -545,6 +548,32 @@ autodouble<d> autodouble<d>::atan(const autodouble& x)
 }
 
 template<dim_t d>
+autodouble<d> autodouble<d>::atan(autodouble&& x)
+{
+	/* d/dx atan(x) = 1/(1+x^2) */
+	const double f = 1.0 / (1.0 + x.x * x.x);
+	x.x = std::atan(x.x);
+	for (dim_t i=0; i<d; ++i)
+		x.deriv[i] = f * x.deriv[i];
+
+	return x;
+}
+
+template<dim_t d>
+autodouble<d> autodouble<d>::atan2(const autodouble& y, const autodouble& x)
+{
+	/* d/dx atan(z) = 1/(1+z^2) */
+	const double z = y.x / x.x;
+	const double f = 1.0 / (1.0 + z * z);
+	const double ix = 1.0 / x.x;
+	std::array<double,d> deriv_new;
+	for (dim_t i=0; i<d; ++i)
+		deriv_new[i] = f * ix * (y.deriv[i] - y.x * ix * x.deriv[i]);
+
+	return autodouble<d>(std::atan2(y.x, x.x), deriv_new);
+}
+
+template<dim_t d>
 autodouble<d> autodouble<d>::atanh(const autodouble& x)
 {
 	/* Domain check: */
@@ -616,6 +645,17 @@ autodouble<d> autodouble<d>::log(const autodouble& x)
 		deriv_new[i] = x.deriv[i] / x.x;
 
 	return autodouble(std::log(x.x), deriv_new);
+}
+
+template<dim_t d>
+autodouble<d> autodouble<d>::log_move(autodouble<d>&& x)
+{
+	const double ix = 1.0 / x.x;
+	x.x = std::log(x.x);
+	for (dim_t i=0; i<d; ++i)
+		x.deriv[i] *= ix;
+
+	return x;
 }
 
 

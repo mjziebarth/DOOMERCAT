@@ -52,6 +52,17 @@ T log(const T& x) {
 }
 
 template<class T>
+T log(T&& x) {
+	return T::log_move(std::move(x));
+}
+
+template<class T>
+T log(T& x) {
+	return T::log(x);
+}
+
+
+template<class T>
 T sqrt(const T& x) {
 	return T::sqrt(x);
 }
@@ -74,6 +85,16 @@ T acos(const T& x) {
 template<class T>
 T atan(const T& x) {
 	return T::atan(x);
+}
+
+template<class T>
+T atan(T&& x) {
+	return T::atan(std::move(x));
+}
+
+template<class T>
+T atan2(const T& y, const T& x) {
+	return T::atan2(y,x);
 }
 
 template<class T>
