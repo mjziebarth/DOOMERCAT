@@ -63,9 +63,12 @@ public:
 	SqMatrix operator-(const SqMatrix& other) &&;
 	SqMatrix operator-(SqMatrix&& other) const;
 
+	SqMatrix operator*(double c) &&;
+
 	SqMatrix operator-() &&;
 
 	real operator()(size_t i, size_t j) const;
+	real& operator()(size_t i, size_t j);
 
 	ColVector<d,real> operator*(const ColVector<d,real>&) const;
 
@@ -105,6 +108,7 @@ SqMatrix<d,real>::operator*(const SqMatrix<d,real>& other) &&
 	// 			R.at(i,j) += at(i,k) * other.at(k,j);
 	// return R;
 }
+
 
 
 template<size_t d, typename real>
@@ -158,7 +162,36 @@ ColVector<d,real> SqMatrix<d,real>::operator*(const ColVector<d,real>& v) const
 
 
 template<size_t d, typename real>
+SqMatrix<d,real>
+SqMatrix<d,real>::operator*(double c) &&
+{
+	for (size_t i=0; i<d*d; ++i)
+		M[i] *= c;
+
+	return std::move(*this);
+}
+
+template<size_t d, typename real>
+SqMatrix<d,real> operator*(real c, SqMatrix<d,real>&& m)
+{
+	return std::move(m).operator*(c);
+}
+
+
+
+
+template<size_t d, typename real>
 real SqMatrix<d,real>::operator()(size_t i, size_t j) const
+{
+	if (i >= d)
+		throw std::runtime_error("Out-of-bounds acces in SqMatrix.");
+	if (j >= d)
+		throw std::runtime_error("Out-of-bounds acces in SqMatrix.");
+	return at(i,j);
+}
+
+template<size_t d, typename real>
+real& SqMatrix<d,real>::operator()(size_t i, size_t j)
 {
 	if (i >= d)
 		throw std::runtime_error("Out-of-bounds acces in SqMatrix.");
@@ -275,6 +308,7 @@ class ColVector
 public:
 	ColVector() {};
 	ColVector(ColVector&&) = default;
+	ColVector(std::array<real,d>&& x) : x(x) {};
 
 	ColVector& operator=(ColVector&&) = default;
 	ColVector& operator=(ColVector&) = default;
@@ -290,6 +324,10 @@ public:
 	ColVector<d,real> operator*(double c) const;
 	ColVector operator+(const ColVector& other) const;
 	ColVector operator-(const ColVector& other) const;
+	ColVector& operator/=(double c);
+	ColVector& operator-=(const ColVector& other);
+
+	ColVector cross(const ColVector& other) const;
 
 	ColVector operator-() &&;
 
@@ -298,6 +336,7 @@ public:
 	real dot(const ColVector& other) const;
 
 	real norm() const;
+
 
 private:
 	std::array<real,d> x;
@@ -368,6 +407,25 @@ ColVector<d,real> ColVector<d,real>::operator-() &&
 		x[i] = -x[i];
 	return std::move(*this);
 }
+
+template<size_t d, typename real>
+ColVector<d,real>& ColVector<d,real>::operator/=(double c)
+{
+	for (size_t i=0; i<d; ++i)
+		x[i] /= c;
+
+	return *this;
+}
+
+template<size_t d, typename real>
+ColVector<d,real>& ColVector<d,real>::operator-=(const ColVector& other)
+{
+	for (size_t i=0; i<d; ++i)
+		x[i] -= other.x[i];
+
+	return *this;
+}
+
 
 template<size_t d, typename real>
 RowVector<d,real> ColVector<d,real>::transpose() const

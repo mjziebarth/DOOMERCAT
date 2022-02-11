@@ -40,11 +40,15 @@ public:
 	LabordeCylinder(const Quaternion<real5v>& q, const real5v& k0,
 	                const double f);
 
+	LabordeCylinder(double lon_cyl, double lat_cyl, double lonc, double k0,
+	                double f);
+
 	vec3_5v axis() const;
 
 	real5v azimuth() const;
 
 	real5v lat_0() const;
+	real5v lonc() const;
 
 	const real5v& k0() const;
 
@@ -54,11 +58,16 @@ public:
 	   from_axis_lon_lat(double lon, double lat, double k0, double f);
 
 	static std::shared_ptr<LabordeCylinder>
+	   from_axis_and_central(double lon_cyl, double lat_cyl, double lonc,
+	                         double k0, double f);
+
+	static std::shared_ptr<LabordeCylinder>
 	   from_parameters(double qr, double qi, double qj, double qk, double k0,
 	                   double f);
 
 	const real5v& B() const;
 	const real5v& C() const;
+	const real5v& lambda_c() const;
 	double e() const;
 	double f() const;
 
@@ -69,12 +78,15 @@ private:
 	double e2;
 	double _e;
 	vec3_5v _axis;
+	vec3_5v _central_axis;
+	real5v _lambda_c;
 	real5v fies;
 	real5v vize;
 	real5v _B;
 	real5v _C;
 
 	static vec3_5v compute_axis(const Quaternion<real5v>& q);
+	static vec3_5v compute_central(const Quaternion<real5v>& q);
 };
 
 }
