@@ -50,8 +50,6 @@ static real5v mercator_project_residual(const Quaternion<real5v>& qv,
 	const real5v norm(sqrt(  r.i()*r.i()
 	                       + r.j()*r.j()
 	                       + r.k()*r.k()));
-	//real5v norm_h(sqrt(r.i()*r.i() + r.j()*r.j()));
-
 	/* TODO: Is the norm important? Do we need one? Two? None? */
 	//real5v x(k0 * r.i() / norm_h);
 	//real5v y(k0 * r.j() / norm_h);
@@ -96,7 +94,7 @@ static real5v compute_cost(const LabordeProjectedDataSet& projected_data,
 	if (k0.value() < k0_ap)
 		cost += pow2((k0 - k0_ap)/sigma_k0);
 
-	return cost;
+	return log(cost);
 }
 
 
