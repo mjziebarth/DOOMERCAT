@@ -42,8 +42,9 @@ extern "C" {
 
 	int compute_cost_and_derivatives(const size_t N, const double* lon,
 	                 const double* lat, const double* w, double lon_cyl,
-	                 double lat_cyl, double k0, double f,  unsigned int pnorm,
-	                 double k0_ap, double sigma_k0, double* result);
+	                 double lat_cyl, double lonc, double k0, double f,
+	                 unsigned int pnorm, double k0_ap, double sigma_k0,
+	                 double* result);
 
 	int perform_billo_gradient_descent(const size_t N, const double* lon,
 	                 const double* lat, double f,
@@ -53,7 +54,8 @@ extern "C" {
 
 	int perform_bfgs(const size_t N, const double* lon, const double* lat,
 	                 const double* w, double f, unsigned int pnorm,
-	                 double k0_ap, double sigma_k0, double lon0, double lat0,
+	                 double k0_ap, double sigma_k0, double lon_cyl0,
+	                 double lat_cyl0, double lonc0,
 	                 const size_t Nmax, double* result, unsigned int* n_steps);
 }
 
@@ -90,12 +92,13 @@ int compute_cost(const size_t N, const double* lon, const double* lat,
 
 int compute_cost_and_derivatives(const size_t N, const double* lon,
         const double* lat, const double* w, double lon_cyl, double lat_cyl,
-        double k0, double f, unsigned int pnorm, double k0_ap, double sigma_k0,
-        double* result)
+        double lonc, double k0, double f, unsigned int pnorm, double k0_ap,
+        double sigma_k0, double* result)
 {
 	/* Compute the cost for a data set given a cylinder. */
 	std::shared_ptr<LabordeCylinder>
-	   cyl(LabordeCylinder::from_axis_lon_lat(lon_cyl, lat_cyl, k0, f));
+	   cyl(LabordeCylinder::from_axis_and_central(lon_cyl, lat_cyl, lonc, k0,
+	                                              f));
 
 	// Init the data set:
 	std::shared_ptr<DataSet> data
@@ -150,8 +153,9 @@ int perform_billo_gradient_descent(const size_t N, const double* lon,
 
 int perform_bfgs(const size_t N, const double* lon, const double* lat,
                  const double* w, double f, unsigned int pnorm, double k0_ap,
-                 double sigma_k0, double lon0, double lat0, const size_t Nmax,
-                 double* result, unsigned int* n_steps)
+                 double sigma_k0, double lon_cyl0, double lat_cyl0,
+                 double lonc0, const size_t Nmax, double* result,
+                 unsigned int* n_steps)
 {
 	// Sanity check on weights (probably very much redundant):
 	if (w == 0)
@@ -163,7 +167,8 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
 
 	/* Initial cylinder: */
 	std::shared_ptr<LabordeCylinder> cyl0
-	   = LabordeCylinder::from_axis_lon_lat(lon0, lat0, 1.0, f);
+	   = LabordeCylinder::from_axis_and_central(lon_cyl0, lat_cyl0, lonc0,
+	                                            1.0, f);
 
 	/* Cost function: */
 	const CostFunction cost_fun(pnorm, k0_ap, sigma_k0);
@@ -174,15 +179,16 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
 
 	/* Return the results: */
 	for (size_t i=0; i<history.size(); ++i){
-		result[6*i]   = history[i].cost;
-		result[6*i+1] = history[i].cylinder.lat_0().value();
-		result[6*i+2] = history[i].cylinder.azimuth().value();
-		result[6*i+3] = history[i].cylinder.k0().value();
+		result[7*i]   = history[i].cost;
+		result[7*i+1] = history[i].cylinder.lonc().value();
+		result[7*i+2] = history[i].cylinder.lat_0().value();
+		result[7*i+3] = history[i].cylinder.azimuth().value();
+		result[7*i+4] = history[i].cylinder.k0().value();
 		// For debugging, save lon & lat at which the cylinder axis strike
 		// the Laborde sphere:
 		vec3_5v ax = history[i].cylinder.axis();
-		result[6*i+4] = rad2deg(std::atan2(ax[1].value(), ax[0].value()));
-		result[6*i+5] = rad2deg(std::asin(std::min(std::max(ax[2].value(),
+		result[7*i+5] = rad2deg(std::atan2(ax[1].value(), ax[0].value()));
+		result[7*i+6] = rad2deg(std::asin(std::min(std::max(ax[2].value(),
 		                                                    -1.0), 1.0)));
 	}
 
