@@ -49,13 +49,15 @@ void LabordeProjectedDataSet::compute_uvw(
 		// q = C + B*(Gd_inv(phi_) + 0.5 * e * np.log((1.0 - e * sin_phi)
 		//                                           / (1.0 + e * sin_phi)))
 		const double sp = std::sin(x.phi);
-		const real5v q(C + B * (Gd_inv(x.phi) + 0.5*e*std::log((1.0 - e * sp)
-		                                                     /(1.0 + e * sp))));
+		const double B_prod = Gd_inv(x.phi) + 0.5*e*std::log((1.0 - e * sp)
+		                                                     /(1.0 + e * sp));
 
 		// P = 2.0*np.arctan(np.exp(q)) - 0.5*np.pi
-		const real5v P(2.0 * atan(exp(q)) - 0.5 * PI);
+		const real5v P(2.0 * atan(exp(C + B * B_prod)) - 0.5 * PI);
 
 		// L = B * (lambda_ - lambda_c)
+		// However, the function of lambda_c rotation is absorbed into the
+		// Quaternion
 		const real5v L(B * x.lambda);
 
 		/* U = cosP * cos(L)
