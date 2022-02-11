@@ -117,6 +117,22 @@ doomercat::bfgs_optimize(std::shared_ptr<const DataSet> data,
 	/* Indicating the cached cost: */
 	std::array<double,5> last_x;
 
+	/* Variable transformation in k0: */
+	auto x_to_k0 = [](double x) -> double {
+		return 1.0 / (1.0 + std::exp(x));
+	};
+
+	auto d_k0_d_x = [](double x) -> double {
+		const double ex = std::exp(x);
+		const double k0 = 1.0 / (1.0 + ex);
+		return - k0 * k0 * ex;
+	};
+
+	auto k0_to_x = [](double k0) -> double {
+		return std::log(1.0 / k0 - 1.0);
+	};
+
+
 	/*  A lambda function that checks whether the currently cached version
 	 * of 'cost' is equal to a given one: */
 	auto check_cached_cost = [&](const std::array<double,5>& x) {
@@ -131,7 +147,7 @@ doomercat::bfgs_optimize(std::shared_ptr<const DataSet> data,
 		if (x_new){
 			/* Recalculate. */
 			cylinder = LabordeCylinder::from_parameters(x[0], x[1], x[2], x[3],
-			                                            x[4], f);
+			                                            x_to_k0(x[4]), f);
 			cost = cost_function(LabordeProjectedDataSet(data,cylinder));
 			last_x = x;
 		}
@@ -151,8 +167,12 @@ doomercat::bfgs_optimize(std::shared_ptr<const DataSet> data,
 		/* Check if we can used cached computation: */
 		check_cached_cost(x);
 
+		/* Comupte the gradient and apply chain rule for k0: */
+		std::array<double,5> grad = cost.grad();
+		grad[4] *= d_k0_d_x(x[4]);
+
 		/* Return the gradient: */
-		return cost.grad();
+		return grad;
 	};
 
 	/* Initial config and optimization: */
@@ -160,16 +180,20 @@ doomercat::bfgs_optimize(std::shared_ptr<const DataSet> data,
 	                               cyl0->rotation_quaternion().i().value(),
 	                               cyl0->rotation_quaternion().j().value(),
 	                               cyl0->rotation_quaternion().k().value(),
-	                               cyl0->k0().value()});
-	BFGS_result_t<std::array<double,5>> y \
+	                               std::max(k0_to_x(cyl0->k0().value()),
+	                                        -15.0)});
+	BFGS_result_t<std::array<double,5>> y
 	   = BFGS<5,lina_t>(x0, cost_lambda, gradient_lambda,
-	                              Nmax, 1e-12);
+	                              Nmax, 1e-5);
+	//   = fallback_gradient_BFGS<5,lina_t>(x0, cost_lambda, gradient_lambda,
+	//                                      Nmax, 1e-5);
+
 
 	std::vector<result_t> res;
 	res.reserve(y.history.size());
 	for (auto z : y.history){
 		LabordeCylinder cyl(z.second[0], z.second[1], z.second[2],
-		                    z.second[3], z.second[4], f);
+		                    z.second[3], x_to_k0(z.second[4]), f);
 
 		res.push_back({z.first, cyl});
 	}
