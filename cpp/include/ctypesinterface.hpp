@@ -22,6 +22,8 @@
 
 #include <cstddef>
 
+using std::size_t;
+
 extern "C" {
 int compute_cost(const size_t N, const double* lon, const double* lat,
                  const double* w, double lon_cyl, double lat_cyl, double k0,
