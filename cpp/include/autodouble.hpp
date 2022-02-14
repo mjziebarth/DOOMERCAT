@@ -50,6 +50,8 @@ public:
 
 	autodouble operator-() const;
 
+	void invert_sign();
+
 	autodouble operator+(const autodouble<d>& other) const;
 	autodouble operator-(const autodouble<d>& other) const;
 	autodouble operator*(const autodouble<d>& other) const;
@@ -70,6 +72,7 @@ public:
 	static autodouble minus(const double c, const autodouble<d>& x);
 
 	static autodouble exp(const autodouble& x);
+	static autodouble exp(autodouble&& x);
 	static autodouble log(const autodouble& x);
 	static autodouble log_move(autodouble&& x);
 	static autodouble sqrt(const autodouble& x);
@@ -81,6 +84,7 @@ public:
 
 	static autodouble sin(const autodouble& x);
 	static autodouble cos(const autodouble& x);
+	static autodouble cos(autodouble&& x);
 	static autodouble tan(const autodouble& x);
 	static autodouble asin(const autodouble& x);
 	static autodouble acos(const autodouble& x);
@@ -180,6 +184,14 @@ autodouble<d> autodouble<d>::operator-() const
 	return autodouble(-x, deriv_new);
 }
 
+template<dim_t d>
+void autodouble<d>::invert_sign()
+{
+	x = -x;
+	for (dim_t i=0; i<d; ++i)
+		deriv[i] = -deriv[i];
+}
+
 
 /*
  * Addition:
@@ -261,6 +273,15 @@ autodouble<d> operator-(autodouble<d>&& x, autodouble<d>&& y)
 {
 	x -= y;
 	return x;
+}
+
+template<dim_t d>
+autodouble<d> operator-(const autodouble<d>& x, autodouble<d>&& y)
+{
+	/* x-y = x + (-y) = (-y) + x */
+	y.invert_sign();
+	y += x;
+	return y;
 }
 
 
@@ -500,8 +521,8 @@ autodouble<d> autodouble<d>::sin(const autodouble& x)
 	return autodouble(std::sin(x.x), deriv_new);
 }
 
-/*template<dim_t d>
-autodouble<d> autodouble<d>::sin_move(autodouble&& x)
+template<dim_t d>
+autodouble<d> autodouble<d>::sin(autodouble&& x)
 {
 	const double cos_x = std::cos(x.x);
 	x.x = std::sin(x.x);
@@ -509,7 +530,8 @@ autodouble<d> autodouble<d>::sin_move(autodouble&& x)
 		x.deriv[i] *= cos_x;
 
 	return x;
-}*/
+}
+
 
 
 template<dim_t d>
@@ -521,6 +543,19 @@ autodouble<d> autodouble<d>::cos(const autodouble& x)
 		deriv_new[i] = - sin_x * x.deriv[i];
 
 	return autodouble(std::cos(x.x), deriv_new);
+}
+
+template<dim_t d>
+autodouble<d> autodouble<d>::cos(autodouble&& x)
+{
+	const double n_sin_x = -std::sin(x.x);
+	x.x = std::cos(x);
+	for (dim_t i=0; i<d; ++i)
+		x.deriv[i] *= n_sin_x;
+
+	std::cout << "call moving cos.\n" << std::flush;
+
+	return x;
 }
 
 template<dim_t d>
@@ -634,6 +669,16 @@ autodouble<d> autodouble<d>::exp(const autodouble& x)
 		deriv_new[i] = exp_x * x.deriv[i];
 
 	return autodouble(exp_x, deriv_new);
+}
+
+template<dim_t d>
+autodouble<d> autodouble<d>::exp(autodouble&& x)
+{
+	x.x = std::exp(x.x);
+	for (dim_t i=0; i<d; ++i)
+		x.deriv[i] *= x.x;
+
+	return x;
 }
 
 

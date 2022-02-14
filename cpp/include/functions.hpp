@@ -47,6 +47,11 @@ T exp(const T& x) {
 }
 
 template<class T>
+T exp(T&& x) {
+	return T::exp(std::move(x));
+}
+
+template<class T>
 T log(const T& x) {
 	return T::log(x);
 }
