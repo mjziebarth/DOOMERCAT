@@ -2,7 +2,7 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -19,14 +19,11 @@
 
 # Imports:
 from setuptools import setup, Extension
+from compile import setup_compile
 
-sources = ['functions.cpp','arithmetic.cpp','cost.cpp','ctypesinterface.cpp',
-           'dataset.cpp','labordecylinder.cpp','optimize.cpp',
-           'projecteddata.cpp']
 
-cpp_ext = Extension('doomercat._cppextensions',
-                    include_dirs = ['cpp/include'],
-                    sources = ['cpp/src/' + f for f in sources])
+# Compile the C++ code:
+libname = setup_compile()
 
 # Setup:
 
@@ -42,8 +39,8 @@ setup(
 	packages=['doomercat'],
 	py_modules=['doomercat'],
 	provides=['doomercat'],
+	package_data={'doomercat' : [libname]},
 	scripts=[],
 	install_requires=['numpy'],
-	ext_modules=[cpp_ext],
 	license='EUPLv1.2',
 )
