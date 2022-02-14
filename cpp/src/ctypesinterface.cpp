@@ -170,6 +170,9 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
 	   = LabordeCylinder::from_axis_and_central(lon_cyl0, lat_cyl0, lonc0,
 	                                            1.0, f);
 
+	/* Compute the correction factor in k0 at the starting central location: */
+	const double k0_corr = cyl0->k0_correction();
+
 	/* Cost function: */
 	const CostFunction cost_fun(pnorm, k0_ap, sigma_k0);
 
@@ -183,7 +186,8 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
 		result[7*i+1] = history[i].cylinder.lonc().value();
 		result[7*i+2] = history[i].cylinder.lat_0().value();
 		result[7*i+3] = history[i].cylinder.azimuth().value();
-		result[7*i+4] = history[i].cylinder.k0().value();
+		// Correct k0 by the relative ellipsoid radius at the initial coordinate:
+		result[7*i+4] = history[i].cylinder.k0().value() * k0_corr;
 		// For debugging, save lon & lat at which the cylinder axis strike
 		// the Laborde sphere:
 		vec3_5v ax = history[i].cylinder.axis();
