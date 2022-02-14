@@ -165,7 +165,8 @@ class LabordeObliqueMercator(LOMBase):
 			assert lon.shape == lat.shape
 
 			# Initial guess for the cylinder axis and central point:
-			(cyl_lon0, cyl_lat0), (lonc0, lat_0) = initial_parameters(lon, lat)
+			(cyl_lon0, cyl_lat0), (lonc0, lat_0) = initial_parameters(lon, lat,
+                                                                      weight)
 			cyl_lon0 = float(cyl_lon0)
 			cyl_lat0 = float(cyl_lat0)
 			lonc0 = float(lonc0)
