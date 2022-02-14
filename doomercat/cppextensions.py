@@ -17,10 +17,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
-import os
+import platform
 import numpy as np
 from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER
 from pathlib import Path
+from .messages import info
 
 
 # Load the C++ code.
@@ -28,17 +29,34 @@ from pathlib import Path
 # Python file.
 # The extension's name differs depending on the operating system:
 
-if os.name == 'posix':
-    paths = list(Path(__file__).resolve().parent.glob('_cppextensions*.so'))
-    if len(paths) > 1:
-        raise ImportError("Could not find a unique binary _cppextensions "
-                          "library.")
-    elif len(paths) == 0:
-        raise ImportError("Could not find any binary _cppextensions library.")
-    _cppextensions_so = CDLL(paths[0])
+_cppextensions_so = None
 
-elif os.name == 'nt':
-    raise NotImplementedError()
+def load_cppextensions():
+    """
+    Reload the extension.
+    """
+    global _cppextensions_so
+    if _cppextensions_so is not None:
+        return
+
+    # Now load:
+    system = platform.system()
+    if system == 'Linux':
+        paths = list(Path(__file__).resolve().parent.glob('_cppextensions*.so'))
+        if len(paths) > 1:
+            raise ImportError("Could not find a unique binary _cppextensions "
+                              "library.")
+        elif len(paths) == 0:
+            raise ImportError("Could not find any binary _cppextensions library.")
+        _cppextensions_so = CDLL(paths[0])
+        info("Loaded shared library \"" + str(paths[0]) + "\"")
+
+    elif system == 'Windows':
+        raise NotImplementedError()
+    elif system == 'Darwin':
+        raise NotImplementedError()
+
+
 
 #
 # Define the Python interface:
@@ -91,6 +109,9 @@ def bfgs_optimize(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lon0, lat0,
     f = float(f)
     Nmax = int(Nmax)
     assert Nmax > 0
+
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
 
     result = np.zeros((Nmax,7))
     M = np.zeros(1,dtype=np.uint)
