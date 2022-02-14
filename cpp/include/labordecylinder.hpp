@@ -52,6 +52,8 @@ public:
 
 	const real5v& k0() const;
 
+	double k0_correction() const;
+
 	const Quaternion<real5v>& rotation_quaternion() const;
 
 	static std::shared_ptr<LabordeCylinder>

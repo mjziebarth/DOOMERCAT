@@ -343,6 +343,17 @@ vec3_5v LabordeCylinder::axis() const
 }
 
 
+double LabordeCylinder::k0_correction() const
+{
+    const double cv = std::cos(vize.value());
+    const double sv = std::sin(vize.value());
+    const double d0 = (1.0-_f)*sv;
+    const double d1 = (1.0-_f)*d0;
+    return std::sqrt((cv*cv + d1*d1) / ((cv*cv + d0*d0)));
+}
+
+
+
 std::shared_ptr<LabordeCylinder>
 LabordeCylinder::from_axis_lon_lat(double lon, double lat, double k0, double f)
 {
