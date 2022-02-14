@@ -83,6 +83,7 @@ public:
 	static autodouble pow_move(autodouble&& x, const double a);
 
 	static autodouble sin(const autodouble& x);
+	static autodouble sin(autodouble&& x);
 	static autodouble cos(const autodouble& x);
 	static autodouble cos(autodouble&& x);
 	static autodouble tan(const autodouble& x);
