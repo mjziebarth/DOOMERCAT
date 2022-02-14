@@ -285,7 +285,6 @@ fallback_gradient_BFGS
 	size_t Hk_age = 0;
 	double step = 1e-5;
 	unsigned int gradient_steps = 0;
-	unsigned int bfgs_steps = 0;
 	vd_t xkp1;
 	for (size_t i=0; i<Nmax-1; ++i){
 		/* From xk, compute the point: */
@@ -413,7 +412,6 @@ fallback_gradient_BFGS
 					Hk = lina::identity();
 					Hk_age = 0;
 					gradient_steps = N_GRADIENT_STEPS;
-					bfgs_steps = 0;
 					continue;
 				}
 				#ifdef DEBUG
