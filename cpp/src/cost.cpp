@@ -50,16 +50,12 @@ static real5v mercator_project_residual(const Quaternion<real5v>& qv,
 	const real5v norm(sqrt(  r.i()*r.i()
 	                       + r.j()*r.j()
 	                       + r.k()*r.k()));
-	/* TODO: Is the norm important? Do we need one? Two? None? */
-	//real5v x(k0 * r.i() / norm_h);
-	//real5v y(k0 * r.j() / norm_h);
-	//real5v z(k0 * norm * atanh(r.k() / norm));
-	//const real5v x(k0 * r.i() / norm);
-	//const real5v y(k0 * r.j() / norm);
-	//const real5v z(k0 * atanh(r.k() / norm));
+
+	const real5v k0_div_nrm(k0 / norm);
+
 	/* Now we got the scalar residual: */
-	return sqrt(  pow2(r.i() - (k0 * r.i() / norm)) // r.i() - x
-	            + pow2(r.j() - (k0 * r.j() / norm)) // r.j() - y
+	return sqrt(  pow2(r.i() - (k0_div_nrm * r.i())) // r.i() - x
+	            + pow2(r.j() - (k0_div_nrm * r.j())) // r.j() - y
 	            + pow2(r.k() - (k0 * atanh(r.k() / norm))) // r.k() - z
 	           );
 }
@@ -84,7 +80,7 @@ static real5v compute_cost(const LabordeProjectedDataSet& projected_data,
 		// then cost += w[i] * (delta)^pnorm
 		cost += projected_data.w(i)
 		        * pow(mercator_project_residual(qv, projected_data.uvw(i), k0),
-		              (int)pnorm);
+		              static_cast<int>(pnorm));
 	}
 
 	/* The pnorm normalization: */
