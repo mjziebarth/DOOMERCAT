@@ -103,23 +103,12 @@ BFGS_result_t<typename lina::point_t>
 			/* This might happen due to bad numerical problems. Exit
 			 * before this influences anything else. */
 			result.exit_code = COST_DIVERGENCE;
-			std::cout << "COST_DIVERGENCE!\n" << std::flush;
 			break;
 		}
 
 
 		// Compute the search direction:
 		vd_t pk = (Hk_age > 3) ? - (Hk * grad_fk) : -1.0 * grad_fk;
-
-
-		#ifdef DEBUG
-			std::cout << "   -> pk    = (";
-			for (size_t j=0; j<d; ++j)
-				std::cout << pk[j] << ",";
-			std::cout << ")\n";
-		#endif
-
-
 
 		// Compute the new point and gradient (Wolfe search, (3.6a & 3.6b).
 		// First, decide how deep we can reduce alpha until we do not change
