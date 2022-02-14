@@ -12,9 +12,16 @@
 
 namespace doomercat {
 
+enum return_state_t {
+	CONVERGED=0,
+	MAX_ITERATIONS=1,
+	ERROR=2
+};
+
 struct result_t {
 	double cost;
 	LabordeCylinder cylinder;
+	return_state_t state;
 };
 
 std::vector<result_t>

@@ -37,6 +37,7 @@ using doomercat::DataSet;
 using doomercat::Cost;
 using doomercat::LabordeProjectedDataSet;
 using doomercat::result_t;
+using doomercat::return_state_t;
 
 
 
@@ -183,10 +184,10 @@ doomercat::bfgs_optimize(std::shared_ptr<const DataSet> data,
 	                               std::max(k0_to_x(cyl0->k0().value()),
 	                                        -15.0)});
 	BFGS_result_t<std::array<double,5>> y
-	   = BFGS<5,lina_t>(x0, cost_lambda, gradient_lambda,
-	                              Nmax, 1e-5);
-	//   = fallback_gradient_BFGS<5,lina_t>(x0, cost_lambda, gradient_lambda,
-	//                                      Nmax, 1e-5);
+	//   = BFGS<5,lina_t>(x0, cost_lambda, gradient_lambda,
+	//                              Nmax, 1e-5);
+	   = fallback_gradient_BFGS<5,lina_t>(x0, cost_lambda, gradient_lambda,
+	                                      Nmax, 1e-5);
 
 
 	std::vector<result_t> res;
@@ -194,8 +195,21 @@ doomercat::bfgs_optimize(std::shared_ptr<const DataSet> data,
 	for (auto z : y.history){
 		LabordeCylinder cyl(z.second[0], z.second[1], z.second[2],
 		                    z.second[3], x_to_k0(z.second[4]), f);
+		return_state_t state = ERROR;
+		switch (y.exit_code){
+			case CONVERGED:
+				state = CONVERGED;
+				break;
+			case MAX_ITERATIONS:
+				state = MAX_ITERATIONS;
+				break;
+			case RHO_DIVERGENCE:
+			case LINESEARCH_FAIL:
+			case COST_DIVERGENCE:
+				state = ERROR;
+		}
 
-		res.push_back({z.first, cyl});
+		res.push_back({z.first, cyl, state});
 	}
 
 	return res;
