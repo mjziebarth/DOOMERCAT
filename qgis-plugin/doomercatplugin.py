@@ -1,5 +1,7 @@
 # Data-Optimized Oblique MERCATor QGis plugin code.
 #
+# Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
+#
 # Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,15 +30,15 @@ from . import resources
 from .dialogs import SaveProjectionDialog, ProgressDialog
 from .worker import OptimizationWorker
 from .qgisproject import project
-from .defs import _ellipsoids
+from .doomercat.defs import _ellipsoids
 from .help import help_html
+from .messages import info
 
 import numpy as np
 import os.path
 
 # Import the DOOMERCAT library:
-from .doomercat import LabordeObliqueMercator, points_from_shapefile, \
-                       OptimizeError
+from .doomercat import points_from_shapefile
 
 # See if the shapefile module is loaded:
 try:
@@ -52,7 +54,7 @@ class DOOMERCATPlugin:
 	def __init__(self, iface):
 		# save reference to the QGIS interface
 		self.iface = iface
-		self._lom = None
+		self._lom_str = None
 		self._res_crs = None
 		self._srsid = None
 		self._cursor = None
@@ -121,12 +123,6 @@ class DOOMERCATPlugin:
 		self.sb_k0_std.setValue(0.01)
 		self.sb_k0_std.setDecimals(3)
 		self.sb_k0_std.setSingleStep(0.001)
-		self.sbUse = QSpinBox(self.dialog)
-		self.sbUse.setDisabled(True)
-		self.sbUse.setMinimum(2)
-		self.sbUse.setMaximum(99999)
-		self.sbUse.setValue(200)
-		self.cbUse = QCheckBox(self.dialog)
 		self.tabLayout = QTabWidget(self.dialog)
 		self.tabLayout.setMinimumWidth(480)
 		dialog_layout = QGridLayout(self.dialog)
@@ -150,15 +146,6 @@ class DOOMERCATPlugin:
 		label.setAlignment(Qt.AlignRight | Qt.AlignCenter)
 		dialog_layout.addWidget(label, row,0)
 		dialog_layout.addWidget(self.sb_k0_std, row, 1)
-
-		# Selecting a spatially homogeneous(-ish) subset of points:
-		#
-		row += 1
-		dialog_layout.addWidget(QLabel("Select homogeneous:", self.dialog),
-		                        row, 0)
-		dialog_layout.addWidget(self.sbUse, row, 1)
-		dialog_layout.addWidget(self.cbUse, row, 2)
-		self.cbUse.stateChanged.connect(self.useCheckboxClicked)
 
 		# Selecting the ellipsoid to use for the optimization:
 		row += 1
@@ -313,6 +300,7 @@ class DOOMERCATPlugin:
 
 	def unload(self):
 		# remove the plugin menu item and icon
+		info("Unloading DOOMERCAT plugin.")
 		self.iface.removePluginMenu("&DOOMERCAT", self.action)
 		self.iface.removeToolBarIcon(self.action)
 
@@ -404,24 +392,11 @@ class DOOMERCATPlugin:
 				# Obtain extents and generate the pixel coordinates:
 				extent = provider.extent()
 
-				# TODO: Replace these hardcoded values with user options:
-				REPLACE = True
-				N_REPLACE = 100
-				if REPLACE:
-					# For large raster layers, it may be insignificant to
-					# consider all of the pixels instead of using a uniform but
-					# significantly smaller density of sampling points.
-					# Here we use less pixels per axis:
-					X = np.linspace(extent.xMinimum(), extent.xMaximum(),
-					                N_REPLACE)
-					Y = np.linspace(extent.yMinimum(), extent.yMaximum(),
-					                N_REPLACE)
-				else:
-					# Use all pixels of the raster layer:
-					X = np.linspace(extent.xMinimum(), extent.xMaximum(),
-					                layer.width())
-					Y = np.linspace(extent.yMinimum(), extent.yMaximum(),
-					                layer.height())
+				# Use all pixels of the raster layer:
+				X = np.linspace(extent.xMinimum(), extent.xMaximum(),
+				                layer.width())
+				Y = np.linspace(extent.yMinimum(), extent.yMaximum(),
+				                layer.height())
 
 				coordinates = np.stack(np.meshgrid(X, Y), axis=2)\
 				                .reshape((-1,2))
@@ -602,21 +577,16 @@ class DOOMERCATPlugin:
 		# Disable optimization button:
 		self.btnOptimize.setDisabled(True)
 
-		# Show progress dialog:
-		self.progressDialog.show()
-
 		# Obtain optimzied HOM:
 		k0_ap = self.sb_k0.value() if self.cb_k0.checkState() == Qt.Checked \
 		        else 0.0
-		use = self.sbUse.value() if self.cbUse.checkState() == Qt.Checked \
-		      else 'all'
+#		use = self.sbUse.value() if self.cbUse.checkState() == Qt.Checked \
+#		      else 'all'
 		threadpool = QThreadPool.globalInstance()
 		worker = OptimizationWorker(lon, lat, weight=weight,
 		                            pnorm=self.sbExponent.value(),
 		                            k0_ap=k0_ap,
 		                            sigma_k0=self.sb_k0_std.value(),
-		                            initial_lambda=2, nu=0.99, lbda_min=1e-10,
-		                            lbda_max=1e10, use=use,
 		                            ellipsoid= None if ellps == 'custom'
 		                                       else ellps,
 		                            f = f if ellps == 'custom' else None,
@@ -634,17 +604,18 @@ class DOOMERCATPlugin:
 		threadpool.start(worker)
 
 
-	def receiveResult(self, lom):
+	def receiveResult(self, lom_str):
 		"""
 		Slot to receive results from the optimization worker.
 		"""
 		# Save the result:
-		self._lom = lom
+		self._lom_str = lom_str
 
 		# Obtain PROJ4 string:
-		proj_str = self._lom.proj4_string()
 		if self.cbOrientNorth.checkState() != Qt.Checked:
-			proj_str += " +no_rot +no_off"
+			proj_str = lom_str + " +no_rot +no_off"
+		else:
+			proj_str = lom_str
 		self.leResult.setText(proj_str)
 		self.leResult.setEnabled(True)
 
@@ -662,28 +633,13 @@ class DOOMERCATPlugin:
 		# Enable Optimization:
 		self.checkOptimizeEnable()
 
-		# Hide the progress dialog:
-		self.progressDialog.hide()
-
 
 	def receiveError(self, oe=None):
 		"""
 		Slot called when the optimization failed.
 		"""
 		if oe is not None:
-			if isinstance(oe, OptimizeError):
-				if oe.reason() == 'lat_0':
-					self.errorDialog.showMessage("Optimization of the Laborde "
-					      "oblique Mercator projection failed because "
-					      "the resulting central latitude lat_0="
-					      + str(oe.lat_0()) + " is out of bounds -90° to "
-					      "90°.")
-				else:
-					self.errorDialog.showMessage("Optimization of the Laborde "
-					      "oblique Mercator projection failed with the "
-					      "error message '" + oe.message() + "'")
-			else:
-				self.errorDialog.showMessage(str(oe))
+			self.errorDialog.showMessage(str(oe))
 		else:
 			self.errorDialog.showMessage("An error occurred.")
 
@@ -697,8 +653,8 @@ class DOOMERCATPlugin:
 		if self._res_crs is not None:
 			del self._res_crs
 			QgsCoordinateReferenceSystem.invalidateCache()
-		self._res_crs = QgsCoordinateReferenceSystem("PROJ4:"
-		                                             + self._lom.proj4_string())
+		self._res_crs \
+		   = QgsCoordinateReferenceSystem("PROJ4:" + self.leResult.text())
 
 		# Rename and save the CRS:
 		name = self.nameDialog.text()
@@ -882,8 +838,8 @@ class DOOMERCATPlugin:
 		Clicked when the '+no_rot +no_off' argument should be added (or
 		removed).
 		"""
-		if self._lom is not None:
-			self.receiveResult(self._lom)
+		if self._lom_str is not None:
+			self.receiveResult(self._lom_str)
 
 
 	def cbWeightedLayerChanged(self, item):
@@ -901,15 +857,6 @@ class DOOMERCATPlugin:
 		disabled = (state == 0)
 		self.sb_k0.setDisabled(disabled)
 		self.sb_k0_std.setDisabled(disabled)
-
-
-	def useCheckboxClicked(self, state):
-		"""
-		This slot is called when the 'use' reduction of the
-		point set should be enabled or disabled.
-		"""
-		disabled = (state == 0)
-		self.sbUse.setDisabled(disabled)
 
 
 	def switchIcon(self, *args):

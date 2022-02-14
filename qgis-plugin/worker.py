@@ -3,7 +3,7 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,15 +18,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import sys
+import subprocess
+from pathlib import Path
+from pickle import Pickler, Unpickler
+from tempfile import TemporaryDirectory
 from qgis.PyQt.QtCore import QRunnable, QObject, pyqtSlot, pyqtSignal
-from .doomercat import LabordeObliqueMercator, OptimizeError
+from .messages import info
 
 
 class OptimizationSignals(QObject):
     """
     Custom optimization signals.
     """
-    result = pyqtSignal(LabordeObliqueMercator)
+    result = pyqtSignal(str)
     error = pyqtSignal(Exception)
     progress = pyqtSignal(float)
     reducePoints = pyqtSignal(int)
@@ -55,12 +60,31 @@ class OptimizationWorker(QRunnable):
         """
         Run this worker.
         """
+        # Create a temporary file:
         try:
-            lom = LabordeObliqueMercator(*self._args, **self._kwargs,
-                                         logger=self)
-            self.signals.result.emit(lom)
-        except OptimizeError as err:
-            self.signals.error.emit(err)
+            with TemporaryDirectory() as tmpdir:
+                fpath = Path(tmpdir) / "args.pickle"
+                with open(fpath,'wb') as f:
+                    Pickler(f).dump((self._args, self._kwargs))
+
+                working_dir = Path(__file__).parent
+                script_path = working_dir / "process.py"
+                cmd = [sys.executable, str(script_path), str(fpath),
+                       str(working_dir)]
+                result = subprocess.run(cmd, capture_output=True,
+                                        text=True)
+
+            # Check whether subprocess failed:
+            if result.returncode != 0:
+                raise RuntimeError("Subprocess error:\n"
+                                   + str(result.stderr))
+
+            # Parse stdout to obtain PROJ string:
+            for line in str(result.stdout).splitlines():
+                if line.startswith("PROJ{"):
+                    proj_str = line[5:].split("}")[0]
+                    self.signals.result.emit(proj_str)
+
         except Exception as err:
             self.signals.error.emit(err)
         else:

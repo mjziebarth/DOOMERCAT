@@ -46,7 +46,8 @@ fi
 
 
 # Create the plugin directory:
-mkdir -p build/doomercat_plugin
+MODULE=build/doomercat_plugin/doomercat/
+mkdir -p $MODULE
 
 # Generate the help files:
 python build-help.py
@@ -54,25 +55,25 @@ python build-help.py
 # Copy the DOOMERCAT module:
 cp doomercat/__init__.py doomercat/defs.py doomercat/lom.py \
    doomercat/lombase.py doomercat/shapefile.py doomercat/lomerror.py \
-   doomercat/cppextensions.py \
-   build/doomercat_plugin
-mv build/doomercat_plugin/__init__.py build/doomercat_plugin/doomercat.py
+   doomercat/cppextensions.py doomercat/initial.py doomercat/messages.py \
+   $MODULE
+#mv build/doomercat_plugin/__init__.py build/doomercat_plugin/doomercat.py
 
 # Copy the C++ libraries:
 if [ "$1" = "--portable" ]; then
     cp  doomercat/_cppextensions.so doomercat/_cppextensions.dll \
-        build/doomercat_plugin
-    if [ -f build/doomercat_plugin/_cppextensions_native.so ]; then
-        rm build/doomercat_plugin/_cppextensions_native.so
+        $MODULE
+    if [ -f $MODULE/_cppextensions_native.so ]; then
+        rm $MODULE/_cppextensions_native.so
     fi
 else
     # Native-only linux plugin:
-    cp doomercat/_cppextensions_native.so build/doomercat_plugin
-    if [ -f build/doomercat_plugin/_cppextensions.so ]; then
-        rm build/doomercat_plugin/_cppextensions.so
+    cp doomercat/_cppextensions_native.so $MODULE
+    if [ -f $MODULE/_cppextensions.so ]; then
+        rm $MODULE/_cppextensions.so
     fi
-    if [ -f build/doomercat_plugin/_cppextensions.dll ]; then
-        rm build/doomercat_plugin/_cppextensions.dll
+    if [ -f $MODULE/_cppextensions.dll ]; then
+        rm $MODULE/_cppextensions.dll
     fi
 fi
 
@@ -80,7 +81,7 @@ fi
 cp qgis-plugin/__init__.py qgis-plugin/doomercatplugin.py \
    qgis-plugin/metadata.txt qgis-plugin/dialogs.py qgis-plugin/worker.py \
    qgis-plugin/graph.py qgis-plugin/qgisproject.py qgis-plugin/LICENSE \
-   qgis-plugin/README.md \
+   qgis-plugin/README.md qgis-plugin/process.py qgis-plugin/messages.py \
    build/doomercat_plugin
 
 # Generate the resources.py:
