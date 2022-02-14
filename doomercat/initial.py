@@ -72,8 +72,8 @@ def initial_parameters_fisher_bingham(lon, lat, w):
                    np.sin(lon) * np.cos(lat),
                    np.sin(lat)))
 
-    mv_ = np.sum(w*v1,axis=1)/np.sum(w)
-    mv /= np.linalg.norm(mv_)
+    mv = np.sum(w*v1,axis=1)/np.sum(w)
+    mv /= np.linalg.norm(mv)
 
     Sv = 1/np.sum(w) * w * v1 @ v1.T
 
