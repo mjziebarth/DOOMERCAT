@@ -23,6 +23,7 @@
 #include <../include/labordecylinder.hpp>
 #include <../include/cost.hpp>
 #include <../include/optimize.hpp>
+#include <../include/ctypesinterface.hpp>
 #include <iostream>
 #include <memory>
 #include <cmath>
@@ -33,31 +34,6 @@
 // Bugfix code:
 #include <chrono>
 #include <thread>
-
-extern "C" {
-	int compute_cost(const size_t N, const double* lon,const double* lat,
-	                 const double* w, double lon_cyl, double lat_cyl, double k0,
-	                 double f, unsigned int pnorm, double k0_ap,
-	                 double sigma_k0, double* result);
-
-	int compute_cost_and_derivatives(const size_t N, const double* lon,
-	                 const double* lat, const double* w, double lon_cyl,
-	                 double lat_cyl, double lonc, double k0, double f,
-	                 unsigned int pnorm, double k0_ap, double sigma_k0,
-	                 double* result);
-
-	int perform_billo_gradient_descent(const size_t N, const double* lon,
-	                 const double* lat, double f,
-	                 unsigned int pnorm, double k0_ap, double sigma_k0,
-	                 double lon0, double lat0, const size_t Nmax,
-	                 double* result);
-
-	int perform_bfgs(const size_t N, const double* lon, const double* lat,
-	                 const double* w, double f, unsigned int pnorm,
-	                 double k0_ap, double sigma_k0, double lon_cyl0,
-	                 double lat_cyl0, double lonc0,
-	                 const size_t Nmax, double* result, unsigned int* n_steps);
-}
 
 using doomercat::DataSet;
 using doomercat::LabordeCylinder;
