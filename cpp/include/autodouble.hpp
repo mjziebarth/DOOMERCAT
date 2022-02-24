@@ -677,7 +677,6 @@ autodouble<d> autodouble<d>::atan2(autodouble&& y, const autodouble& x)
 	const double z = yx / x.x;
 	const double f = 1.0 / (1.0 + z * z);
 	const double ix = 1.0 / x.x;
-	std::array<double,d> deriv_new;
 	y.x = std::atan2(y.x, x.x);
 	for (dim_t i=0; i<d; ++i)
 		y.deriv[i] = f * ix * (y.deriv[i] - yx * ix * x.deriv[i]);
