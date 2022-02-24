@@ -228,12 +228,21 @@ LabordeCylinder::LabordeCylinder(double qr, double qi, double qj, double qk,
 }
 
 
+/* Can be used with the values returned from ::representation() to
+ * reconstruct the cylinder. */
+LabordeCylinder::LabordeCylinder(const std::array<double,6>& repr)
+    : LabordeCylinder(repr[0], repr[1], repr[2], repr[3], repr[4], repr[5])
+{
+}
+
+
 LabordeCylinder::LabordeCylinder(double lon_cyl, double lat_cyl, double lonc,
                                  double k0, double f)
     : LabordeCylinder(quaternion_from_axis_and_lonc(lon_cyl, lat_cyl, lonc),
                       variable5<4>(k0), f)
 {
 }
+
 
 
 vec3_5v LabordeCylinder::compute_axis(const Quaternion<real5v>& q)
@@ -340,6 +349,12 @@ const Quaternion<real5v>& LabordeCylinder::rotation_quaternion() const
 vec3_5v LabordeCylinder::axis() const
 {
 	return _axis;
+}
+
+std::array<double,6> LabordeCylinder::representation() const
+{
+	return std::array<double,6>({q.r().value(), q.i().value(), q.j().value(),
+	                             q.k().value(), _k0.value(), _f});
 }
 
 

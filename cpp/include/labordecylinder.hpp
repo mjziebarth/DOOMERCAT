@@ -37,6 +37,8 @@ public:
 	LabordeCylinder(double qr, double qi, double qj, double qk, double k0,
 	                double f);
 
+	LabordeCylinder(const std::array<double,6>& representation);
+
 	LabordeCylinder(const Quaternion<real5v>& q, const real5v& k0,
 	                const double f);
 
@@ -51,6 +53,8 @@ public:
 	real5v lonc() const;
 
 	const real5v& k0() const;
+
+	std::array<double,6> representation() const;
 
 	double k0_correction() const;
 
