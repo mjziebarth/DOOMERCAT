@@ -25,19 +25,25 @@ HEADERS=../include/arithmetic.hpp ../include/autodouble.hpp \
 
 ALLHEADERS = $(HEADERS) ../include/dataset.hpp ../include/projecteddata.hpp \
              ../include/cost.hpp ../include/optimize.hpp ../include/bfgs.hpp \
-             ../include/linalg.hpp
+             ../include/linalg.hpp ../include/hotine.hpp \
+             ../include/cost_hotine.hpp
 
 ALLSOURCES = ../src/dataset.cpp ../src/projecteddata.cpp ../src/cost.cpp \
              ../src/arithmetic.cpp ../src/labordecylinder.cpp \
              ../src/functions.cpp ../src/ctypesinterface.cpp \
-             ../src/optimize.cpp ../src/linalg.cpp
+             ../src/optimize.cpp ../src/linalg.cpp ../src/cost_hotine.cpp
 
-all: testing doomercat.so
+all: hotine.o testing doomercat.so performancetest
 
+hotine.o: $(ALLHEADERS) ../src/hotine.cpp ../src/cost_hotine.cpp functions.o \
+          arithmetic.o dataset.o
+	g++ $(CPPFLAGS) -o hotine ../src/hotine.cpp ../src/cost_hotine.cpp \
+	   functions.o arithmetic.o dataset.o
 
 testing: $(HEADERS) arithmetic.o testing.o labordecylinder.o dataset.o \
-         projecteddata.o cost.o optimize.o
-	g++ -o testing arithmetic.o testing.o
+         projecteddata.o cost.o optimize.o functions.o linalg.o
+	g++ -o testing arithmetic.o testing.o labordecylinder.o dataset.o \
+	       projecteddata.o cost.o optimize.o functions.o linalg.o
 
 dataset.o: $(HEADERS) ../include/dataset.hpp ../src/dataset.cpp
 	g++ $(CPPFLAGS) -c ../src/dataset.cpp
@@ -51,7 +57,13 @@ cost.o: $(HEADERS) ../include/cost.hpp ../include/dataset.hpp \
 	g++ $(CPPFLAGS) -c ../src/cost.cpp
 
 testing.o: $(HEADERS) testing.cpp
+	echo "testing.o"
 	g++ $(CPPFLAGS) -c testing.cpp
+
+performancetest: $(ALLHEADERS) $(ALLSOURCES) ../include/ctypesinterface.hpp\
+                   performance_test.cpp himalaya_lakes.cpp himalaya_lakes.hpp
+	g++ $(CPPFLAGS) -I. -g -pg $(ALLSOURCES) performance_test.cpp \
+	    himalaya_lakes.cpp -o performancetest
 
 arithmetic.o: $(HEADERS) ../src/arithmetic.cpp
 	g++ $(CPPFLAGS) -c ../src/arithmetic.cpp
@@ -69,5 +81,6 @@ linalg.o: $(ALLHEADERS) ../src/linalg.cpp
 	g++ $(CPPFLAGS) -c ../src/linalg.cpp
 
 doomercat.so: $(ALLHEADERS) $(ALLSOURCES)
+	echo "doomercat.so"
 	g++ $(CPPFLAGS) -g0 -march=native -fPIC $(ALLSOURCES) -shared \
 	   -o doomercat.so -Wl,-z,defs
