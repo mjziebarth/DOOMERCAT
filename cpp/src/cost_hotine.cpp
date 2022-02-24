@@ -31,6 +31,11 @@ using doomercat::CostFunctionHotine;
 
 typedef Arithmetic<real4v> AR;
 
+static real4v sum(std::vector<real4v>& x){
+	return real4v::sum(x);
+}
+
+
 static real4v compute_cost(const DataSet& data,
                            const HotineObliqueMercator<real4v> hom,
                            unsigned int pnorm, double k0_ap, double sigma_k0,
@@ -38,23 +43,14 @@ static real4v compute_cost(const DataSet& data,
 {
 	/* Compute the weighted, potentiated distortions: */
 	std::vector<real4v> cost_vec(data.size(), constant4(0.0));
-	// cost_vec.reserve(data.size());
+	#pragma omp parallel for
 	for (size_t i=0; i<data.size(); ++i){
 		cost_vec[i] = data.w(i)
 		        * AR::pow(AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0),
 		                  static_cast<int>(pnorm));
 	}
 
-	/* Sort the sum to reduce impact of roundoff errors: */
-	auto compare = [](const real4v& a, const real4v& b) -> bool {
-		return std::abs(a.value()) < std::abs(b.value());
-	};
-	std::sort(cost_vec.begin(), cost_vec.end(), compare);
-
-	/* Compute the sum of the weighted, potentiated distortions: */
-	real4v cost = constant4(0.0);
-	for (size_t i=0; i<data.size(); ++i)
-		cost += cost_vec[i];
+	real4v cost(sum(cost_vec));
 
 
 	/* Add the k0  prior: */

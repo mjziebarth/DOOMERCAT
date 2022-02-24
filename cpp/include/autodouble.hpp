@@ -110,6 +110,8 @@ public:
 	static autodouble max(const autodouble& x, const autodouble& y);
 	//static autodouble max(autodouble&& x, autodouble&& y);
 
+	static autodouble sum(const std::vector<autodouble>&);
+
 private:
 	double x;
 	std::array<double,d> deriv;
@@ -878,6 +880,38 @@ autodouble<d> autodouble<d>::max(const autodouble<d>& x, const autodouble<d>& y)
 	if (x.x >= y.x)
 		return x;
 	return y;
+}
+
+
+// Make sure that Kahan summation is not killed by re-association:
+#pragma GCC optimize("-fno-associative-math")
+template<dim_t d>
+autodouble<d> autodouble<d>::sum(const std::vector<autodouble<d>>& x)
+{
+	struct kahan_summand_t {
+		long double sum = 0.0;
+		long double comp = 0.0;
+	};
+	kahan_summand_t Sx;
+	std::array<kahan_summand_t,d> Sdx;
+	for (const autodouble<d>& xi : x){
+		long double add = xi.x - Sx.comp;
+		long double res = Sx.sum + add;
+		Sx.comp = (res - Sx.sum) - add;
+		Sx.sum = res;
+		for (dim_t j=0; j<d; ++j){
+			long double add = xi.deriv[j] - Sdx[j].comp;
+			long double res = Sdx[j].sum + add;
+			Sdx[j].comp = (res - Sdx[j].sum) - add;
+			Sdx[j].sum = res;
+		}
+	}
+
+	std::array<double,d> dx;
+	for (dim_t j=0; j<d; ++j){
+		dx[j] = Sdx[j].sum;
+	}
+	return autodouble<d>(Sx.sum, dx);
 }
 
 
