@@ -31,6 +31,11 @@
 
 namespace doomercat {
 
+struct coordinate_t {
+	double x;
+	double y;
+};
+
 class LabordeProjectedDataSet {
 /*
  * A DataSet instance that has been projected as defined by
@@ -48,6 +53,8 @@ public:
 	const vec3_5v& uvw(size_t i) const;
 
 	const LabordeCylinder& cylinder() const;
+
+	std::vector<coordinate_t> projected(double a) const;
 
 private:
 	std::shared_ptr<const DataSet> data;

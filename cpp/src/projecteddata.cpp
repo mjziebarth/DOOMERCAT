@@ -30,6 +30,7 @@
 using doomercat::LabordeCylinder;
 using doomercat::LabordeProjectedDataSet;
 using doomercat::DataSet;
+using doomercat::coordinate_t;
 
 double Gd_inv(const double x) {
 	return std::atanh(std::sin(x));
@@ -106,5 +107,35 @@ const vec3_5v& LabordeProjectedDataSet::uvw(size_t i) const
 		throw std::runtime_error("UVW out of bound requested in "
 		                         "LabordeProjectedDataSet");
 	return _uvw[i];
+}
+
+std::vector<coordinate_t> LabordeProjectedDataSet::projected(double a) const
+{
+	/* Unit quaternion (versor) in q direction: */
+	const Quaternion<real5v> qv(cyl->rotation_quaternion()
+	                            / cyl->rotation_quaternion().norm());
+
+	std::vector<coordinate_t> lola(size());
+	const double k0 = cyl->k0().value();
+	for (size_t i=0; i<size(); ++i){
+		/* Rotate UVW to the cylinder coordinate system:
+		 * (same code as in cost.cpp: mercator_project_residual) */
+		const Quaternion<real5v> r(
+		     qrot(qv.conj(),
+		          ImaginaryQuaternion<real5v>(_uvw[i][0], _uvw[i][1],
+		                                      _uvw[i][2]),
+		          qv)
+		);
+		/* Now Mercator projection: */
+		const double x = k0 * r.i().value();
+		const double y = k0 * r.j().value();
+		const double z = k0 * std::atanh(r.k().value());
+
+		/* Unwrap the cylinder: */
+		lola[i].x = a * k0 * std::atan2(y,x);
+		lola[i].y = a * z;
+	}
+
+	return lola;
 }
 
