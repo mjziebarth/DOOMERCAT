@@ -20,27 +20,25 @@
 
 import numpy as np
 from math import atan2, degrees
-from .cppextensions import bfgs_optimize
+from .cppextensions import bfgs_hotine
 from .lombase import LOMBase, _has_pyproj
 from .defs import _ellipsoids
 from .initial import initial_parameters
 
 
-class LabordeObliqueMercator(LOMBase):
+class HotineObliqueMercator(LOMBase):
 	"""
-	A Laborde oblique Mercator projection (LOM) optimized for a
+	A Hotine oblique Mercator projection (HOM) optimized for a
 	geographical data set. The projection's definition follows
-	Laborde (1928) as laid out by Roggero (2009) and is compatible with the
-	Hotine oblique Mercator projection (EPSG Guidance Notes 7-2, (2019);
-	Snyder (1987)).
+	Snyder (1987).
 
 	Call signatures:
 
-	(1) Optimize the LOM for a set of points:
+	(1) Optimize the HOM for a set of points:
 
-	LabordeObliqueMercator(lon, lat, weight=None, pnorm=2, k0_ap=0.98,
-	                       sigma_k0=0.02, ellipsoid='WGS84', f=None, a=None,
-	                       Nmax=200)
+	HotineObliqueMercator(lon, lat, weight=None, pnorm=2, k0_ap=0.98,
+	                      sigma_k0=0.02, ellipsoid='WGS84', f=None, a=None,
+	                      Nmax=200)
 
 	   lon, lat       : Iterable sets of longitude and latitude coordinates
 	                    of the data set.
@@ -120,8 +118,8 @@ class LabordeObliqueMercator(LOMBase):
 	"""
 	def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
 	             sigma_k0=0.002, ellipsoid=None, f=None, a=None,
-	             cyl_lon0=0.0, cyl_lat0=10.0, lonc=None, lat_0=None, alpha=None,
-	             k0=None, Nmax=200, logger=None):
+	             cyl_lon0=None, cyl_lat0=None, lonc0=None, lonc=None,
+	             lat_0=None, alpha=None, k0=None, Nmax=200, logger=None):
 		# Initialization.
 		# 1) Sanity checks:
 		assert ellipsoid in _ellipsoids or ellipsoid is None
@@ -165,23 +163,30 @@ class LabordeObliqueMercator(LOMBase):
 			assert lon.shape == lat.shape
 
 			# Initial guess for the cylinder axis and central point:
-			(cyl_lon0, cyl_lat0), (lonc0, lat_0) = initial_parameters(lon, lat,
-                                                                      weight)
-			cyl_lon0 = float(cyl_lon0)
-			cyl_lat0 = float(cyl_lat0)
-			lonc0 = float(lonc0)
+			lonc0, lat_00, alpha0 = initial_parameters(lon, lat, weight)
+			print("lonc0:  ",lonc0)
+			print("lat_00: ",lat_00)
+			print("alpha0: ",alpha0)
+			if k0 is None:
+				k0 = 1.0
+			else:
+				k0 = float(k0)
 
 			if logger is not None:
 				logger.log(20, "Starting BFGS optimization.")
 
 			# Optimize the Laborde oblique Mercator:
+#			result = \
+#			    bfgs_optimize(lon, lat, weight, pnorm, k0_ap, sigma_k0, f,
+#			                  cyl_lon0, cyl_lat0, lonc0, k0, Nmax)
 			result = \
-			    bfgs_optimize(lon, lat, weight, pnorm, k0_ap, sigma_k0, f,
-			                  cyl_lon0, cyl_lat0, lonc0, Nmax)
+			    bfgs_hotine(lon, lat, weight, pnorm, k0_ap, sigma_k0, f,
+			                lonc0, lat_00, alpha0, k0, Nmax)
 			lonc = result.lonc
 			lat_0 = result.lat_0
 			alpha = result.alpha
 			k0 = result.k0
+			self.optimization_result = result
 
 		else:
 			# Case 2: The parameters are given directly.

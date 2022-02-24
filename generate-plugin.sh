@@ -53,7 +53,7 @@ mkdir -p $MODULE
 python build-help.py
 
 # Copy the DOOMERCAT module:
-cp doomercat/__init__.py doomercat/defs.py doomercat/lom.py \
+cp doomercat/__init__.py doomercat/defs.py doomercat/hom.py \
    doomercat/lombase.py doomercat/shapefile.py doomercat/lomerror.py \
    doomercat/cppextensions.py doomercat/initial.py doomercat/messages.py \
    $MODULE
