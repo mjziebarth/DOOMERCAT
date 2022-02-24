@@ -25,6 +25,17 @@
 using std::size_t;
 
 extern "C" {
+int compute_cost_hotine_batch(const size_t N, const double* lon,
+        const double* lat, const double* w, const size_t M,
+        const double* lonc, const double* lat0, const double* alpha,
+        const double* k0, double f, unsigned int pnorm, double k0_ap,
+        double sigma_k0, double* result);
+
+int compute_k_hotine(const size_t N, const double* lon,
+        const double* lat, const double* w,
+        double lonc, double lat0, double alpha, double k0, double f,
+        double* result);
+
 int compute_cost(const size_t N, const double* lon, const double* lat,
                  const double* w, double lon_cyl, double lat_cyl, double k0,
                  double f, unsigned int pnorm, double k0_ap, double sigma_k0,
@@ -46,6 +57,11 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
                  double lonc0, double k00, const size_t Nmax, double* result,
                  unsigned int* n_steps, double* final_cylinder);
 
+int hotine_bfgs(const size_t N, const double* lon, const double* lat,
+                const double* w, double f, unsigned int pnorm, double k0_ap,
+                double sigma_k0, double lonc_0, double lat_0_0,
+                double alpha_0, double k_0_0, const size_t Nmax,
+                double* result, unsigned int* n_steps);
 
 int perform_adam(const size_t N, const double* lon, const double* lat,
                  const double* w, double f, unsigned int pnorm, double k0_ap,

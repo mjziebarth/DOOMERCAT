@@ -24,6 +24,8 @@
 #include <../include/cost.hpp>
 #include <../include/optimize.hpp>
 #include <../include/ctypesinterface.hpp>
+#include <../include/cost_hotine.hpp>
+#include <../include/hotine.hpp>
 #include <iostream>
 #include <memory>
 #include <cmath>
@@ -40,8 +42,60 @@ using doomercat::LabordeCylinder;
 using doomercat::LabordeProjectedDataSet;
 using doomercat::CostFunction;
 using doomercat::Cost;
+using doomercat::CostFunctionHotine;
+using doomercat::CostHotine;
+using doomercat::HotineObliqueMercator;
 using doomercat::result_t;
 using doomercat::billo_gradient_descent;
+using doomercat::coordinate_t;
+
+
+int compute_cost_hotine_batch(const size_t N, const double* lon,
+        const double* lat, const double* w, const size_t M,
+        const double* lonc, const double* lat0, const double* alpha,
+        const double* k0, double f, unsigned int pnorm, double k0_ap,
+        double sigma_k0, double* result)
+{
+	/* Data set: */
+	const DataSet data(N, lon, lat, w);
+
+	/* Cost function: */
+	const CostFunctionHotine cfun(pnorm, k0_ap, sigma_k0, true);
+
+	/* Compute the Hotine Mercator projections now: */
+	#pragma omp parallel for
+	for (size_t i=0; i<M; ++i){
+		HotineObliqueMercator<real4v>
+		   hom(constant4(deg2rad(lonc[i])), constant4(deg2rad(lat0[i])),
+		       constant4(deg2rad(alpha[i])), constant4(k0[i]), f);
+
+		/* Compute the cost: */
+		result[i] = cfun(data, hom);
+	}
+
+	return 0;
+}
+
+
+int compute_k_hotine(const size_t N, const double* lon,
+        const double* lat, const double* w,
+        double lonc, double lat0, double alpha, double k0, double f,
+        double* result)
+{
+	/* Compute the Hotine Mercator projections now: */
+	const HotineObliqueMercator<real4v>
+	   hom(constant4(deg2rad(lonc)), constant4(deg2rad(lat0)),
+	       constant4(deg2rad(alpha)), constant4(k0), f);
+
+	#pragma omp parallel for
+	for (size_t i=0; i<N; ++i){
+		/* Compute the cost: */
+		result[i] = hom.k(deg2rad(lon[i]), deg2rad(lat[i])).value();
+	}
+
+	return 0;
+}
+
 
 
 int compute_cost(const size_t N, const double* lon, const double* lat,
@@ -277,6 +331,63 @@ int perform_bfgs(const size_t N, const double* lon, const double* lat,
 		for (int i=0; i<6; ++i){
 			final_cylinder[i] = cyl_last[i];
 		}
+	}
+
+	if (n_steps)
+		*n_steps = history.size();
+
+	return 0;
+}
+
+
+int hotine_bfgs(const size_t N, const double* lon, const double* lat,
+                const double* w, double f, unsigned int pnorm, double k0_ap,
+                double sigma_k0, double lonc_0, double lat_0_0,
+                double alpha_0, double k_0_0, const size_t Nmax,
+                double* result, unsigned int* n_steps)
+{
+	// Sanity check on weights (probably very much redundant):
+	if (w == 0)
+		w = nullptr;
+
+	// std::cout << "Parameters passed to BFGS:\n";
+	// std::cout.precision(17);
+	// std::cout << "  N =        " << N << "\n";
+	// std::cout << "  f =        " << f << "\n";
+	// std::cout << "  pnorm =    " << pnorm << "\n";
+	// std::cout << "  k0_ap =    " << k0_ap << "\n";
+	// std::cout << "  sigma =    " << sigma_k0 << "\n";
+	// std::cout << "  lon_cyl0 = " << lon_cyl0 << "\n";
+	// std::cout << "  lat_cyl0 = " << lat_cyl0 << "\n";
+	// std::cout << "  lonc0 =    " << lonc0 << "\n";
+	// std::cout << "  k00 =      " << k00 << "\n";
+	// std::cout << "  Nmax =     " << Nmax << "\n";
+	// std::cout << "  First 7 coordinates:\n  [";
+	// for (size_t i=0; i<std::min<size_t>(7,Nmax); ++i){
+	// 	std::cout << "(" << lon[i] << "," << lat[i] << "), ";
+	// }
+	// std::cout << "\n" << std::flush;
+
+	// Init the data set:
+	DataSet data(N, lon, lat, w);
+
+	/* Optimize: */
+	std::vector<doomercat::hotine_result_t> history
+	   = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0, k_0_0, f,
+	                          pnorm, k0_ap, sigma_k0, Nmax, false);
+
+	/* Return the results: */
+	for (size_t i=0; i<history.size(); ++i){
+		result[10*i]   = history[i].cost;
+		result[10*i+1] = history[i].lonc;
+		result[10*i+2] = history[i].lat_0;
+		result[10*i+3] = history[i].alpha;
+		result[10*i+4] = history[i].k0;
+		result[10*i+5] = history[i].grad_lonc;
+		result[10*i+6] = history[i].grad_lat0;
+		result[10*i+7] = history[i].grad_alpha;
+		result[10*i+8] = history[i].grad_k0;
+		result[10*i+9] = history[i].algorithm_state;
 	}
 
 	if (n_steps)

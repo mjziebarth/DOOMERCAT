@@ -23,7 +23,7 @@ import subprocess
 # Source and header files:
 sources = ['functions.cpp','arithmetic.cpp','cost.cpp','ctypesinterface.cpp',
            'dataset.cpp','labordecylinder.cpp','optimize.cpp',
-           'projecteddata.cpp','linalg.cpp']
+           'projecteddata.cpp','linalg.cpp','cost_hotine.cpp',]
 sources = ['cpp/src/' + s for s in sources]
 
 include = 'cpp/include/'
@@ -32,7 +32,8 @@ include = 'cpp/include/'
 # Compile routines for linux and windows:
 #
 
-def compile_linux(compiler: str = 'g++', native: bool = True) -> str:
+def compile_linux(compiler: str = 'g++', native: bool = True,
+                  openmp: bool = True) -> str:
     """
     Compiles the C++ code into the dynamic library
     'doomercat/_cppextensions.so'.
@@ -43,6 +44,8 @@ def compile_linux(compiler: str = 'g++', native: bool = True) -> str:
         if native:
             cmd.append('-march=native')
             name = '_cppextensions_native'
+        if openmp:
+            cmd.append('-fopenmp')
         libname = name + '.so'
         cmd += sources + ['-shared','-o','doomercat/' + libname,
                           '-Wl,-z,defs']

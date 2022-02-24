@@ -43,6 +43,8 @@ public:
 
 	size_t size() const;
 
+	double lambda(size_t i) const;
+	double phi(size_t i) const;
 	double w(size_t i) const;
 
 protected:
