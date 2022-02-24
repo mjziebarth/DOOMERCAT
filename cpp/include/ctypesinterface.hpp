@@ -43,7 +43,24 @@ int perform_billo_gradient_descent(const size_t N, const double* lon,
 int perform_bfgs(const size_t N, const double* lon, const double* lat,
                  const double* w, double f, unsigned int pnorm, double k0_ap,
                  double sigma_k0, double lon_cyl0, double lat_cyl0,
-                 double lonc0, const size_t Nmax, double* result,
-                 unsigned int* n_steps);
+                 double lonc0, double k00, const size_t Nmax, double* result,
+                 unsigned int* n_steps, double* final_cylinder);
+
+
+int perform_adam(const size_t N, const double* lon, const double* lat,
+                 const double* w, double f, unsigned int pnorm, double k0_ap,
+                 double sigma_k0, double lon_cyl0, double lat_cyl0,
+                 double lonc0, double k00, const size_t Nmax, double* result,
+                 unsigned int* n_steps, double* final_cylinder);
+
+int laborde_project(size_t N, const double* lon, const double* lat,
+                    double qr, double qi, double qj, double qk, double k0,
+                    double f, double a, double* xy);
+
+int compute_cost_k0_iter(const size_t N, const double* lon,
+        const double* lat, const double* w, const size_t M,
+        const double* k0, double qr, double qi, double qj, double qk,
+        double f, unsigned int pnorm, double k0_ap, double sigma_k0,
+        double* cost_result);
 
 }

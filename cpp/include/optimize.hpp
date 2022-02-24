@@ -12,7 +12,7 @@
 
 namespace doomercat {
 
-enum return_state_t {
+enum class return_state_t {
 	CONVERGED=0,
 	MAX_ITERATIONS=1,
 	ERROR=2
@@ -31,6 +31,12 @@ billo_gradient_descent(std::shared_ptr<const DataSet> data,
 
 std::vector<result_t>
 bfgs_optimize(std::shared_ptr<const DataSet> data,
+              std::shared_ptr<const LabordeCylinder> cyl0,
+              const CostFunction& cost_function,
+              const size_t Nmax, bool transform_k0=false);
+
+std::vector<result_t>
+adam_optimize(std::shared_ptr<const DataSet> data,
               std::shared_ptr<const LabordeCylinder> cyl0,
               const CostFunction& cost_function,
               const size_t Nmax);

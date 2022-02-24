@@ -25,6 +25,7 @@
 #include <cmath>
 #include <vector>
 #include <functional>
+#include <tuple>
 
 // Debug:
 #ifdef DEBUG
@@ -38,15 +39,46 @@ enum BFGS_exit_code_t {
 	MAX_ITERATIONS, CONVERGED, RHO_DIVERGENCE, LINESEARCH_FAIL, COST_DIVERGENCE
 };
 
-template<typename point_t>
+enum class BFGS_mode_t {
+	BFGS=1, FALLBACK_GRADIENT=2, FINISHED=0
+};
+
+template<typename lina>
+struct BFGS_step_t {
+	double cost;
+	BFGS_mode_t mode;
+	typename lina::point_t parameters;
+	typename lina::grad_t grad;
+
+	BFGS_step_t(double cost, BFGS_mode_t mode,
+	            const typename lina::point_t& parameters)
+	   : cost(cost), mode(mode), parameters(parameters)
+	{
+		for (int i=0; i<grad.size(); ++i){
+			grad[i] = 0.0;
+		}
+	};
+
+	BFGS_step_t(double cost, BFGS_mode_t mode,
+	            const typename lina::point_t& parameters,
+	            const typename lina::grad_t& gradient)
+	   : cost(cost), mode(mode), parameters(parameters),
+	     grad(gradient)
+	{};
+
+	BFGS_step_t(BFGS_step_t&& other) = default;
+	BFGS_step_t(const BFGS_step_t& other) = default;
+};
+
+template<typename lina>
 struct BFGS_result_t {
 	BFGS_exit_code_t exit_code;
-	std::vector<std::pair<double, point_t>> history;
+	std::vector<BFGS_step_t<lina>> history;
 };
 
 
 template<size_t d, typename lina>
-BFGS_result_t<typename lina::point_t>
+BFGS_result_t<lina>
     BFGS(const typename lina::point_t& x0,
          std::function<typename lina::real_t (const typename lina::point_t&)>
               cost,
@@ -61,7 +93,7 @@ BFGS_result_t<typename lina::point_t>
 
 	/* Follows Nocedal & Wright: Numerical Optimization */
 	Mdxd_t Hk(1e-3 * lina::identity());
-	Hk(4,4) *= 1e-5;
+	Hk(d-1,d-1) *= 1e-5;
 	const Mdxd_t I(lina::identity());
 
 	/* Configuration of the Wolfe condition: */
@@ -73,7 +105,7 @@ BFGS_result_t<typename lina::point_t>
 	lina::init_column_vectord(xk, x0);
 
 	/* The trajectory in optimization space; and early exit: */
-	BFGS_result_t<point_t> result;
+	BFGS_result_t<lina> result;
 	result.exit_code = MAX_ITERATIONS;
 	if (Nmax == 0)
 		return result;
@@ -89,7 +121,8 @@ BFGS_result_t<typename lina::point_t>
 		lina::fill_array(P, xk);
 
 		// Keep track:
-		result.history.emplace_back(cost0, P);
+		result.history.emplace_back(cost0, BFGS_mode_t::BFGS, P,
+		                            convert_gradient(grad_fk));
 
 		#ifdef DEBUG
 			std::cout << "gradient[" << i << "] = (";
@@ -197,11 +230,6 @@ BFGS_result_t<typename lina::point_t>
 		vd_t sk = xkp1 - xk;
 		vd_t yk = grad_fkp1 - grad_fk;
 
-
-		#ifdef DEBUG
-			std::cout << "   -> rhok  =  " << rhok << "\n";
-		#endif
-
 		// Advance step:
 		xk = xkp1;
 		grad_fk = grad_fkp1;
@@ -213,6 +241,9 @@ BFGS_result_t<typename lina::point_t>
 			/* This might happen due to bad numerical problems. Exit
 			 * before this influences anything else. */
 			result.exit_code = RHO_DIVERGENCE;
+			#ifdef DEBUG
+			std::cout << "RHO_DIVERGENCE\n" << std::flush;
+			#endif
 			break;
 		}
 		Hk = (I - rhok * sk * lina::transpose(yk)) * Hk
@@ -233,22 +264,33 @@ BFGS_result_t<typename lina::point_t>
 
 	/* Last point: */
 	lina::fill_array(P, xk);
-	result.history.emplace_back(cost0, P);
+	result.history.emplace_back(cost0, BFGS_mode_t::FINISHED, P,
+	                            convert_gradient(grad_fk));
 
 	return result;
 }
 
 
 
-template<size_t d, typename lina>
-BFGS_result_t<typename lina::point_t>
+
+template<typename point_t>
+bool no_boundary(const point_t&)
+{
+	return true;
+}
+
+
+template<size_t d, typename lina, bool last_redux=true>
+BFGS_result_t<lina>
 fallback_gradient_BFGS
     (const typename lina::point_t& x0,
-         std::function<typename lina::real_t (const typename lina::point_t&)>
-              cost,
-         std::function<typename lina::grad_t (const typename lina::point_t&)>
-              gradient,
-         const size_t Nmax, const double epsilon
+     std::function<typename lina::real_t (const typename lina::point_t&)>
+         cost,
+     std::function<typename lina::grad_t (const typename lina::point_t&)>
+          gradient,
+     const size_t Nmax, const double epsilon,
+     std::function<bool (const typename lina::point_t&)>
+          in_bounds = no_boundary<typename lina::point_t>
     )
 {
 	typedef typename lina::point_t point_t;
@@ -257,7 +299,8 @@ fallback_gradient_BFGS
 
 	/* Follows Nocedal & Wright: Numerical Optimization */
 	Mdxd_t Hk(1e-3 * lina::identity());
-	Hk(4,4) *= 1e-5;
+	if (last_redux)
+		Hk(d-1,d-1) *= 1e-5;
 	const Mdxd_t I(lina::identity());
 
 	/* Configuration of the Wolfe condition: */
@@ -272,10 +315,29 @@ fallback_gradient_BFGS
 	lina::init_column_vectord(xk, x0);
 
 	/* The trajectory in optimization space; and early exit: */
-	BFGS_result_t<point_t> result;
+	BFGS_result_t<lina> result;
 	result.exit_code = MAX_ITERATIONS;
 	if (Nmax == 0)
 		return result;
+
+	/* Functions to take into consideration the boundary: */
+	auto evaluate_cost = [&](const point_t& p) -> typename lina::real_t {
+		if (!in_bounds(p))
+			return std::numeric_limits<typename lina::real_t>::infinity();
+		return cost(p);
+	};
+
+	auto evaluate_gradient = [&](const point_t& p) -> typename lina::grad_t {
+		if (!in_bounds(p))
+			return typename lina::grad_t();
+		return gradient(p);
+	};
+
+	auto convert_gradient = [](const vd_t& grad) -> typename lina::grad_t {
+		typename lina::grad_t dest;
+		lina::fill_array(dest, grad);
+		return dest;
+	};
 
 	/* The loop: */
 	point_t P(x0);
@@ -290,8 +352,18 @@ fallback_gradient_BFGS
 		/* From xk, compute the point: */
 		lina::fill_array(P, xk);
 
+		#ifdef DEBUG
+			std::cout << "gradient[" << i << "] = (";
+			for (size_t j=0; j<d; ++j)
+				std::cout << grad_fk[j] << ",";
+			std::cout << ")\n";
+		#endif
+
 		/* Keep track: */
-		result.history.emplace_back(cost0, P);
+		result.history.emplace_back(cost0, (gradient_steps > 0)
+		                                ? BFGS_mode_t::FALLBACK_GRADIENT
+		                                : BFGS_mode_t::BFGS,
+		                            P, convert_gradient(grad_fk));
 
 		/* Check finiteness of cost function: */
 		if (std::isnan(cost0) || std::isinf(cost0)){
@@ -314,19 +386,26 @@ fallback_gradient_BFGS
 			xkp1 = xk - step * grad_fk;
 			point_t Pp1;
 			lina::fill_array(Pp1, xkp1);
-			const double cost1 = cost(Pp1);
-			const double gfk_norm = grad_fk.norm();
-			const double delta_cost_expected = - step * gfk_norm * gfk_norm;
-			if (cost1 < cost0 + c1 * delta_cost_expected){
-				// Accept step.
-				xk = xkp1;
-				lina::init_column_vectord(grad_fk, gradient(Pp1));
-				if (cost1 < cost0 + c1 * 1.1 * delta_cost_expected)
-					step *= 1.1;
-				cost0 = cost1;
-				--gradient_steps;
-				result.exit_code = MAX_ITERATIONS;
-			} else {
+			bool accept_step = in_bounds(Pp1);
+			if (accept_step){
+				const double cost1 = cost(Pp1);
+				const double gfk_norm = grad_fk.norm();
+				const double delta_cost_expected
+				       = - step * gfk_norm * gfk_norm;
+				if (cost1 < cost0 + c1 * delta_cost_expected){
+					// Accept step.
+					xk = xkp1;
+					lina::init_column_vectord(grad_fk, gradient(Pp1));
+					if (cost1 < cost0 + c1 * 1.1 * delta_cost_expected)
+						step *= 1.1;
+					cost0 = cost1;
+					--gradient_steps;
+					result.exit_code = MAX_ITERATIONS;
+				} else {
+					accept_step = false;
+				}
+			}
+			if (!accept_step){
 				// Do not accept step.
 				step *= 0.25;
 
@@ -374,8 +453,8 @@ fallback_gradient_BFGS
 			point_t Pp1;
 			lina::fill_array(Pp1, xkp1);
 			vd_t grad_fkp1;
-			lina::init_column_vectord(grad_fkp1, gradient(Pp1));
-			double cost1 = cost(Pp1);
+			lina::init_column_vectord(grad_fkp1, evaluate_gradient(Pp1));
+			double cost1 = evaluate_cost(Pp1);
 
 			const double grad_fk_dot_pk = lina::dot(grad_fk, pk);
 			bool wolfe_success = false;
@@ -385,7 +464,7 @@ fallback_gradient_BFGS
 			{
 				wolfe_1 = cost1 <= cost0 + c1 * alpha * grad_fk_dot_pk; // Wolfe 1, 3.6a
 				wolfe_2 = lina::dot(grad_fkp1,pk) >= c2 * grad_fk_dot_pk; // Wolfe 2, 3.6b
-				if (wolfe_1 && (wolfe_2 || Hk_age <= 3))
+				if (in_bounds(Pp1) && wolfe_1 && (wolfe_2 || Hk_age <= 3))
 				{
 					wolfe_success = true;
 					break;
@@ -394,8 +473,8 @@ fallback_gradient_BFGS
 				alpha *= ALPHA_REDUX;
 				xkp1 = xk + alpha * pk;
 				lina::fill_array(Pp1, xkp1);
-				lina::init_column_vectord(grad_fkp1, gradient(Pp1));
-				cost1 = cost(Pp1);
+				lina::init_column_vectord(grad_fkp1, evaluate_gradient(Pp1));
+				cost1 = evaluate_cost(Pp1);
 			}
 
 			if (!wolfe_success){
@@ -469,7 +548,8 @@ fallback_gradient_BFGS
 
 	/* Last point: */
 	lina::fill_array(P, xk);
-	result.history.emplace_back(cost0, P);
+	result.history.emplace_back(cost0, BFGS_mode_t::FINISHED, P,
+	                            convert_gradient(grad_fk));
 
 	return result;
 }
