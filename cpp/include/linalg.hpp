@@ -26,6 +26,8 @@
 #include <cstddef>
 #include <stdexcept>
 
+#ifndef DOOMERCAT_LINALG_HPP
+#define DOOMERCAT_LINALG_HPP
 
 /* Choose here the library to use:
  * At this position, a custom implementation could be provided by
@@ -439,8 +441,8 @@ RowVector<d,real> ColVector<d,real>::transpose() const
 template<size_t d, typename real>
 real ColVector<d,real>::dot(const ColVector<d,real>& other) const
 {
-	double dt = 0.0;
-	for (size_t i=0; i<d; ++i)
+	real dt(x[0] * other.x[0]);
+	for (size_t i=1; i<d; ++i)
 		dt += x[i] * other.x[i];
 	return dt;
 }
@@ -545,11 +547,7 @@ struct linalg_t {
 
 #endif
 
-
-
-
-
-
+#endif
 
 
 
