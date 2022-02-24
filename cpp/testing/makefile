@@ -20,18 +20,16 @@
 CPPFLAGS=-I../include/ -Wall -O3 -march=native
 
 HEADERS=../include/arithmetic.hpp ../include/autodouble.hpp \
-        ../include/quaternion.hpp ../include/types.hpp \
-        ../include/constants.hpp ../include/functions.hpp
+        ../include/types.hpp ../include/constants.hpp \
+        ../include/functions.hpp
 
-ALLHEADERS = $(HEADERS) ../include/dataset.hpp ../include/projecteddata.hpp \
-             ../include/cost.hpp ../include/optimize.hpp ../include/bfgs.hpp \
-             ../include/linalg.hpp ../include/hotine.hpp \
+ALLHEADERS = $(HEADERS) ../include/dataset.hpp ../include/optimize.hpp \
+             ../include/bfgs.hpp ../include/linalg.hpp ../include/hotine.hpp \
              ../include/cost_hotine.hpp
 
-ALLSOURCES = ../src/dataset.cpp ../src/projecteddata.cpp ../src/cost.cpp \
-             ../src/arithmetic.cpp ../src/labordecylinder.cpp \
-             ../src/functions.cpp ../src/ctypesinterface.cpp \
-             ../src/optimize.cpp ../src/linalg.cpp ../src/cost_hotine.cpp
+ALLSOURCES = ../src/dataset.cpp ../src/arithmetic.cpp ../src/functions.cpp \
+             ../src/ctypesinterface.cpp ../src/optimize.cpp \
+             ../src/linalg.cpp ../src/cost_hotine.cpp
 
 all: hotine.o testing doomercat.so performancetest
 
@@ -40,21 +38,13 @@ hotine.o: $(ALLHEADERS) ../src/hotine.cpp ../src/cost_hotine.cpp functions.o \
 	g++ $(CPPFLAGS) -o hotine ../src/hotine.cpp ../src/cost_hotine.cpp \
 	   functions.o arithmetic.o dataset.o
 
-testing: $(HEADERS) arithmetic.o testing.o labordecylinder.o dataset.o \
-         projecteddata.o cost.o optimize.o functions.o linalg.o
-	g++ -o testing arithmetic.o testing.o labordecylinder.o dataset.o \
-	       projecteddata.o cost.o optimize.o functions.o linalg.o
+testing: $(HEADERS) arithmetic.o testing.o dataset.o optimize.o functions.o \
+         linalg.o
+	g++ -o testing arithmetic.o testing.o dataset.o optimize.o \
+	               functions.o linalg.o
 
 dataset.o: $(HEADERS) ../include/dataset.hpp ../src/dataset.cpp
 	g++ $(CPPFLAGS) -c ../src/dataset.cpp
-
-projecteddata.o: $(HEADERS) ../include/dataset.hpp ../include/projecteddata.hpp\
-                 ../src/projecteddata.cpp
-	g++ $(CPPFLAGS) -c ../src/projecteddata.cpp
-
-cost.o: $(HEADERS) ../include/cost.hpp ../include/dataset.hpp \
-                   ../include/projecteddata.hpp ../src/cost.cpp
-	g++ $(CPPFLAGS) -c ../src/cost.cpp
 
 testing.o: $(HEADERS) testing.cpp
 	echo "testing.o"
@@ -67,9 +57,6 @@ performancetest: $(ALLHEADERS) $(ALLSOURCES) ../include/ctypesinterface.hpp\
 
 arithmetic.o: $(HEADERS) ../src/arithmetic.cpp
 	g++ $(CPPFLAGS) -c ../src/arithmetic.cpp
-
-labordecylinder.o: $(HEADERS) ../src/labordecylinder.cpp
-	g++ $(CPPFLAGS) -c ../src/labordecylinder.cpp
 
 functions.o: $(HEADERS) ../src/functions.cpp
 	g++ $(CPPFLAGS) -c ../src/functions.cpp

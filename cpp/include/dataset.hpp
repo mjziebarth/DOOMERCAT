@@ -29,13 +29,10 @@
 
 namespace doomercat {
 
-class LabordeProjectedDataSet;
-
 class DataSet {
 /*
  * Class representing a data set in optimization.
  */
-friend LabordeProjectedDataSet;
 
 public:
 	DataSet(const size_t N, const double* lon, const double* lat,
