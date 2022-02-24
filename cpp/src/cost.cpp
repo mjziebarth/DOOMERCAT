@@ -46,19 +46,43 @@ static real5v mercator_project_residual(const Quaternion<real5v>& qv,
 	          qv)
 	);
 
-	/* Compute the Mercator projection: */
-	const real5v norm(sqrt(  r.i()*r.i()
-	                       + r.j()*r.j()
-	                       + r.k()*r.k()));
+	const real5v ONE = constant5(1.0);
 
-	const real5v k0_div_nrm(k0 / norm);
-
-	/* Now we got the scalar residual: */
-	return sqrt(  pow2(r.i() - (k0_div_nrm * r.i())) // r.i() - x
-	            + pow2(r.j() - (k0_div_nrm * r.j())) // r.j() - y
-	            + pow2(r.k() - (k0 * atanh(r.k() / norm))) // r.k() - z
+	return sqrt(  pow2(r.i() - (k0 * r.i())) // r.i() - x
+	            + pow2(r.j() - (k0 * r.j())) // r.j() - y
+	            + pow2(r.k() - (k0 * atanh(r.k()))) // r.k() - z
 	           );
 }
+
+static real5v cylinder_project_residual(const Quaternion<real5v>& qv,
+                                        const vec3_5v& uvw, real5v k0)
+{
+	/* Create the quaternion representing uvw:
+	 *   const Quaternion<real5v> l(constant5(0.0), uvw[0], uvw[1], uvw[2]);
+	 * Rotate l back to standard cylinder coordinates:
+	 *	 const Quaternion<real5v> r(qrot(qv.conj(), l, qv));
+	 */
+
+	/* Rotate l back to standard cylinder coordinates: */
+	const Quaternion<real5v> r(
+	     qrot(qv.conj(), ImaginaryQuaternion<real5v>(uvw[0], uvw[1], uvw[2]),
+	          qv)
+	);
+
+	const real5v ONE = constant5(1.0);
+
+	/* Using the knowledge that ||r|| = 1,
+	 * and that on the cylinder x^2+y^2 = 1 : */
+	return ONE - k0 * sqrt(  ONE // x^2 + y^2
+	                       + pow2(r.k()/sqrt(ONE - r.k()*r.k())) // r.k() - z
+	                      );
+//	return sqrt(  pow2(r.i() - (k0 * r.i())) // r.i() - x
+//	            + pow2(r.j() - (k0 * r.j())) // r.j() - y
+//	            + pow2(r.k() - (k0 * r.k()/sqrt(ONE - r.k()*r.k()))) // r.k() - z
+//	           );
+}
+
+
 
 
 static real5v compute_cost(const LabordeProjectedDataSet& projected_data,
@@ -79,7 +103,9 @@ static real5v compute_cost(const LabordeProjectedDataSet& projected_data,
 		// Compute delta = mercator_project_residual(qv, uvw[i], k0)
 		// then cost += w[i] * (delta)^pnorm
 		cost += projected_data.w(i)
-		        * pow(mercator_project_residual(qv, projected_data.uvw(i), k0),
+//		        * pow(mercator_project_residual(qv, projected_data.uvw(i), k0),
+//		              static_cast<int>(pnorm));
+		        * pow(cylinder_project_residual(qv, projected_data.uvw(i), k0),
 		              static_cast<int>(pnorm));
 	}
 
