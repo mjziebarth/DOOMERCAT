@@ -52,6 +52,22 @@ size_t DataSet::size() const
 	return data.size();
 }
 
+double DataSet::lambda(size_t i) const
+{
+	if (i >= data.size())
+		throw std::runtime_error("Out-of-bounds in DataSet weight access.");
+
+	return data[i].lambda;
+}
+
+double DataSet::phi(size_t i) const
+{
+	if (i >= data.size())
+		throw std::runtime_error("Out-of-bounds in DataSet weight access.");
+
+	return data[i].phi;
+}
+
 double DataSet::w(size_t i) const
 {
 	if (i >= data.size())
