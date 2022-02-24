@@ -66,7 +66,8 @@ class LabordeResult:
     """
     Result of the optimization.
     """
-    def __init__(self, cost, lonc, lat_0, alpha, k0, lon_cyl, lat_cyl, steps):
+    def __init__(self, cost, lonc, lat_0, alpha, k0, lon_cyl, lat_cyl, steps,
+                 qr, qi, qj, qk, f):
         self.cost = cost
         self.lonc = lonc
         self.lat_0 = lat_0
@@ -76,6 +77,12 @@ class LabordeResult:
         self.lat_cyl = lat_cyl
         self.N = 1 if isinstance(cost,float) else cost.size
         self.steps = steps
+        # Representation of the final rotation quaternion:
+        self.qr = qr
+        self.qi = qi
+        self.qj = qj
+        self.qk = qk
+        self.f = f
 
     def last(self):
         if self.N == 1:
@@ -327,7 +334,12 @@ def bfgs_optimize(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lon0, lat0,
                              k0=result[:M,4],
                              lon_cyl=result[:M,5],
                              lat_cyl=result[:M,6],
-                             steps=M)
+                             steps=M,
+                             qr=final_cylinder[0],
+                             qi=final_cylinder[1],
+                             qj=final_cylinder[2],
+                             qk=final_cylinder[3],
+                             f=final_cylinder[5])
 
     cost, lonc, lat_0, alpha, k0, lon_cyl, lat_cyl = result[M-1,:]
     return LabordeResult(cost=float(cost),
