@@ -25,23 +25,26 @@ HEADERS=../include/arithmetic.hpp ../include/autodouble.hpp \
 
 ALLHEADERS = $(HEADERS) ../include/dataset.hpp ../include/optimize.hpp \
              ../include/bfgs.hpp ../include/linalg.hpp ../include/hotine.hpp \
-             ../include/cost_hotine.hpp
+             ../include/cost_hotine.hpp ../include/welzl.hpp
 
 ALLSOURCES = ../src/dataset.cpp ../src/arithmetic.cpp ../src/functions.cpp \
              ../src/ctypesinterface.cpp ../src/optimize.cpp \
-             ../src/linalg.cpp ../src/cost_hotine.cpp
+             ../src/linalg.cpp ../src/cost_hotine.cpp ../src/welzl.cpp
 
-all: hotine.o testing doomercat.so performancetest
+all: welzl.o hotine testing doomercat.so performancetest
 
-hotine.o: $(ALLHEADERS) ../src/hotine.cpp ../src/cost_hotine.cpp functions.o \
-          arithmetic.o dataset.o
+welzl.o: ../include/welzl.hpp ../src/welzl.cpp
+	g++ $(CPPFLAGS) -c welzl.o ../src/welzl.cpp
+
+hotine: $(ALLHEADERS) ../src/hotine.cpp ../src/cost_hotine.cpp functions.o \
+        arithmetic.o dataset.o
 	g++ $(CPPFLAGS) -o hotine ../src/hotine.cpp ../src/cost_hotine.cpp \
 	   functions.o arithmetic.o dataset.o
 
 testing: $(HEADERS) arithmetic.o testing.o dataset.o optimize.o functions.o \
-         linalg.o
+         linalg.o cost_hotine.o
 	g++ -o testing arithmetic.o testing.o dataset.o optimize.o \
-	               functions.o linalg.o
+	               functions.o linalg.o cost_hotine.o
 
 dataset.o: $(HEADERS) ../include/dataset.hpp ../src/dataset.cpp
 	g++ $(CPPFLAGS) -c ../src/dataset.cpp
@@ -66,6 +69,10 @@ optimize.o: $(ALLHEADERS) ../src/optimize.cpp
 
 linalg.o: $(ALLHEADERS) ../src/linalg.cpp
 	g++ $(CPPFLAGS) -c ../src/linalg.cpp
+
+cost_hotine.o: $(HEADERS) ../include/cost_hotine.hpp ../include/hotine.hpp \
+                          ../src/cost_hotine.cpp
+	g++ $(CPPFLAGS) -c ../src/cost_hotine.cpp
 
 doomercat.so: $(ALLHEADERS) $(ALLSOURCES)
 	echo "doomercat.so"

@@ -243,3 +243,28 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
             k.ctypes.data_as(POINTER(c_double)))
 
     return k
+
+
+def welzl1991_minidisk(x: np.ndarray, y: np.ndarray):
+    """
+    Compute the minimum encompassing disk using the algorithm of
+    Welzl (1991).
+
+    Returns:
+       xc, yc, r
+    """
+    # Input sanitization.
+    x = np.ascontiguousarray(x, dtype=np.double)
+    y = np.ascontiguousarray(y, dtype=np.double)
+    N = x.size
+    assert y.size == N
+
+    # Result vector:
+    disk = np.zeros(3)
+
+    _cppextensions_so.welzl1991(c_size_t(N),
+                        x.ctypes.data_as(POINTER(c_double)),
+                        y.ctypes.data_as(POINTER(c_double)),
+                        disk.ctypes.data_as(POINTER(c_double)))
+
+    return disk

@@ -43,4 +43,16 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 double alpha_0, double k_0_0, const size_t Nmax,
                 double* result, unsigned int* n_steps);
 
+/*
+ * Compute the smalles enclosing circle following the algorithm
+ * by Welzl, 1991.
+ *
+ * Returns:
+ *   disk[0] = center x
+ *   disk[1] = center y
+ *   disk[2] = radius
+ */
+int welzl1991(const size_t N, const double* x, const double* y,
+              double* disk);
+
 }
