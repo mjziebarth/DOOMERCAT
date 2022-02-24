@@ -110,6 +110,12 @@ BFGS_result_t<lina>
 	if (Nmax == 0)
 		return result;
 
+	auto convert_gradient = [](const vd_t& grad) -> typename lina::grad_t {
+		typename lina::grad_t dest;
+		lina::fill_array(dest, grad);
+		return dest;
+	};
+
 	/* The loop: */
 	point_t P(x0);
 	vd_t grad_fk;
