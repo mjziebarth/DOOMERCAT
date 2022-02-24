@@ -21,16 +21,18 @@
 # limitations under the Licence.
 
 import numpy as np
+from math import asin, degrees, sqrt
+from .fisherbingham import fisher_bingham_mom
 
 def _xyz2lola(xyz):
     """
     Takes a vector (N,3) and computes the spherical coordinates.
     """
-    xyz /= np.linalg.norm(xyz)
+    xyz /= np.linalg.norm(xyz, axis=0)
     return np.rad2deg(np.arctan2(xyz[1], xyz[0])), np.rad2deg(np.arcsin(xyz[2]))
 
 
-def initial_parameters_cross_product(lon,lat):
+def initial_axes_cross_product(lon,lat):
     """
     Computes an initial estimate of the parameters using the average
     cross product between data point pairs.
@@ -56,66 +58,51 @@ def initial_parameters_cross_product(lon,lat):
 
 
 
-def initial_parameters_fisher_bingham(lon, lat, w):
+def initial_axes_fisher_bingham(lon, lat, w):
     """
     Computes an initial estimate of the parameters using parameter
     estimates of the Fisher-Bingham distribution.
 
     Returns:
-       (lon_cyl, lat_cyl), (lonc, lat_0)
+       cylinder_axis, central_axis
     """
-    if w is None:
-        w = 1.0
-    lon = np.deg2rad(lon)
-    lat = np.deg2rad(lat)
-    v1 = np.stack((np.cos(lon) * np.cos(lat),
-                   np.sin(lon) * np.cos(lat),
-                   np.sin(lat)))
+    g1, g2, g3, ka, be = fisher_bingham_mom(lon, lat, w)
 
-    mv = np.sum(w*v1,axis=1)/np.sum(w)
-    mv /= np.linalg.norm(mv)
+    return g3, g1
 
-    Sv = 1/np.sum(w) * w * v1 @ v1.T
+def compute_azimuth(cylinder_axis, central_axis):
+    """
+    Compute, at the central point, the azimuth of the tangent
+    great circle in which an oblique cylinder, specified through
+    its symmetry axis, touches a sphere.
+    """
+    # We need the sine of the latitude of the cylinder axis,
+    # which is the cylinder axis z component:
+    sin_phi_cyl = cylinder_axis[2]
 
-    ct = mv[2]
-    st = np.sqrt(1-mv[2]**2)
+    # Furthermore, we need the cosine of the central coordinate
+    # latitude:
+    cos_fies = sqrt(central_axis[0]**2 + central_axis[1]**2)
+    print("cos_fies:   ",cos_fies)
+    print("sin_phi_cyl:",sin_phi_cyl)
 
-    cp = mv[1]/np.sqrt(mv[0]**2+mv[1]**2)
-    sp = mv[0]/np.sqrt(mv[0]**2+mv[1]**2)
+    # Now, we can compute the azimuth of the cylinder equator at the
+    # central coordinate using spherical trigonometry:
+    azimuth = asin(max(min(sin_phi_cyl / cos_fies, 1.0), -1.0));
 
-    H1 = np.array([
-        [1,0,0.],
-        [0,ct,-st],
-        [0,st,ct]
-    ])
+    # The spherical geometry used does not consider the correct
+    # sign of the azimuth. Thus, we may have to multiply by -1 if
+    # the cylinder axis is to the east of the central axis.
+    # Whether the cylinder axis is west or east of the central axis
+    # can be decided by its projection to a westward vector.
+    # Such a vector is the cross product of the central axis and
+    # the North pole:
+    westward = np.cross(central_axis, (0,0,1))
+    if np.dot(westward, cylinder_axis) > 0.0:
+        return degrees(azimuth);
 
-    H2 = np.array([
-        [cp,-sp,0],
-        [sp,cp,0],
-        [0,0.,1]
-    ])
+    return -degrees(azimuth);
 
-    H = H1 @ H2
-
-    Hv1 = H @ v1
-    Hmv = H @ mv
-
-    B = H @ Sv @ H.T
-    Bl = B[:-1,:-1]
-
-    ee,ev = np.linalg.eig(Bl)
-    ee = np.sqrt(ee)
-
-    K = np.block([[ev.T,np.zeros((2,1))],
-                  [np.zeros((1,2)),1.],])
-
-    G = K @ H
-
-    g1 = G.T[:,2] # central axis
-    g2 = G.T[:,0] # equator axis
-    g3 = G.T[:,1] # pole axis
-
-    return _xyz2lola(g3), _xyz2lola(g1)
 
 
 def initial_parameters(lon, lat, w, how='fisher-bingham'):
@@ -126,4 +113,9 @@ def initial_parameters(lon, lat, w, how='fisher-bingham'):
        (lon_cyl, lat_cyl), (lonc, lat_0)
     """
     if how == 'fisher-bingham':
-        return initial_parameters_fisher_bingham(lon, lat, w)
+        cylinder_axis, central_axis \
+           = initial_axes_fisher_bingham(lon, lat, w)
+
+    lonc, lat_0 = _xyz2lola(central_axis)
+    azimuth = compute_azimuth(cylinder_axis, central_axis)
+    return float(lonc), float(lat_0), float(azimuth)
