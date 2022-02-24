@@ -291,14 +291,23 @@ real5v LabordeCylinder::azimuth() const
 	real5v azimuth = asin(max(min(sin_phi_cyl / cos_fies, 1.0), -1.0));
 
 	/* The spherical geometry used does not consider the correct
-	 * sign of the azimuth. Thus, we may have to multiply by -1.
-	 * This can be decided by considering the cross product
-	 * of the cylinder axis and the central axis:
+	 * sign of the azimuth. Thus, we may have to multiply by -1 if
+	 * the cylinder axis is to the east of the central axis.
+	 * Whether the cylinder axis is west or east of the central axis
+	 * can be decided by its projection to a westward vector.
+	 * Such a vector is the cross product of the central axis and
+	 * the North pole:
 	 */
-	if (_axis[1].value() > 0)
-		return -rad2deg(azimuth);
+	typedef ColVector<3,real5v> v3t;
+	const v3t westward(v3t({_central_axis[0],
+	                        _central_axis[1],
+	                        _central_axis[2]})
+	                   .cross(v3t({constant5(0.0), constant5(0.0),
+	                               constant5(1.0)})));
+	if (westward.dot(v3t({_axis[0], _axis[1], _axis[2]})).value() > 0)
+		return rad2deg(azimuth);
 
-	return rad2deg(azimuth);
+	return -rad2deg(azimuth);
 }
 
 real5v LabordeCylinder::lat_0() const
