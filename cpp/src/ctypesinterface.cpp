@@ -39,8 +39,6 @@ using doomercat::DataSet;
 using doomercat::CostFunctionHotine;
 using doomercat::CostHotine;
 using doomercat::HotineObliqueMercator;
-using doomercat::result_t;
-using doomercat::coordinate_t;
 
 
 int compute_cost_hotine_batch(const size_t N, const double* lon,
