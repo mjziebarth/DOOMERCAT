@@ -26,3 +26,8 @@ real5v constant5(double x)
 {
 	return real5v::constant(x);
 }
+
+real4v constant4(double x)
+{
+	return real4v::constant(x);
+}

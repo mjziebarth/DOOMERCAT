@@ -67,6 +67,14 @@ public:
 	autodouble& operator*=(const autodouble& other);
 	autodouble& operator+=(double c);
 	autodouble& operator*=(double c);
+	autodouble& operator-=(double c);
+
+	bool operator>=(const autodouble& other) const;
+	bool operator<=(const autodouble& other) const;
+	bool operator>=(double) const;
+	bool operator<=(double) const;
+	bool operator>(double) const;
+	bool operator<(double) const;
 
 	static autodouble div(const double c, const autodouble<d>& x);
 	static autodouble minus(const double c, const autodouble<d>& x);
@@ -80,7 +88,9 @@ public:
 	static autodouble pow(const autodouble& x, const autodouble& a);
 	static autodouble pow(const autodouble& x, const double a);
 	static autodouble pow(const double x, const autodouble& a);
-	static autodouble pow_move(autodouble&& x, const double a);
+	static autodouble pow(autodouble&& x, const double a);
+
+	static autodouble abs(autodouble&& x);
 
 	static autodouble sin(const autodouble& x);
 	static autodouble sin(autodouble&& x);
@@ -92,6 +102,7 @@ public:
 	static autodouble atan(const autodouble& x);
 	static autodouble atan(autodouble&& x);
 	static autodouble atan2(const autodouble& y, const autodouble& x);
+	static autodouble atan2(autodouble&& y, const autodouble& x);
 	static autodouble atanh(const autodouble& x);
 	static autodouble atanh_move(autodouble&& x);
 
@@ -410,6 +421,13 @@ autodouble<d>& autodouble<d>::operator-=(const autodouble<d>& other)
 }
 
 template<dim_t d>
+autodouble<d>& autodouble<d>::operator-=(double c)
+{
+	x -= c;
+	return *this;
+}
+
+template<dim_t d>
 autodouble<d>& autodouble<d>::operator*=(const autodouble<d>& other)
 {
 	for (dim_t i=0; i<d; ++i)
@@ -429,6 +447,48 @@ autodouble<d>& autodouble<d>::operator*=(double c)
 
 	return *this;
 }
+
+
+/*
+ * Comparison operators:
+ */
+template<dim_t d>
+bool autodouble<d>::operator>=(const autodouble& other) const
+{
+	return x >= other.x;
+}
+
+template<dim_t d>
+bool autodouble<d>::operator<=(const autodouble& other) const
+{
+	return x <= other.x;
+}
+
+template<dim_t d>
+bool autodouble<d>::operator>=(double y) const
+{
+	return x >= y;
+}
+
+template<dim_t d>
+bool autodouble<d>::operator>(double y) const
+{
+	return x > y;
+}
+
+template<dim_t d>
+bool autodouble<d>::operator<=(double y) const
+{
+	return x <= y;
+}
+
+template<dim_t d>
+bool autodouble<d>::operator<(double y) const
+{
+	return x < y;
+}
+
+
 
 
 
@@ -550,11 +610,9 @@ template<dim_t d>
 autodouble<d> autodouble<d>::cos(autodouble&& x)
 {
 	const double n_sin_x = -std::sin(x.x);
-	x.x = std::cos(x);
+	x.x = std::cos(x.x);
 	for (dim_t i=0; i<d; ++i)
 		x.deriv[i] *= n_sin_x;
-
-	std::cout << "call moving cos.\n" << std::flush;
 
 	return x;
 }
@@ -607,6 +665,22 @@ autodouble<d> autodouble<d>::atan2(const autodouble& y, const autodouble& x)
 		deriv_new[i] = f * ix * (y.deriv[i] - y.x * ix * x.deriv[i]);
 
 	return autodouble<d>(std::atan2(y.x, x.x), deriv_new);
+}
+
+template<dim_t d>
+autodouble<d> autodouble<d>::atan2(autodouble&& y, const autodouble& x)
+{
+	/* d/dx atan(z) = 1/(1+z^2) */
+	const double yx = y.x;
+	const double z = yx / x.x;
+	const double f = 1.0 / (1.0 + z * z);
+	const double ix = 1.0 / x.x;
+	std::array<double,d> deriv_new;
+	y.x = std::atan2(y.x, x.x);
+	for (dim_t i=0; i<d; ++i)
+		y.deriv[i] = f * ix * (y.deriv[i] - yx * ix * x.deriv[i]);
+
+	return y;
 }
 
 template<dim_t d>
@@ -761,7 +835,7 @@ autodouble<d> autodouble<d>::pow(const double x, const autodouble& a)
 
 
 template<dim_t d>
-autodouble<d> autodouble<d>::pow_move(autodouble&& x, const double a)
+autodouble<d> autodouble<d>::pow(autodouble&& x, const double a)
 {
 	double f = std::pow(x.x, a-1.0);
 	x.x *= f; // x.x := x.x*pow(x.x, a-1) = pow(x.x,a)
@@ -769,6 +843,23 @@ autodouble<d> autodouble<d>::pow_move(autodouble&& x, const double a)
 	for (dim_t i=0; i<d; ++i)
 		x.deriv[i] *= f;
 
+	return x;
+}
+
+
+template<dim_t d>
+autodouble<d> autodouble<d>::abs(autodouble&& x)
+{
+	if (x.x > 0)
+		return x;
+	if (x.x == 0){
+		for (dim_t i=0; i<d; ++i)
+			x.deriv[i] = 0.0;
+	} else {
+		x.x = -x.x;
+		for (dim_t i=0; i<d; ++i)
+			x.deriv[i] = -x.deriv[i];
+	}
 	return x;
 }
 

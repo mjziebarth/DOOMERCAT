@@ -20,6 +20,8 @@
  * limitations under the Licence.
  */
 
+#include <utility>
+
 #ifndef DOOMERCAT_ARITHMETIC_H
 #define DOOMERCAT_ARITHMETIC_H
 
@@ -27,12 +29,145 @@ template<typename T>
 class Arithmetic {
 public:
 	static T sqrt(const T&);
+	static T sqrt(T&&);
+	static T cos(const T&);
+	static T cos(T&&);
+	static T sin(const T&);
+	static T sin(T&&);
+	static T pow(const T&, int);
+	static T pow(T&&, int);
+	static T pow2(const T&);
+	static T pow2(T&&);
+	static T pow(const T&, const T&);
+	static T pow(double, const T&);
+	static T asin(T&&);
+	static T tan(const T&);
+	static T atan2(T&&, const T&);
+	static T log(const T&);
+	static T log(T&&);
+	static T abs(T&&);
+
+	static T max(T&&, T&&);
+
+	static T constant(double);
 };
 
 template<typename T>
 T Arithmetic<T>::sqrt(const T& t)
 {
 	return T::sqrt(t);
+}
+
+template<typename T>
+T Arithmetic<T>::sqrt(T&& t)
+{
+	return T::sqrt(std::move(t));
+}
+
+template<typename T>
+T Arithmetic<T>::cos(const T& t)
+{
+	return T::cos(t);
+}
+
+template<typename T>
+T Arithmetic<T>::cos(T&& t)
+{
+	return T::cos(std::move(t));
+}
+
+template<typename T>
+T Arithmetic<T>::sin(const T& t)
+{
+	return T::sin(t);
+}
+
+template<typename T>
+T Arithmetic<T>::sin(T&& t)
+{
+	return T::sin(std::move(t));
+}
+
+template<typename T>
+T Arithmetic<T>::pow(const T& t, int n)
+{
+	return T::pow(t, n);
+}
+
+template<typename T>
+T Arithmetic<T>::pow(T&& t, int n)
+{
+	return T::pow(std::move(t), n);
+}
+
+template<typename T>
+T Arithmetic<T>::pow(const T& t, const T& n)
+{
+	return T::pow(t, n);
+}
+
+template<typename T>
+T Arithmetic<T>::pow(double t, const T& n)
+{
+	return T::pow(t, n);
+}
+
+template<typename T>
+T Arithmetic<T>::pow2(const T& t)
+{
+	return t * t;
+}
+
+template<typename T>
+T Arithmetic<T>::pow2(T&& t)
+{
+	t *= t;
+	return t;
+}
+
+template<typename T>
+T Arithmetic<T>::asin(T&& t)
+{
+	return T::asin(std::move(t));
+}
+
+template<typename T>
+T Arithmetic<T>::tan(const T& t)
+{
+	return T::tan(t);
+}
+template<typename T>
+T Arithmetic<T>::atan2(T&& y, const T& x)
+{
+	return T::atan2(std::move(y), x);
+}
+
+template<typename T>
+T Arithmetic<T>::log(const T& t)
+{
+	return T::log(t);
+}
+
+template<typename T>
+T Arithmetic<T>::log(T&& t)
+{
+	return T::log(std::move(t));
+}
+
+template<typename T>
+T Arithmetic<T>::abs(T&& t)
+{
+	return T::abs(std::move(t));
+}
+
+
+
+template<typename T>
+T Arithmetic<T>::max(T&& l, T&& r)
+{
+	if (l >= r)
+		return l;
+	return r;
 }
 
 #endif

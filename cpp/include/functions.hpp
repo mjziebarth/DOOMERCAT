@@ -200,10 +200,16 @@ T max(const T& a, double b) {
 
 // Constants and variables:
 real5v constant5(double x);
+real4v constant4(double x);
 
 template<dim_t i>
 real5v variable5(double x) {
 	return real5v::variable<i>(x);
+}
+
+template<dim_t i>
+real4v variable4(double x) {
+	return real4v::variable<i>(x);
 }
 
 // Some math functions:

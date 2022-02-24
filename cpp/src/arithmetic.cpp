@@ -20,6 +20,7 @@
  * limitations under the Licence.
  */
 #include <../include/arithmetic.hpp>
+#include <../include/functions.hpp>
 
 #include <cmath>
 
@@ -27,4 +28,16 @@ template<>
 double Arithmetic<double>::sqrt(const double& x)
 {
 	return std::sqrt(x);
+}
+
+template<>
+real5v Arithmetic<real5v>::constant(double x)
+{
+	return constant5(x);
+}
+
+template<>
+real4v Arithmetic<real4v>::constant(double x)
+{
+	return constant4(x);
 }
