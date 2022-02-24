@@ -99,24 +99,6 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 	if (w == 0)
 		w = nullptr;
 
-	// std::cout << "Parameters passed to BFGS:\n";
-	// std::cout.precision(17);
-	// std::cout << "  N =        " << N << "\n";
-	// std::cout << "  f =        " << f << "\n";
-	// std::cout << "  pnorm =    " << pnorm << "\n";
-	// std::cout << "  k0_ap =    " << k0_ap << "\n";
-	// std::cout << "  sigma =    " << sigma_k0 << "\n";
-	// std::cout << "  lon_cyl0 = " << lon_cyl0 << "\n";
-	// std::cout << "  lat_cyl0 = " << lat_cyl0 << "\n";
-	// std::cout << "  lonc0 =    " << lonc0 << "\n";
-	// std::cout << "  k00 =      " << k00 << "\n";
-	// std::cout << "  Nmax =     " << Nmax << "\n";
-	// std::cout << "  First 7 coordinates:\n  [";
-	// for (size_t i=0; i<std::min<size_t>(7,Nmax); ++i){
-	// 	std::cout << "(" << lon[i] << "," << lat[i] << "), ";
-	// }
-	// std::cout << "\n" << std::flush;
-
 	// Init the data set:
 	DataSet data(N, lon, lat, w);
 
