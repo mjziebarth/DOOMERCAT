@@ -318,8 +318,30 @@ class HotineObliqueMercator:
 		U.S. Geological Survey Professional Paper (1395).
 		doi: 10.3133/pp1396
 		"""
-		project_hotine(lon, lat, self._lonc, self._lat_0, self._alpha,
-		               self._k0, self._f)
+		return project_hotine(lon, lat, self._lonc, self._lat_0, self._alpha,
+		                      self._k0, self._f)
+
+
+	def north_azimuth(self, lon: float, lat: float):
+		"""
+		Compute, at a location, the local 'north azimuth', that is,
+		the clockwise angle from the y axis to the local north vector.
+
+		Returns:
+		   azimuth : The local azimuth.
+		"""
+		# Compute the local vectors in north direction:
+		lon = float(lon)
+		lat = float(lat)
+		uv = self.project((lon,lon), (lat, lat+1e-7))
+		dx = uv[0][1] - uv[0][0]
+		dy = uv[1][1] - uv[1][0]
+
+		# From this, compute the angle:
+		azimuth = degrees(atan2(dx,dy))
+
+		return azimuth
+
 
 
 	def distortion(self, lon, lat):
