@@ -270,4 +270,5 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
             c_double(k_0), c_double(f),
             uv.ctypes.data_as(POINTER(c_double)))
 
-    return k
+    uv = uv.T
+    return uv[0,:], uv[1,:]
