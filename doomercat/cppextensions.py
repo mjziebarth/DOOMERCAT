@@ -132,7 +132,7 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
                                  c_double(f), c_uint(pnorm), c_double(k0_ap),
                                  c_double(sigma_k0), c_double(lonc_0),
                                  c_double(lat_0_0), c_double(alpha_0),
-                                 c_double(k_0_0), c_size_t(Nmax),
+                                 c_double(k_0_0), c_uint(Nmax),
                                  result.ctypes.data_as(POINTER(c_double)),
                                  M.ctypes.data_as(POINTER(c_uint)))
     M = int(M)

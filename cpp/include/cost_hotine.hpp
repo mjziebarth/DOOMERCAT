@@ -28,15 +28,16 @@
 
 namespace doomercat {
 
+template<typename T>
 class CostFunctionHotine;
 
 
-
+template<typename T>
 class CostHotine {
 /*
  *Result of a cost function evaluation.
  */
-friend CostFunctionHotine;
+friend CostFunctionHotine<T>;
 
 public:
 	operator double() const;
@@ -44,30 +45,51 @@ public:
 	std::array<double,4> grad() const;
 
 private:
-	CostHotine(const real4v& cost);
-	real4v cost;
+	CostHotine(const T& cost);
+	T cost;
 
 };
 
+template<typename T>
+CostHotine<T>::CostHotine(const T& cost) : cost(cost)
+{
+}
 
+
+template<typename T>
 class CostFunctionHotine {
 /*
  * A particular configuration of the cost function parameters.
  */
 public:
 	CostFunctionHotine(unsigned int pnorm, double k0_ap, double sigma_k0,
-	                   bool logarithmic);
+	                   bool logarithmic, bool parallel=true);
 
-	CostHotine operator()(const DataSet& data,
-	                      const HotineObliqueMercator<real4v>& hom) const;
+	CostHotine<T> operator()(const DataSet& data,
+	                         const HotineObliqueMercator<T>& hom) const;
 
 private:
 	unsigned int pnorm;
 	double k0_ap;
 	double sigma_k0;
 	bool logarithmic;
+	bool parallel = true;
 
 };
+
+
+template<typename T>
+CostFunctionHotine<T>::CostFunctionHotine(unsigned int pnorm,
+                                          double k0_ap,
+                                          double sigma_k0,
+                                          bool logarithmic,
+                                          bool parallel)
+    : pnorm(pnorm), k0_ap(k0_ap), sigma_k0(sigma_k0),
+      logarithmic(logarithmic), parallel(parallel)
+{
+	if (pnorm < 2)
+		throw std::runtime_error("pnorm too small");
+}
 
 
 

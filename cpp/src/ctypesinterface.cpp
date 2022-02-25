@@ -51,14 +51,15 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
 	const DataSet data(N, lon, lat, w);
 
 	/* Cost function: */
-	const CostFunctionHotine cfun(pnorm, k0_ap, sigma_k0, true);
+	const CostFunctionHotine<double> cfun(pnorm, k0_ap, sigma_k0, true,
+	                                      false);
 
 	/* Compute the Hotine Mercator projections now: */
 	#pragma omp parallel for
 	for (size_t i=0; i<M; ++i){
-		HotineObliqueMercator<real4v>
-		   hom(constant4(deg2rad(lonc[i])), constant4(deg2rad(lat0[i])),
-		       constant4(deg2rad(alpha[i])), constant4(k0[i]), f);
+		HotineObliqueMercator<double>
+		   hom(deg2rad(lonc[i]), deg2rad(lat0[i]),
+		       deg2rad(alpha[i]), k0[i], f);
 
 		/* Compute the cost: */
 		result[i] = cfun(data, hom);
@@ -74,14 +75,13 @@ int compute_k_hotine(const size_t N, const double* lon,
         double* result)
 {
 	/* Compute the Hotine Mercator projections now: */
-	const HotineObliqueMercator<real4v>
-	   hom(constant4(deg2rad(lonc)), constant4(deg2rad(lat0)),
-	       constant4(deg2rad(alpha)), constant4(k0), f);
+	const HotineObliqueMercator<double>
+	   hom(deg2rad(lonc), deg2rad(lat0), deg2rad(alpha), k0, f);
 
 	#pragma omp parallel for
 	for (size_t i=0; i<N; ++i){
 		/* Compute the cost: */
-		result[i] = hom.k(deg2rad(lon[i]), deg2rad(lat[i])).value();
+		result[i] = hom.k(deg2rad(lon[i]), deg2rad(lat[i]));
 	}
 
 	return 0;
@@ -91,7 +91,7 @@ int compute_k_hotine(const size_t N, const double* lon,
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 const double* w, double f, unsigned int pnorm, double k0_ap,
                 double sigma_k0, double lonc_0, double lat_0_0,
-                double alpha_0, double k_0_0, const size_t Nmax,
+                double alpha_0, double k_0_0, unsigned int Nmax,
                 double* result, unsigned int* n_steps)
 {
 	// Sanity check on weights (probably very much redundant):
@@ -120,8 +120,9 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 		result[10*i+9] = history[i].algorithm_state;
 	}
 
-	if (n_steps)
-		*n_steps = history.size();
+	if (n_steps){
+		*n_steps = static_cast<unsigned int>(history.size());
+	}
 
 	return 0;
 }

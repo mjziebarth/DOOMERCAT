@@ -908,9 +908,9 @@ autodouble<d> autodouble<d>::sum(const std::vector<autodouble<d>>& x)
 
 	std::array<double,d> dx;
 	for (dim_t j=0; j<d; ++j){
-		dx[j] = Sdx[j].sum;
+		dx[j] = static_cast<double>(Sdx[j].sum);
 	}
-	return autodouble<d>(Sx.sum, dx);
+	return autodouble<d>(static_cast<double>(Sx.sum), dx);
 }
 
 

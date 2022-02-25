@@ -29,28 +29,47 @@ using doomercat::HotineObliqueMercator;
 using doomercat::CostHotine;
 using doomercat::CostFunctionHotine;
 
-typedef Arithmetic<real4v> AR;
 
 static real4v sum(std::vector<real4v>& x){
 	return real4v::sum(x);
 }
 
-
-static real4v compute_cost(const DataSet& data,
-                           const HotineObliqueMercator<real4v> hom,
-                           unsigned int pnorm, double k0_ap, double sigma_k0,
-                           bool logarithmic)
+// Make sure that Kahan summation is not killed by re-association:
+#pragma GCC optimize("-fno-associative-math")
+static double sum(std::vector<double>& x)
 {
+	/* Copy of the code from autodouble.hpp */
+	long double S = 0.0;
+	long double comp = 0.0;
+	for (const double& xi : x){
+		long double add = xi - comp;
+		long double res = S + add;
+		comp = (res - S) - add;
+		S = res;
+	}
+
+	return static_cast<double>(S);
+}
+
+
+template<typename T>
+static T compute_cost(const DataSet& data,
+                      const HotineObliqueMercator<T> hom,
+                      unsigned int pnorm, double k0_ap, double sigma_k0,
+                      bool logarithmic, bool parallel)
+{
+	typedef Arithmetic<T> AR;
+
 	/* Compute the weighted, potentiated distortions: */
-	std::vector<real4v> cost_vec(data.size(), constant4(0.0));
-	#pragma omp parallel for
+	std::vector<T> cost_vec(data.size(), AR::constant(0.0));
+	#pragma omp parallel for if(parallel)
 	for (size_t i=0; i<data.size(); ++i){
 		cost_vec[i] = data.w(i)
 		        * AR::pow(AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0),
 		                  static_cast<int>(pnorm));
 	}
 
-	real4v cost(sum(cost_vec));
+	T cost(sum(cost_vec));
 
 
 	/* Add the k0  prior: */
@@ -67,39 +86,51 @@ static real4v compute_cost(const DataSet& data,
 
 
 
-CostHotine::CostHotine(const real4v& cost) : cost(cost)
-{
-}
 
-CostHotine::operator double() const
+
+template<>
+CostHotine<real4v>::operator double() const
 {
 	return cost.value();
 }
 
-std::array<double,4> CostHotine::grad() const
+template<>
+CostHotine<double>::operator double() const
+{
+	return cost;
+}
+
+
+template<>
+std::array<double,4> CostHotine<real4v>::grad() const
 {
 	std::array<double,4> g;
-	for (int i=0; i<4; ++i){
+	for (dim_t i=0; i<4; ++i){
 		g[i] = cost.derivative(i);
 	}
 	return g;
 }
 
 
-
-CostFunctionHotine::CostFunctionHotine(unsigned int pnorm, double k0_ap,
-                                       double sigma_k0, bool logarithmic)
-    : pnorm(pnorm), k0_ap(k0_ap), sigma_k0(sigma_k0),
-      logarithmic(logarithmic)
+template<>
+CostHotine<real4v>
+CostFunctionHotine<real4v>::operator()(const DataSet& data,
+                              const HotineObliqueMercator<real4v>& hom) const
 {
-	if (pnorm < 2)
-		throw std::runtime_error("pnorm too small");
+	return CostHotine<real4v>(
+	            compute_cost<real4v>(data, hom, pnorm, k0_ap,
+	                                 sigma_k0, logarithmic, parallel)
+	);
 }
 
 
-CostHotine CostFunctionHotine::operator()(const DataSet& data,
-                            const HotineObliqueMercator<real4v>& hom) const
+template<>
+CostHotine<double>
+CostFunctionHotine<double>::operator()(const DataSet& data,
+                              const HotineObliqueMercator<double>& hom) const
 {
-	return CostHotine(compute_cost(data, hom, pnorm, k0_ap, sigma_k0,
-	                               logarithmic));
+	return CostHotine<double>(
+	            compute_cost<double>(data, hom, pnorm, k0_ap,
+	                                 sigma_k0, logarithmic, parallel)
+	);
 }

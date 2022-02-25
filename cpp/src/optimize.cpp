@@ -97,18 +97,15 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	auto d_lambda_c_d_y = [](double x, double y) -> double {
 		return x / (x*x + y*y);
 	};
-	auto lambda_c_to_xy = [](double lambda_c) -> std::array<double,2>
-	{
-		return {std::cos(lambda_c), std::sin(lambda_c)};
-	};
 
 
 	/* Initial config: */
-	CostFunctionHotine cost_function(pnorm, k0_ap, sigma_k0, true);
-	CostHotine cost(cost_function(data, hom_t(variable4<0>(deg2rad(lonc0)),
-	                                          variable4<1>(deg2rad(lat_00)),
-	                                          variable4<2>(deg2rad(alpha0)),
-	                                          variable4<3>(k00), f)));
+	CostFunctionHotine<real4v> cost_function(pnorm, k0_ap, sigma_k0, true);
+	CostHotine<real4v> cost(cost_function(data,
+	                             hom_t(variable4<0>(deg2rad(lonc0)),
+	                                   variable4<1>(deg2rad(lat_00)),
+	                                   variable4<2>(deg2rad(alpha0)),
+	                                   variable4<3>(k00), f)));
 
 	std::cout << "cached cost\n" << std::flush;
 
@@ -190,7 +187,7 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	/*
 	 * Optimize non-logarithmic cost:
 	 */
-	cost_function = CostFunctionHotine(pnorm, k0_ap, sigma_k0, false);
+	cost_function = CostFunctionHotine<real4v>(pnorm, k0_ap, sigma_k0, false);
 	// Poor man's cache invalidation.
 	for (int i=0; i<5; ++i){
 		last_x[i] *= 2;

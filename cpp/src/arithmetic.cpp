@@ -31,6 +31,100 @@ double Arithmetic<double>::sqrt(const double& x)
 }
 
 template<>
+double Arithmetic<double>::sqrt(double&& x)
+{
+	return std::sqrt(x);
+}
+
+template<>
+double Arithmetic<double>::sin(const double& d)
+{
+	return std::sin(d);
+}
+
+template<>
+double Arithmetic<double>::sin(double&& d)
+{
+	return std::sin(d);
+}
+
+template<>
+double Arithmetic<double>::cos(const double& d)
+{
+	return std::cos(d);
+}
+
+template<>
+double Arithmetic<double>::cos(double&& d)
+{
+	return std::cos(d);
+}
+
+template<>
+double Arithmetic<double>::tan(const double& d)
+{
+	return std::tan(d);
+}
+
+template<>
+double Arithmetic<double>::log(double&& d)
+{
+	return std::log(d);
+}
+
+template<>
+template<>
+double Arithmetic<double>::pow(const double& a, const double& b)
+{
+	return std::pow(a,b);
+}
+
+template<>
+double Arithmetic<double>::pow(double&& a, double b)
+{
+	return std::pow(a,b);
+}
+
+template<>
+double Arithmetic<double>::pow(double&& a, int n)
+{
+	return std::pow(a,n);
+}
+
+template<>
+double Arithmetic<double>::atan2(double&& y, const double& x)
+{
+	return std::atan2(y,x);
+}
+
+template<>
+double Arithmetic<double>::asin(double&& d)
+{
+	return std::asin(d);
+}
+
+template<>
+double Arithmetic<double>::constant(double x)
+{
+	return x;
+}
+
+template<>
+double Arithmetic<double>::abs(double&& x)
+{
+	return std::abs(x);
+}
+
+template<>
+double Arithmetic<double>::log(const double& x)
+{
+	return std::log(x);
+}
+
+
+
+
+template<>
 real5v Arithmetic<real5v>::constant(double x)
 {
 	return constant5(x);

@@ -40,7 +40,7 @@ int compute_k_hotine(const size_t N, const double* lon,
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 const double* w, double f, unsigned int pnorm, double k0_ap,
                 double sigma_k0, double lonc_0, double lat_0_0,
-                double alpha_0, double k_0_0, const size_t Nmax,
+                double alpha_0, double k_0_0, unsigned int Nmax,
                 double* result, unsigned int* n_steps);
 
 }

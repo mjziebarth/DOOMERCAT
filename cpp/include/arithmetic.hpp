@@ -36,10 +36,11 @@ public:
 	static T sin(T&&);
 	static T pow(const T&, int);
 	static T pow(T&&, int);
+	static T pow(T&&, double);
 	static T pow2(const T&);
 	static T pow2(T&&);
-	static T pow(const T&, const T&);
-	static T pow(double, const T&);
+	template<typename T2>
+	static T pow(const T2&, const T&);
 	static T asin(T&&);
 	static T tan(const T&);
 	static T atan2(T&&, const T&);
@@ -51,6 +52,55 @@ public:
 
 	static T constant(double);
 };
+
+/* Declare the specializations for double: */
+template<>
+double Arithmetic<double>::sqrt(const double&);
+
+template<>
+double Arithmetic<double>::sqrt(double&&);
+
+template<>
+double Arithmetic<double>::cos(const double&);
+
+template<>
+double Arithmetic<double>::cos(double&&);
+
+template<>
+double Arithmetic<double>::sin(const double&);
+
+template<>
+double Arithmetic<double>::sin(double&&);
+
+template<>
+double Arithmetic<double>::atan2(double&&, const double&);
+
+template<>
+double Arithmetic<double>::log(double&&);
+
+template<>
+double Arithmetic<double>::log(const double&);
+
+template<>
+template<>
+double Arithmetic<double>::pow(const double&, const double&);
+
+template<>
+double Arithmetic<double>::pow(double&&, int);
+
+template<>
+double Arithmetic<double>::pow(double&&, double);
+
+template<>
+double Arithmetic<double>::asin(double&&);
+
+template<>
+double Arithmetic<double>::tan(const double&);
+
+template<>
+double Arithmetic<double>::abs(double&&);
+
+
 
 template<typename T>
 T Arithmetic<T>::sqrt(const T& t)
@@ -101,13 +151,14 @@ T Arithmetic<T>::pow(T&& t, int n)
 }
 
 template<typename T>
-T Arithmetic<T>::pow(const T& t, const T& n)
+T Arithmetic<T>::pow(T&& t, double b)
 {
-	return T::pow(t, n);
+	return T::pow(std::move(t), b);
 }
 
 template<typename T>
-T Arithmetic<T>::pow(double t, const T& n)
+template<typename T2>
+T Arithmetic<T>::pow(const T2& t, const T& n)
 {
 	return T::pow(t, n);
 }

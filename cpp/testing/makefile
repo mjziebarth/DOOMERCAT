@@ -17,7 +17,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-CPPFLAGS=-I../include/ -Wall -O3 -march=native
+CPPFLAGS=-I../include/ -Wall -Wconversion -O3 -march=native
 
 HEADERS=../include/arithmetic.hpp ../include/autodouble.hpp \
         ../include/types.hpp ../include/constants.hpp \
@@ -25,16 +25,13 @@ HEADERS=../include/arithmetic.hpp ../include/autodouble.hpp \
 
 ALLHEADERS = $(HEADERS) ../include/dataset.hpp ../include/optimize.hpp \
              ../include/bfgs.hpp ../include/linalg.hpp ../include/hotine.hpp \
-             ../include/cost_hotine.hpp ../include/welzl.hpp
+             ../include/cost_hotine.hpp
 
 ALLSOURCES = ../src/dataset.cpp ../src/arithmetic.cpp ../src/functions.cpp \
              ../src/ctypesinterface.cpp ../src/optimize.cpp \
-             ../src/linalg.cpp ../src/cost_hotine.cpp ../src/welzl.cpp
+             ../src/linalg.cpp ../src/cost_hotine.cpp
 
-all: welzl.o hotine testing doomercat.so performancetest
-
-welzl.o: ../include/welzl.hpp ../src/welzl.cpp
-	g++ $(CPPFLAGS) -c welzl.o ../src/welzl.cpp
+all: hotine testing doomercat.so performancetest
 
 hotine: $(ALLHEADERS) ../src/hotine.cpp ../src/cost_hotine.cpp functions.o \
         arithmetic.o dataset.o

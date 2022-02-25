@@ -106,7 +106,8 @@ T HotineObliqueMercator<T>::compute_t0(const T& phi0, const T& sin_phi0,
                                        double e)
 {
 	return AR::tan(PI/4 - 0.5*phi0)
-	     * AR::pow((1.0 + e * sin_phi0) / (1.0 - e * sin_phi0), 0.5*e);
+	     * AR::pow((1.0 + e * sin_phi0) / (1.0 - e * sin_phi0),
+	               static_cast<double>(0.5*e));
 }
 
 template<typename T>
