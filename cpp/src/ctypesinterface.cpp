@@ -88,6 +88,29 @@ int compute_k_hotine(const size_t N, const double* lon,
 }
 
 
+int hotine_project(const size_t N, const double* lon,
+        const double* lat, const double* w,
+        double lonc, double lat0, double alpha, double k0, double f,
+        double* result)
+{
+	/* Compute the Hotine Mercator projections now: */
+	const HotineObliqueMercator<double>
+	   hom(deg2rad(lonc),deg2rad(lat0), deg2rad(alpha), k0, f);
+
+	#pragma omp parallel for
+	for (size_t i=0; i<N; ++i){
+		/* Compute the cost: */
+		HotineObliqueMercator<double>::uv_t uv(hom.uv(deg2rad(lon[i]),
+		                                              deg2rad(lat[i])));
+		result[2*i]   = uv.u;
+		result[2*i+1] = uv.v;
+	}
+
+	return 0;
+}
+
+
+
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 const double* w, double f, unsigned int pnorm, double k0_ap,
                 double sigma_k0, double lonc_0, double lat_0_0,

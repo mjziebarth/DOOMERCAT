@@ -24,6 +24,14 @@ public:
 
 	const T& k0() const;
 
+	struct uv_t {
+		T u;
+		T v;
+	};
+
+	uv_t uv(double lambda, double phi) const;
+
+
 private:
 	constexpr static double EPS_LARGE_PHI = 1e-9;
 
@@ -59,13 +67,6 @@ private:
 	static T compute_g0(const T& alpha_c, const T& D);
 	static T compute_l0(const T& lambda_c, const T& G, const T& g0,
 	                    const T& B);
-
-	struct uv_t {
-		T u;
-		T v;
-	};
-
-	uv_t uv(double lambda, double phi) const;
 
 };
 
