@@ -89,9 +89,8 @@ int compute_k_hotine(const size_t N, const double* lon,
 
 
 int hotine_project(const size_t N, const double* lon,
-        const double* lat, const double* w,
-        double lonc, double lat0, double alpha, double k0, double f,
-        double* result)
+        const double* lat, double lonc, double lat0, double alpha,
+        double k0, double f, double* result)
 {
 	/* Compute the Hotine Mercator projections now: */
 	const HotineObliqueMercator<double>
