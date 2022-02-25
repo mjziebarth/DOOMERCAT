@@ -243,3 +243,31 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
             k.ctypes.data_as(POINTER(c_double)))
 
     return k
+
+
+def project_hotine(lon: np.ndarray, lat: np.ndarray,
+                   lonc: float, lat_0: float, alpha: float, k_0: float,
+                   f: float):
+    # Input sanitization.
+    lon = np.ascontiguousarray(lon, dtype=np.double)
+    lat = np.ascontiguousarray(lat, dtype=np.double)
+    w = np.ones_like(lon)
+    N = lon.size
+    assert lat.size == N
+    lonc = float(lonc)
+    lat_0 = float(lat_0)
+    alpha = float(alpha)
+    k_0 = float(k_0)
+    f = float(f)
+
+    # Result vector:
+    uv = np.empty((N,2))
+
+    _cppextensions_so.hotine_project(c_size_t(N),
+            lon.ctypes.data_as(POINTER(c_double)),
+            lat.ctypes.data_as(POINTER(c_double)),
+            c_double(lonc), c_double(lat_0), c_double(alpha),
+            c_double(k_0), c_double(f),
+            uv.ctypes.data_as(POINTER(c_double)))
+
+    return k
