@@ -126,23 +126,3 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 
 	return 0;
 }
-
-int welzl1991(const size_t N, const double* x, const double* y,
-              double* disk)
-{
-	std::vector<doomercat::xy_t> xy(N);
-	for (size_t i=0; i<N; ++i){
-		xy[i].x = x[i];
-	}
-	for (size_t i=0; i<N; ++i){
-		xy[i].y = y[i];
-	}
-
-	/* Perform algorithm and return values: */
-	doomercat::disk_t D = doomercat::welzl1991(xy);
-	disk[0] = D.x;
-	disk[1] = D.y;
-	disk[2] = std::sqrt(D.r2);
-
-	return 0;
-}
