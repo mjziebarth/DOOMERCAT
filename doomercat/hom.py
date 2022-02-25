@@ -20,7 +20,7 @@
 
 import numpy as np
 from math import atan2, degrees
-from .cppextensions import bfgs_hotine
+from .cppextensions import bfgs_hotine, project_hotine, compute_k_hotine
 from .defs import _ellipsoids
 from .initial import initial_parameters
 
@@ -84,8 +84,8 @@ class HotineObliqueMercator:
 
 	(2) Give the parameters of the LOM to allow projecting:
 
-	LabordeObliqueMercator(lonc=lonc, lat_0=lat0, alpha=alpha, k0=k0,
-	                       ellipsoid='WGS84', a=None, f=None)
+	HotineObliqueMercator(lonc=lonc, lat_0=lat0, alpha=alpha, k0=k0,
+	                      ellipsoid='WGS84', a=None, f=None)
 	    lonc   : Longitude of the central point.
 	    lat_0  : Latitude of the central point.
 	    alpha  : Azimuth of the central line at the central point.
@@ -313,20 +313,13 @@ class HotineObliqueMercator:
 		Returns:
 		   x, y : Coordinates in projected coordinate system.
 
-		Note: This method uses the PROJ 'omerc' projection
-		which in turn uses the equations given by Snyder (1987)
-		for the Hotine oblique Mercator projection (EPSG 9815).
-		For most practical purposes, the difference should be
-		negligible (EPSG Guidance Notes 7-2, 2019).
-
 		Reference:
 		Snyder, J. P. (1987). Map projections: A working manual.
 		U.S. Geological Survey Professional Paper (1395).
 		doi: 10.3133/pp1396
 		"""
-		if not _has_pyproj:
-			return self._project_to_uvk(lon, lat)
-		return self._proj(lon, lat)
+		project_hotine(lon, lat, self._lonc, self._lat_0, self._alpha,
+		               self._k0, self._f)
 
 
 	def distortion(self, lon, lat):
@@ -334,20 +327,10 @@ class HotineObliqueMercator:
 		Calculate distortion of the oblique Mercator projection
 		at given geographical coordinates.
 
-		Note: This computation follows the equations given by
-		Snyder (1987) which are derived for the Hotine oblique
-		Mercator projection. For practical purposes, this can
-		often be equivalent to the Laborde oblique Mercator
-		(EPSG Guidance Notes 7-2, 2019).
-		In any case, the relevant implementation of the oblique
-		Mercator projection in PROJ follows the Hotine oblique
-		Mercator equations by Snyder (1987). Hence, the distortion
-		as returned by this method represents most practical
-		use cases.
-
 		Reference:
 		Snyder, J. P. (1987). Map projections: A working manual.
 		U.S. Geological Survey Professional Paper (1395).
 		doi: 10.3133/pp1396
 		"""
-		return self._project_to_uvk(lon, lat, True)[2]
+		return compute_k_hotine(lon, lat, self.lonc, self._lat_0,
+		                        self._alpha, self._k0, self._f)
