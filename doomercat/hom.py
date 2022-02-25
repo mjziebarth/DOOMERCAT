@@ -21,12 +21,11 @@
 import numpy as np
 from math import atan2, degrees
 from .cppextensions import bfgs_hotine
-from .lombase import LOMBase, _has_pyproj
 from .defs import _ellipsoids
 from .initial import initial_parameters
 
 
-class HotineObliqueMercator(LOMBase):
+class HotineObliqueMercator:
 	"""
 	A Hotine oblique Mercator projection (HOM) optimized for a
 	geographical data set. The projection's definition follows
@@ -196,9 +195,15 @@ class HotineObliqueMercator(LOMBase):
 			k0 = float(k0)
 			alpha = float(alpha)
 
-		# 3) Call superclass, which implements projection etc.
-		super().__init__(ellipsoid=ellipsoid, lonc=lonc, lat_0=lat_0, k0=k0,
-		                 alpha=alpha, f=f, a=a)
+
+		# Save all attributes:
+		self._alpha = alpha
+		self._lonc = lonc
+		self._lat_0 = lat_0
+		self._k0 = k0
+		self._f = f
+		self._a = a
+		self._ellipsoid = ellipsoid
 
 
 	def lonc(self):
