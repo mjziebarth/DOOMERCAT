@@ -103,17 +103,28 @@ class HotineObliqueMercator:
 	   inverse()
 	   distortion()
 
+	Note: This computation follows the equations given by
+	Snyder (1987) which are derived for the Hotine oblique
+	Mercator projection. For practical purposes, this can
+	often be equivalent to the Laborde oblique Mercator
+	(EPSG Guidance Notes 7-2, 2019; Laborde, 1928; Roggero, 2009).
+	In any case, the relevant implementation of the oblique
+	Mercator projection in PROJ follows the Hotine oblique
+	Mercator equations by Snyder (1987). Hence, the distortion
+	as returned by this method represents most practical
+	use cases.
+
 	References:
+	Snyder, J. P. (1987). Map projections: A working manual.
+	U.S. Geological Survey Professional Paper (1395).
+	doi: 10.3133/pp1396
+
 	Laborde, J. (1928). La nouvelle projection du Service Geographique
 	de Madagascar. Madagascar, Cahiers du Service geographique de Madagascar,
 	Tananarive 1:70
 
 	Roggero, M. (2009). Laborde projection in Madagascar cartography and its
 	recovery in WGS84 datum. Appl Geomat 1, 131. doi:10.1007/s12518-009-0010-4
-
-	Snyder, J. P. (1987). Map projections: A working manual.
-	U.S. Geological Survey Professional Paper (1395).
-	doi: 10.3133/pp1396
 	"""
 	def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
 	             sigma_k0=0.002, ellipsoid=None, f=None, a=None,
@@ -163,9 +174,6 @@ class HotineObliqueMercator:
 
 			# Initial guess for the cylinder axis and central point:
 			lonc0, lat_00, alpha0 = initial_parameters(lon, lat, weight)
-			print("lonc0:  ",lonc0)
-			print("lat_00: ",lat_00)
-			print("alpha0: ",alpha0)
 			if k0 is None:
 				k0 = 1.0
 			else:
@@ -174,10 +182,7 @@ class HotineObliqueMercator:
 			if logger is not None:
 				logger.log(20, "Starting BFGS optimization.")
 
-			# Optimize the Laborde oblique Mercator:
-#			result = \
-#			    bfgs_optimize(lon, lat, weight, pnorm, k0_ap, sigma_k0, f,
-#			                  cyl_lon0, cyl_lat0, lonc0, k0, Nmax)
+			# Optimize the Hotine oblique Mercator:
 			result = \
 			    bfgs_hotine(lon, lat, weight, pnorm, k0_ap, sigma_k0, f,
 			                lonc0, lat_00, alpha0, k0, Nmax)
@@ -282,12 +287,7 @@ class HotineObliqueMercator:
 		Returns:
 		   String
 
-		The projection string uses the 'omerc' projection,
-		which in turn uses the Hotine oblique Mercator projection
-		(HOM) (EPSG 9815) given by Snyder (1987) instead of the
-		Laborde oblique Mercator projection (LOM) (EPSG 9813).
-		For practical purposes, the differences between the LOM
-		optimized by this class and the HOM should not be significant.
+		The projection string uses the 'omerc' projection.
 
 		Reference:
 		Snyder, J. P. (1987). Map projections: A working manual.
