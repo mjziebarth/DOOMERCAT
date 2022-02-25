@@ -32,13 +32,13 @@ os.chdir(sys.argv[2])
 
 # Now load the data and the LOM optimization code:
 from pickle import Unpickler
-from doomercat import LabordeObliqueMercator
+from doomercat import HotineObliqueMercator
 
 with open(sys.argv[1],'rb') as f:
     args, kwargs = Unpickler(f).load()
 
 # Perform the optimization:
-LOM = LabordeObliqueMercator(*args, **kwargs)
+HOM = HotineObliqueMercator(*args, **kwargs)
 
 # Return the result throught stdout:
 print("PROJ{",LOM.proj4_string(),"}")
