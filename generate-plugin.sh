@@ -54,7 +54,7 @@ python build-help.py
 
 # Copy the DOOMERCAT module:
 cp doomercat/__init__.py doomercat/defs.py doomercat/hom.py \
-   doomercat/lombase.py doomercat/shapefile.py doomercat/lomerror.py \
+   doomercat/shapefile.py doomercat/lomerror.py \
    doomercat/cppextensions.py doomercat/initial.py doomercat/messages.py \
    $MODULE
 #mv build/doomercat_plugin/__init__.py build/doomercat_plugin/doomercat.py
