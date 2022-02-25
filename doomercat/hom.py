@@ -329,26 +329,6 @@ class HotineObliqueMercator:
 		return self._proj(lon, lat)
 
 
-	def inverse(self, x, y):
-		"""
-		Inverse projection.
-
-		Note: This method uses the PROJ 'omerc' projection
-		which in turn uses the equations given by Snyder (1987)
-		for the Hotine oblique Mercator projection (EPSG 9815).
-		For most practical purposes, the difference should be
-		negligible (EPSG Guidance Notes 7-2, 2019).
-
-		Reference:
-		Snyder, J. P. (1987). Map projections: A working manual.
-		U.S. Geological Survey Professional Paper (1395).
-		doi: 10.3133/pp1396
-		"""
-		if not _has_pyproj:
-			raise ImportError("Module 'pyproj' is not available!")
-		return self._proj(x, y, inverse=True)
-
-
 	def distortion(self, lon, lat):
 		"""
 		Calculate distortion of the oblique Mercator projection
