@@ -24,7 +24,6 @@
 #include <../include/ctypesinterface.hpp>
 #include <../include/cost_hotine.hpp>
 #include <../include/hotine.hpp>
-#include <../include/welzl.hpp>
 #include <iostream>
 #include <memory>
 #include <cmath>
