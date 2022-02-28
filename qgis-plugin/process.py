@@ -41,4 +41,4 @@ with open(sys.argv[1],'rb') as f:
 HOM = HotineObliqueMercator(*args, **kwargs)
 
 # Return the result throught stdout:
-print("PROJ{",LOM.proj4_string(),"}")
+print("PROJ{",HOM.proj4_string(),"}")
