@@ -37,6 +37,8 @@ def BoundingSphere(lon,lat,a,f,N=100):
     Returns geographic coordinates of the bounding sphere center projected onto
     the ellipsoid.
     '''
+    lon = np.deg2rad(lon)
+    lat = np.deg2rad(lat)
 
     e2 = 2*f-f**2
     Nlat = 1/np.sqrt(1-e2*np.sin(lat)**2)
