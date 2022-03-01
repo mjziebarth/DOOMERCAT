@@ -17,7 +17,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-from doomercat import LabordeObliqueMercator
+from doomercat import HotineObliqueMercator
 import numpy as np
 
 def test_basic_setup():
@@ -28,10 +28,10 @@ def test_basic_setup():
 	lon = np.array([15, 29, 31,  18, 23])
 	lat = np.array([7, 13, 13.5, 9, 10])
 
-	LOM = LabordeObliqueMercator(lon=lon, lat=lat)
+	HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
 	# Test agains reference values:
-	assert abs(LOM.lat_0() - 10.53730561) < 1e-8
-	assert abs(LOM.lonc()  - 23.20022710) < 1e-8
-	assert abs(LOM.alpha() - 69.34166766) < 1e-8
-	assert abs(LOM.k0()    - 1.00000000) < 1e-8
+	assert abs(HOM.lat_0() - 10.53730561) < 1e-8
+	assert abs(HOM.lonc()  - 23.20022710) < 1e-8
+	assert abs(HOM.alpha() - 69.34166766) < 1e-8
+	assert abs(HOM.k0()    - 1.00000000) < 1e-8

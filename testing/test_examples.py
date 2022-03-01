@@ -17,7 +17,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-from doomercat import LabordeObliqueMercator
+from doomercat import HotineObliqueMercator
 import numpy as np
 import json
 
@@ -41,13 +41,13 @@ def test_chile_places():
     """
     lon, lat = read_geojson('data/chile/Chile-cities-select.geojson')
 
-    LOM = LabordeObliqueMercator(lon=lon, lat=lat)
+    HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
     # Test agains reference values:
-    assert abs(LOM.lat_0() - (-37.18081321)) < 1e-8
-    assert abs(LOM.lonc()  - (-71.86409572)) < 1e-8
-    assert abs(LOM.alpha() - (4.11568120)) < 1e-8
-    assert abs(LOM.k0()    - (0.99999999)) < 1e-8
+    assert abs(HOM.lat_0() - (-37.18081321)) < 1e-8
+    assert abs(HOM.lonc()  - (-71.86409572)) < 1e-8
+    assert abs(HOM.alpha() - (4.11568120)) < 1e-8
+    assert abs(HOM.k0()    - (0.99999999)) < 1e-8
 
 
 def test_australia_small_circle():
@@ -58,11 +58,11 @@ def test_australia_small_circle():
     """
     lon, lat = read_geojson('data/small-circle-australia.geojson')
 
-    LOM = LabordeObliqueMercator(lon=lon, lat=lat, k0_ap=0.0,
-                                 cyl_lon0=-25.0, cyl_lat0=-50.0)
+    HOM = HotineObliqueMercator(lon=lon, lat=lat, k0_ap=0.0,
+                                cyl_lon0=-25.0, cyl_lat0=-50.0)
 
     # Test agains reference values:
-    assert abs(LOM.lat_0() - (50.69431355)) < 1e-8
-    assert abs(LOM.lonc()  - (132.92366983)) < 1e-8
-    assert abs(LOM.alpha() - (-86.12007385)) < 1e-8
-    assert abs(LOM.k0()    - (0.87303766)) < 1e-8
+    assert abs(HOM.lat_0() - (50.69431355)) < 1e-8
+    assert abs(HOM.lonc()  - (132.92366983)) < 1e-8
+    assert abs(HOM.alpha() - (-86.12007385)) < 1e-8
+    assert abs(HOM.k0()    - (0.87303766)) < 1e-8
