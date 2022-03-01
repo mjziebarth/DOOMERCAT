@@ -47,6 +47,9 @@ def load_cppextensions():
             raise ImportError("Could not find a unique binary _cppextensions "
                               "library.")
         elif len(paths) == 0:
+            print("parent path:",Path(__file__).resolve().parent)
+            print("files:")
+            print(Path(__file__).resolve().parent.glob('*'))
             raise ImportError("Could not find any binary _cppextensions library.")
         _cppextensions_so = CDLL(paths[0])
         info("Loaded shared library \"" + str(paths[0]) + "\"")
