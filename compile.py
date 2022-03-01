@@ -52,6 +52,8 @@ def compile_linux(compiler: str = 'g++', native: bool = True,
         raise NotImplementedError("Only g++ compilation implemented.")
 
     process = subprocess.run(cmd)
+    if process.returncode != 0:
+        raise RuntimeError("compile_linux failed.")
 
     return libname
 
@@ -70,6 +72,8 @@ def cross_compile_win(compiler: str = 'mingw-g++') -> str:
         raise NotImplementedError("Only g++ compilation implemented.")
 
     process = subprocess.run(cmd)
+    if process.returncode != 0:
+        raise RuntimeError("cross_compile_win failed.")
 
     return '_cppextensions.dll'
 
