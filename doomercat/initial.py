@@ -24,6 +24,7 @@ import numpy as np
 from math import asin, degrees, sqrt
 from .fisherbingham import fisher_bingham_mom
 
+
 def _xyz2lola(xyz):
     """
     Takes a vector (N,3) and computes the spherical coordinates.
@@ -70,6 +71,7 @@ def initial_axes_fisher_bingham(lon, lat, w):
 
     return g3, g1
 
+
 def compute_azimuth(cylinder_axis, central_axis):
     """
     Compute, at the central point, the azimuth of the tangent
@@ -83,8 +85,6 @@ def compute_azimuth(cylinder_axis, central_axis):
     # Furthermore, we need the cosine of the central coordinate
     # latitude:
     cos_fies = sqrt(central_axis[0]**2 + central_axis[1]**2)
-    print("cos_fies:   ",cos_fies)
-    print("sin_phi_cyl:",sin_phi_cyl)
 
     # Now, we can compute the azimuth of the cylinder equator at the
     # central coordinate using spherical trigonometry:
@@ -102,7 +102,6 @@ def compute_azimuth(cylinder_axis, central_axis):
         return degrees(azimuth);
 
     return -degrees(azimuth);
-
 
 
 def initial_parameters(lon, lat, w, how='fisher-bingham'):
