@@ -25,13 +25,14 @@ from pickle import Pickler, Unpickler
 from tempfile import TemporaryDirectory
 from qgis.PyQt.QtCore import QRunnable, QObject, pyqtSlot, pyqtSignal
 from .messages import info
+from doomercat import HotineObliqueMercator
 
 
 class OptimizationSignals(QObject):
     """
     Custom optimization signals.
     """
-    result = pyqtSignal(str)
+    result = pyqtSignal(HotineObliqueMercator)
     error = pyqtSignal(Exception)
     progress = pyqtSignal(float)
     reducePoints = pyqtSignal(int)
@@ -42,7 +43,7 @@ class OptimizationSignals(QObject):
 
 class OptimizationWorker(QRunnable):
     """
-    A worker that does a Laborde oblique Mercator
+    A worker that performs a Hotine oblique Mercator
     optimization for a data set.
     """
     # Signals:
@@ -74,16 +75,18 @@ class OptimizationWorker(QRunnable):
                 result = subprocess.run(cmd, capture_output=True,
                                         text=True)
 
-            # Check whether subprocess failed:
-            if result.returncode != 0:
-                raise RuntimeError("Subprocess error:\n"
-                                   + str(result.stderr))
+                # Check whether subprocess failed:
+                if result.returncode != 0:
+                    raise RuntimeError("Subprocess error:\n"
+                                       + str(result.stderr))
 
-            # Parse stdout to obtain PROJ string:
-            for line in str(result.stdout).splitlines():
-                if line.startswith("PROJ{"):
-                    proj_str = line[5:].split("}")[0]
-                    self.signals.result.emit(proj_str)
+                # Load the Hotine oblique Mercator:
+                with open(fpath,'rb') as f:
+                    HOM = Unpickler(f).load()
+
+            # Return the result:
+            self.signals.result.emit(HOM)
+
 
         except Exception as err:
             self.signals.error.emit(err)

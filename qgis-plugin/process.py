@@ -31,14 +31,18 @@ if len(sys.argv) < 3:
 os.chdir(sys.argv[2])
 
 # Now load the data and the LOM optimization code:
-from pickle import Unpickler
+from pickle import Unpickler, Pickler
 from doomercat import HotineObliqueMercator
 
 with open(sys.argv[1],'rb') as f:
     args, kwargs = Unpickler(f).load()
 
 # Perform the optimization:
-HOM = HotineObliqueMercator(*args, **kwargs)
+HOM = HotineObliqueMercator(*args, **kwargs, compute_enclosing_sphere=True)
 
 # Return the result throught stdout:
 print("PROJ{",HOM.proj4_string(),"}")
+
+# ... and save:
+with open(sys.argv[1],'wb') as f:
+    Pickler(f).dump(HOM)

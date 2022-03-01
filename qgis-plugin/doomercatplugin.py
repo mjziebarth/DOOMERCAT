@@ -48,13 +48,19 @@ except:
 	_has_shapefile = False
 
 
+# Some GUI strings:
+_ORIENT_NORTH_PROJ_CENTER = "projection center"
+_ORIENT_NORTH_DATA_CENTER = "data center"
+_ORIENT_NORTH_CUSTOM = "custom"
+
+
 
 class DOOMERCATPlugin:
 
 	def __init__(self, iface):
 		# save reference to the QGIS interface
 		self.iface = iface
-		self._lom_str = None
+		self._hom = None
 		self._res_crs = None
 		self._srsid = None
 		self._cursor = None
@@ -110,9 +116,13 @@ class DOOMERCATPlugin:
 		self.cbEllipsoid.addItem('custom')
 		self.cbEllipsoid.currentTextChanged.connect(self.cbEllipsoidChanged)
 		self.cbEllipsoidChanged('WGS84')
-		self.cbOrientNorth = QCheckBox("Orient North", self.dialog)
+		self.cbOrientNorth = QCheckBox(self.dialog)
 		self.cbOrientNorth.setCheckState(Qt.Checked)
 		self.cbOrientNorth.stateChanged.connect(self.orientNorthClicked)
+		self.cbOrientCenter = QComboBox(self.dialog)
+		self.cbOrientCenter.addItem(_ORIENT_NORTH_DATA_CENTER)
+		self.cbOrientCenter.addItem(_ORIENT_NORTH_PROJ_CENTER)
+		self.cbOrientCenter.addItem(_ORIENT_NORTH_CUSTOM)
 		self.sb_k0= QDoubleSpinBox(self.dialog)
 		self.sb_k0.setMinimum(0.0)
 		self.sb_k0.setValue(0.95)
@@ -130,7 +140,8 @@ class DOOMERCATPlugin:
 		self.svg_widget = QSvgWidget(self._icon_path + ".svg")
 		self.svg_widget.customContextMenuRequested.connect(self.switchIcon)
 		self.svg_widget.setContextMenuPolicy(Qt.CustomContextMenu)
-		dialog_layout.addWidget(self.svg_widget, row, 2, 4, 2,
+		self.svg_widget.renderer().setAspectRatioMode(Qt.KeepAspectRatio)
+		dialog_layout.addWidget(self.svg_widget, row, 2, 3, 2,
 		                        alignment=Qt.AlignCenter | Qt.AlignRight)
 		dialog_layout.addWidget(QLabel("Cost function exponent:", self.dialog),
 		                        row,0)
@@ -257,7 +268,12 @@ class DOOMERCATPlugin:
 
 		# Output of projection strings:
 		row += 1
-		dialog_layout.addWidget(self.cbOrientNorth, row, 3, 1, 1)
+		dialog_layout.addWidget(QLabel("Orient North"), row, 0, 1, 1)
+		dialog_layout.addWidget(self.cbOrientCenter, row, 1, 1, 1)
+		dialog_layout.addWidget(self.cbOrientNorth, row, 2, 1, 1)
+		self.cbOrientNorth.stateChanged \
+		                  .connect(self.orientNorthCheckboxClicked)
+		row += 1
 		dialog_layout.addWidget(QLabel("Projection string:", self.dialog),
 		                        row, 0, 1, 3)
 		row += 1
@@ -604,23 +620,49 @@ class DOOMERCATPlugin:
 		threadpool.start(worker)
 
 
-	def receiveResult(self, lom_str):
+	def receiveResult(self, hom):
 		"""
 		Slot to receive results from the optimization worker.
 		"""
 		# Save the result:
-		self._lom_str = lom_str
+		self._hom = hom
 
-		# Obtain PROJ4 string:
-		if self.cbOrientNorth.checkState() != Qt.Checked:
-			proj_str = lom_str + " +no_rot +no_off"
-		else:
-			proj_str = lom_str
-		self.leResult.setText(proj_str)
-		self.leResult.setEnabled(True)
+		self.adjustProjStr()
 
 		# Enable the save button:
 		self.btnSave.setEnabled(True)
+
+
+	def adjustProjStr(self):
+		"""
+		Computes the Proj string according to all selected options
+		and the result of an optimization.
+		"""
+		if self._hom is None:
+			self.leResult.setText("")
+			self.leResult.setEnabled(False)
+		else:
+			# Compose the proj str:
+			proj_str = self._hom.proj4_string()
+
+			if self.cbOrientNorth.checkState() == Qt.Checked:
+				# Choose a point where to orient North=Up:
+				current = self.cbOrientCenter.currentText()
+				if current == _ORIENT_NORTH_PROJ_CENTER:
+					# Gamma will be chosen automatically by Proj.
+					pass
+				elif current == _ORIENT_NORTH_DATA_CENTER:
+					# Use the center of the smallest enclosing sphere.
+					gamma = self._hom.north_gamma(*self._hom.
+					                       enclosing_sphere_center())
+					proj_str += " +gamma=%.8f" % (gamma,)
+				elif current == _ORIENT_NORTH_CUSTOM:
+					proj_str += " +gamma=TODO"
+			else:
+				proj_str += " +no_rot +no_off"
+
+			self.leResult.setText(proj_str)
+			self.leResult.setEnabled(True)
 
 
 	def workerFinished(self):
@@ -838,8 +880,8 @@ class DOOMERCATPlugin:
 		Clicked when the '+no_rot +no_off' argument should be added (or
 		removed).
 		"""
-		if self._lom_str is not None:
-			self.receiveResult(self._lom_str)
+		if self._hom is not None:
+			self.adjustProjStr()
 
 
 	def cbWeightedLayerChanged(self, item):
@@ -859,6 +901,17 @@ class DOOMERCATPlugin:
 		self.sb_k0_std.setDisabled(disabled)
 
 
+	def orientNorthCheckboxClicked(self, state):
+		"""
+		This slot is called when the north orientation should
+		be enabled or disabled.
+		"""
+		disabled = (state == 0)
+		self.cbOrientCenter.setDisabled(disabled)
+		if self._hom is not None:
+			self.adjustProjStr()
+
+
 	def switchIcon(self, *args):
 		if self._icon_path == ":/plugins/doomercat/icon":
 			self._icon_path = ":/plugins/doomercat/icon2"
@@ -867,3 +920,4 @@ class DOOMERCATPlugin:
 
 		self.action.setIcon(QIcon(self._icon_path+".png"))
 		self.svg_widget.load(self._icon_path+".svg")
+		self.svg_widget.renderer().setAspectRatioMode(Qt.KeepAspectRatio)
