@@ -30,37 +30,37 @@ except:
 
 
 def points_from_shapefile(filename, method='centroids'):
-	"""
-	Read points from a shapefile into numpy arrays. This can
-	be used to consequently optimize a Laborde oblique Mercator
-	for the points in the shapefile.
+    """
+    Read points from a shapefile into numpy arrays. This can
+    be used to consequently optimize a Laborde oblique Mercator
+    for the points in the shapefile.
 
-	Arguments:
-	   filename : String pointing to the path of the shapefile.
+    Arguments:
+       filename : String pointing to the path of the shapefile.
 
-	Keyword arguments:
-	   method   : One of 'centroids' and 'points'.
-	              'centroids' : For all geometries in the
-	                  shapefile, compute and use only the centroid.
-	                  This is suitable for large data sets.
-	              'points'    : Use all points of all geometries.
-	"""
-	# Make sure the library is loaded:
-	if not _has_shapefile:
-		raise ImportError("Need pyshp to read shapefiles!")
+    Keyword arguments:
+       method   : One of 'centroids' and 'points'.
+                  'centroids' : For all geometries in the
+                      shapefile, compute and use only the centroid.
+                      This is suitable for large data sets.
+                  'points'    : Use all points of all geometries.
+    """
+    # Make sure the library is loaded:
+    if not _has_shapefile:
+        raise ImportError("Need pyshp to read shapefiles!")
 
-	# Read shapefile:
-	shape = shapefile.Reader(filename)
+    # Read shapefile:
+    shape = shapefile.Reader(filename)
 
-	shapes = shape.shapes()
-	# Extract points:
-	if method == 'centroids':
-		# Compute centroids of geometries (so far only averaging lon/lat).
-		# This method is suitable for large data sets.
-		lon, lat = np.array([np.mean(s.points,axis=0) for s in shapes]).T
+    shapes = shape.shapes()
+    # Extract points:
+    if method == 'centroids':
+        # Compute centroids of geometries (so far only averaging lon/lat).
+        # This method is suitable for large data sets.
+        lon, lat = np.array([np.mean(s.points,axis=0) for s in shapes]).T
 
-	elif method == 'points':
-		# Collect all points.
-		lon, lat = np.array([p for s in shapes for p in s.points]).T
+    elif method == 'points':
+        # Collect all points.
+        lon, lat = np.array([p for s in shapes for p in s.points]).T
 
-	return lon, lat
+    return lon, lat

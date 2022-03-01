@@ -26,53 +26,53 @@ from .graph import ScalarHistoryGraph
 
 
 class SaveProjectionDialog(QDialog):
-	"""
-	A simple dialog that queries for a projection name.
-	"""
-	def __init__(self, *args, **kwargs):
-		# Parent initialization:
-		super().__init__(*args, **kwargs)
-		self.setModal(True)
-		self.setMinimumWidth(280)
-		self.setWindowTitle("Enter User CRS Name")
+    """
+    A simple dialog that queries for a projection name.
+    """
+    def __init__(self, *args, **kwargs):
+        # Parent initialization:
+        super().__init__(*args, **kwargs)
+        self.setModal(True)
+        self.setMinimumWidth(280)
+        self.setWindowTitle("Enter User CRS Name")
 
-		# Now populate some widgets:
-		layout = QGridLayout(self)
+        # Now populate some widgets:
+        layout = QGridLayout(self)
 
-		self.leName = QLineEdit(self)
-		self.leName.textEdited.connect(self.textEdited)
-		layout.addWidget(self.leName, 0, 0, 1, 2)
-		self.btnAccept = QPushButton("&Accept",self)
-		self.btnAccept.setEnabled(False)
-		self.btnAccept.clicked.connect(self.accept)
-		layout.addWidget(self.btnAccept, 1, 0, 1, 1)
-		self.btnCancel = QPushButton("&Cancel",self)
-		self.btnCancel.clicked.connect(self.reject)
-		layout.addWidget(self.btnCancel, 1, 1, 1, 1)
+        self.leName = QLineEdit(self)
+        self.leName.textEdited.connect(self.textEdited)
+        layout.addWidget(self.leName, 0, 0, 1, 2)
+        self.btnAccept = QPushButton("&Accept",self)
+        self.btnAccept.setEnabled(False)
+        self.btnAccept.clicked.connect(self.accept)
+        layout.addWidget(self.btnAccept, 1, 0, 1, 1)
+        self.btnCancel = QPushButton("&Cancel",self)
+        self.btnCancel.clicked.connect(self.reject)
+        layout.addWidget(self.btnCancel, 1, 1, 1, 1)
 
-	def showEvent(self, *args, **kwargs):
-		"""
-		Override show to clear the name field.
-		"""
-		self.leName.setText("")
-		self.btnAccept.setEnabled(False)
-		super().showEvent(*args, **kwargs)
+    def showEvent(self, *args, **kwargs):
+        """
+        Override show to clear the name field.
+        """
+        self.leName.setText("")
+        self.btnAccept.setEnabled(False)
+        super().showEvent(*args, **kwargs)
 
-	def textEdited(self, txt):
-		"""
-		Slot that is called when the LineEdit text is
-		edited.
-		"""
-		if len(txt) == 0:
-			self.btnAccept.setEnabled(False)
-		else:
-			self.btnAccept.setEnabled(True)
+    def textEdited(self, txt):
+        """
+        Slot that is called when the LineEdit text is
+        edited.
+        """
+        if len(txt) == 0:
+	        self.btnAccept.setEnabled(False)
+        else:
+	        self.btnAccept.setEnabled(True)
 
-	def text(self):
-		"""
-		Returns the line edit text:
-		"""
-		return self.leName.text()
+    def text(self):
+        """
+        Returns the line edit text:
+        """
+        return self.leName.text()
 
 
 class ProgressDialog(QDialog):
