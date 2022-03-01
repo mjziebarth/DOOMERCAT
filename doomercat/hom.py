@@ -218,7 +218,7 @@ class HotineObliqueMercator:
 			lat_0 = float(lat_0)
 			k0 = float(k0)
 			alpha = float(alpha)
-			bscenter = bscenter
+			bscenter = None
 
 
 		# Save all attributes:
