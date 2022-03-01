@@ -22,11 +22,10 @@
 
 #include <cmath>
 #include <array>
+#include <vector>
 #include <stdexcept>
 #include <functional>
 #include <type_traits>
-
-#include <iostream>
 
 #ifndef AUTODOUBLE_H
 #define AUTODOUBLE_H
