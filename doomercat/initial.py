@@ -66,7 +66,7 @@ def initial_axes_fisher_bingham(lon, lat, w):
     Returns:
        cylinder_axis, central_axis
     """
-    g1, g2, g3, ka, be = fisher_bingham_mom(lon, lat, w)
+    g1, g2, g3 = fisher_bingham_mom(lon, lat, w)
 
     return g3, g1
 
