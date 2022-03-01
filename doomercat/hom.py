@@ -397,8 +397,7 @@ class HotineObliqueMercator:
 
 		# Now take into account that the rotation spelled out by Snyder (1987)
 		# actually perform a 90° rotation from u->y and v->x.
-		# Also make sure that angle is between -90° and 90°
-		return (angle % 180.0) - 90.0
+		return angle - 90.0
 
 
 	def distortion(self, lon, lat):

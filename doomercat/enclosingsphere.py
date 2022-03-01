@@ -83,6 +83,6 @@ def BoundingSphere(lon,lat,a,f,N=100):
 
     xcnorm = xc/np.linalg.norm(xc)
     phic = np.arctan(np.tan(np.arcsin(xcnorm[2]))/(1-e2))
-    lamc = np.arctan2(xcnorm[0],xcnorm[1])
+    lamc = np.arctan2(xcnorm[1],xcnorm[0])
 
     return np.rad2deg(lamc),np.rad2deg(phic)
