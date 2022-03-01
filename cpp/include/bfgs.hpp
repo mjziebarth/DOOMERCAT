@@ -26,6 +26,7 @@
 #include <vector>
 #include <functional>
 #include <tuple>
+#include <limits>
 
 // Debug:
 #ifdef DEBUG
