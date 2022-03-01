@@ -131,6 +131,7 @@ class HotineObliqueMercator:
 	             sigma_k0=0.002, ellipsoid=None, f=None, a=None,
 	             cyl_lon0=None, cyl_lat0=None, lonc0=None, lonc=None,
 	             lat_0=None, alpha=None, k0=None, Nmax=1000, logger=None,
+	             fisher_bingham_use_weight=False,
 	             compute_enclosing_sphere=False):
 		# Initialization.
 		# 1) Sanity checks:
@@ -177,7 +178,11 @@ class HotineObliqueMercator:
 			assert lon.shape == lat.shape
 
 			# Initial guess for the cylinder axis and central point:
-			lonc0, lat_00, alpha0 = initial_parameters(lon, lat, weight)
+			if fisher_bingham_use_weight:
+				w_initial = weight
+			else:
+				w_initial = None
+			lonc0, lat_00, alpha0 = initial_parameters(lon, lat, w_initial)
 			if k0 is None:
 				k0 = 1.0
 			else:
