@@ -24,6 +24,7 @@ from compile import setup_compile
 
 # Compile the C++ code:
 libname = setup_compile()
+print("libname:",libname)
 
 # Setup:
 
