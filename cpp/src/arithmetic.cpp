@@ -92,6 +92,12 @@ double Arithmetic<double>::pow(double&& a, int n)
 }
 
 template<>
+double Arithmetic<double>::pow(const double& a, int n)
+{
+	return std::pow(a,n);
+}
+
+template<>
 double Arithmetic<double>::atan2(double&& y, const double& x)
 {
 	return std::atan2(y,x);

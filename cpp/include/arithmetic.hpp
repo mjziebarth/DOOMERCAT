@@ -49,6 +49,7 @@ public:
 	static T abs(T&&);
 
 	static T max(T&&, T&&);
+	static T min(T&&, T&&);
 
 	static T constant(double);
 };
@@ -87,6 +88,9 @@ double Arithmetic<double>::pow(const double&, const double&);
 
 template<>
 double Arithmetic<double>::pow(double&&, int);
+
+template<>
+double Arithmetic<double>::pow(const double&, int);
 
 template<>
 double Arithmetic<double>::pow(double&&, double);
@@ -220,5 +224,14 @@ T Arithmetic<T>::max(T&& l, T&& r)
 		return l;
 	return r;
 }
+
+template<typename T>
+T Arithmetic<T>::min(T&& l, T&& r)
+{
+	if (l <= r)
+		return l;
+	return r;
+}
+
 
 #endif
