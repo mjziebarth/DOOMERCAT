@@ -38,6 +38,12 @@ public:
 	autodouble(double x, std::array<double,d> dx) : x(x), deriv(dx)
 	{};
 
+	autodouble() : x(0.0)
+	{
+		for (dim_t i=0; i<d; ++i)
+			deriv[i] = 0.0;
+	};
+
 	static autodouble constant(double x);
 
 	template<dim_t i>
@@ -722,7 +728,7 @@ template<dim_t d>
 autodouble<d> autodouble<d>::asin(const autodouble& x)
 {
 	/* d/dx asin(x) = 1/sqrt(1-x^2) */
-	const double f = 1.0 / std::sqrt(1.0 - x.x * x.x);
+	const double f = std::min(1e8, 1.0 / std::sqrt(1.0 - x.x * x.x));
 	std::array<double,d> deriv_new;
 	for (dim_t i=0; i<d; ++i)
 		deriv_new[i] = f * x.deriv[i];
