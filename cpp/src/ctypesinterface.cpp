@@ -109,6 +109,17 @@ int hotine_project(const size_t N, const double* lon,
 }
 
 
+template<>
+double doomercat::to_double<double>(const double& t)
+{
+	return t;
+}
+template<>
+double doomercat::to_double<real4v>(const real4v& t)
+{
+	return t.value();
+}
+
 
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 const double* w, double f, unsigned int pnorm, double k0_ap,
@@ -126,7 +137,7 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 	/* Optimize: */
 	std::vector<doomercat::hotine_result_t> history
 	   = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0, k_0_0, f,
-	                          pnorm, k0_ap, sigma_k0, Nmax, false);
+	                          pnorm, k0_ap, sigma_k0, Nmax);
 
 	/* Return the results: */
 	for (size_t i=0; i<history.size(); ++i){
@@ -145,6 +156,23 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 	if (n_steps){
 		*n_steps = static_cast<unsigned int>(history.size());
 	}
+
+	return 0;
+}
+
+
+int hotine_parameters_debug(double lonc, double lat0, double alpha,
+                            double k0, double f, double* result)
+{
+	/* Return parameters E, gamma0, lambda0 for debugging purposes. */
+	HotineObliqueMercator<real4v> hom(constant4(deg2rad(lonc)),
+	                                  constant4(deg2rad(lat0)),
+	                                  constant4(deg2rad(alpha)),
+	                                  constant4(k0), f);
+
+	result[0] = hom.E().value();
+	result[1] = hom.gamma0().value();
+	result[2] = hom.lambda0().value();
 
 	return 0;
 }
