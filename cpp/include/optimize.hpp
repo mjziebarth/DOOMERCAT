@@ -37,7 +37,7 @@ bfgs_optimize_hotine(const DataSet& data, const double lonc0,
                      const double k00, const double f,
                      const unsigned int pnorm, const double k0_ap,
                      const double sigma_k0,
-                     const size_t Nmax, bool transform_k0);
+                     const size_t Nmax);
 
 }
 #endif

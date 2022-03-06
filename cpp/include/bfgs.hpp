@@ -27,6 +27,7 @@
 #include <functional>
 #include <tuple>
 #include <limits>
+#include <memory>
 
 // Debug:
 #ifdef DEBUG
@@ -287,6 +288,13 @@ bool no_boundary(const point_t&)
 }
 
 
+template<typename point_t, typename grad_t>
+std::unique_ptr<point_t> no_jumps(const point_t&, const grad_t&)
+{
+	return std::unique_ptr<point_t>();
+}
+
+
 template<size_t d, typename lina, bool last_redux=true>
 BFGS_result_t<lina>
 fallback_gradient_BFGS
@@ -297,7 +305,11 @@ fallback_gradient_BFGS
           gradient,
      const size_t Nmax, const double epsilon,
      std::function<bool (const typename lina::point_t&)>
-          in_bounds = no_boundary<typename lina::point_t>
+          in_bounds = no_boundary<typename lina::point_t>,
+     std::function<std::unique_ptr<typename lina::point_t>
+                   (const typename lina::point_t&,
+                    const typename lina::grad_t&)>
+          propose_jump = no_jumps<typename lina::point_t>
     )
 {
 	typedef typename lina::point_t point_t;
@@ -349,15 +361,19 @@ fallback_gradient_BFGS
 	/* The loop: */
 	point_t P(x0);
 	vd_t grad_fk;
-	lina::init_column_vectord(grad_fk, gradient(x0));
+	typename lina::grad_t G(gradient(x0));
+	lina::init_column_vectord(grad_fk, G);
 	double cost0 = cost(x0);
 	size_t Hk_age = 0;
 	double step = 1e-5;
 	unsigned int gradient_steps = 0;
+	int jump_block = 0;
+	std::unique_ptr<point_t> proposed;
 	vd_t xkp1;
 	for (size_t i=0; i<Nmax-1; ++i){
 		/* From xk, compute the point: */
 		lina::fill_array(P, xk);
+		lina::fill_array(G, grad_fk);
 
 		#ifdef DEBUG
 			std::cout << "gradient[" << i << "] = (";
@@ -370,7 +386,41 @@ fallback_gradient_BFGS
 		result.history.emplace_back(cost0, (gradient_steps > 0)
 		                                ? BFGS_mode_t::FALLBACK_GRADIENT
 		                                : BFGS_mode_t::BFGS,
-		                            P, convert_gradient(grad_fk));
+		                            P, G);
+
+		/* Check for proposed step: */
+		proposed = propose_jump(P, G);
+		if (proposed){
+			double costprop = cost(*proposed);
+			#ifdef DEBUG
+				std::cout << "   proposed cost: " << costprop << "\n";
+				std::cout << "   cost0:         " << cost0 << "\n";
+			#endif
+			if (costprop <= cost0 && jump_block == 0){
+				/* Accept the jump, reset Hessian curvature info: */
+				P = *proposed;
+				lina::init_column_vectord(xk, P);
+				cost0 = costprop;
+				G = gradient(P);
+				lina::init_column_vectord(grad_fk, G);
+				Hk = lina::identity();
+				Hk_age = 0;
+				/* Block jumping for 10 steps, giving the gradient
+				 * some time to leave the jump region: */
+				jump_block = 10;
+				#ifdef DEBUG
+					std::cout << "   jumped!\n";
+				#endif
+				continue;
+			} else {
+				#ifdef DEBUG
+					std::cout << "   did not jump.\n";
+				#endif
+			}
+		}
+
+		if (jump_block > 0)
+			--jump_block;
 
 		/* Check finiteness of cost function: */
 		if (std::isnan(cost0) || std::isinf(cost0)){
