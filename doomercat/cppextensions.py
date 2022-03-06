@@ -201,6 +201,9 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
     k0_ap = float(k0_ap)
     sigma_k0 = float(sigma_k0)
 
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
+
     # Result vector:
     cost = np.empty(M)
 
@@ -234,6 +237,9 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
     k_0 = float(k_0)
     f = float(f)
 
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
+
     # Result vector:
     k = np.empty(N)
 
@@ -262,6 +268,9 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
     alpha = float(alpha)
     k_0 = float(k_0)
     f = float(f)
+
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
 
     # Result vector:
     uv = np.empty((N,2))
