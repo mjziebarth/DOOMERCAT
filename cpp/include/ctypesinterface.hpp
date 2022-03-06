@@ -47,4 +47,7 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 double alpha_0, double k_0_0, unsigned int Nmax,
                 double* result, unsigned int* n_steps);
 
+int hotine_parameters_debug(double lonc, double lat0, double alpha,
+                            double k0, double f, double* result);
+
 }

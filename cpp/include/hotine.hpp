@@ -13,6 +13,204 @@
 namespace doomercat {
 
 
+struct hom_E_parabola_params_t {
+	double C0;
+	double a;
+};
+
+template<typename T>
+class HOM_constants
+{
+public:
+	static T compute_B(const T& cos_phi0, double e2);
+	static T compute_A(const T& sin_phi0, const T& k0, const T& B, double e2);
+	static T compute_t0(const T& phi0, const T& sin_phi0, double e);
+	static T compute_D(const T& cos_phi0, const T& sin_phi0,
+	                   const T& B, double e2);
+	static T compute_F(const T& D, const T& phi0);
+	static T compute_E(const T& F, const T& t0, const T& B);
+	static T compute_G(const T& F);
+	static T compute_g0(const T& alpha_c, const T& D);
+	static T compute_l0(const T& lambda_c, const T& G, const T& g0,
+	                    const T& B);
+
+	/* Asymptotic computations: */
+
+	/* G*sqrt(1-sin(phi0)) in the limit phi0 -> +90° */
+	static T G_mul_sqx(const T& sin_phi0, const T& sin_alpha, double e2);
+	/* tan(g0)/sqrt(1 - sin(phi0)) in the limit phi0 -> +90° */
+	static T tan_g0_div_sqx_asymptotic_pos(const T& sin_phi0,
+	                                       const T& sin_alpha,
+	                                       double e2);
+	static T g0_asymptotic_pos(const T& sin_phi0, const T& sin_alpha,
+	                           double e2);
+
+	static hom_E_parabola_params_t fit_E_parabola_pos(double e);
+	static double compute_G0(double e);
+
+private:
+	typedef Arithmetic<T> AR;
+};
+
+template<typename T>
+T HOM_constants<T>::compute_B(const T& cos_phi0, double e2)
+{
+	return AR::sqrt(1.0 + e2 * AR::pow(cos_phi0,4) / (1.0 - e2));
+}
+
+template<typename T>
+T HOM_constants<T>::compute_A(const T& sin_phi0, const T& k0, const T& B,
+                              double e2)
+{
+	return B * k0 * std::sqrt(1.0 - e2)
+	       / (1.0 - e2 * AR::pow2(sin_phi0));
+}
+
+template<typename T>
+T HOM_constants<T>::compute_t0(const T& phi0, const T& sin_phi0, double e)
+{
+	return AR::tan(PI/4 - 0.5*phi0)
+	     * AR::pow((1.0 + e * sin_phi0) / (1.0 - e * sin_phi0),
+	               0.5*e);
+}
+
+template<typename T>
+T HOM_constants<T>::compute_D(const T& cos_phi0, const T& sin_phi0,
+                              const T& B, double e2)
+{
+	return AR::max(B * std::sqrt(1.0 - e2)
+	               / (cos_phi0 * AR::sqrt(1.0 - e2 * sin_phi0 * sin_phi0)),
+	               AR::constant(1.0));
+}
+
+template<typename T>
+T HOM_constants<T>::compute_F(const T& D, const T& phi0)
+{
+	if (phi0 >= 0.0)
+		return D + AR::sqrt(D*D - 1.0);
+	return D - AR::sqrt(D*D - 1.0);
+}
+
+template<typename T>
+T HOM_constants<T>::compute_E(const T& F, const T& t0, const T& B)
+{
+	return F * AR::pow(t0, B);
+}
+
+template<typename T>
+T HOM_constants<T>::compute_G(const T& F)
+{
+	return 0.5*(F - 1.0 / F);
+}
+
+template<typename T>
+T HOM_constants<T>::compute_g0(const T& alpha_c, const T& D)
+{
+	return AR::asin(AR::max(AR::min(AR::sin(alpha_c) / D, AR::constant(1.0)),
+	                        AR::constant(-1.0)));
+}
+
+template<typename T>
+T HOM_constants<T>::G_mul_sqx(const T& z,const T& sa, double e2)
+{
+	/* Computes G*sqrt(1-sin_phi0) */
+	T xp(1.0 + z);
+	T xm(1.0 - z);
+	double Y = e2/(1.0 - e2);
+	T xpxm2 = AR::pow2(xp*xm);
+	double sq1me2 = std::sqrt(1.0 - e2);
+	T V(AR::sqrt((1.0 - e2) * (xpxm2*Y + 1.0) /(xp*(1.0 - e2*z*z)) - xm));
+	T W(sq1me2 * AR::sqrt((xpxm2*Y + 1.0) / (xp*(1.0 - e2 * z*z))) + V);
+	return 0.5 * (W - xm/W);
+}
+
+template<typename T>
+T HOM_constants<T>::tan_g0_div_sqx_asymptotic_pos(const T& sin_phi0,
+                                                  const T& sa, double e2)
+{
+	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
+	constexpr double SQ2 = std::sqrt(2.0);
+	double e4 = e2*e2;
+	T sa2(sa*sa);
+	T sa4(sa2*sa2);
+	T x(1.0 - sin_phi0);
+	double Y = e2/(1.0 - e2);
+
+	return SQ2*sa * (1.0 + x * (Y + sa2 - 0.25
+	                            + x * (-Y*(11.0/4.0 + 0.5*Y) - 1.0/32.0
+	                                   + 1.5*sa4
+	                                   + 0.25*(15.0*e2 - 3.0)/(1.0-e2)*sa2
+	                                   )
+	                           )
+	                );
+}
+
+template<typename T>
+T HOM_constants<T>::g0_asymptotic_pos(const T& sin_phi0,
+                                      const T& sa, double e2)
+{
+	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
+	constexpr double SQ2 = std::sqrt(2.0);
+	double e4 = e2*e2;
+	T sa2(sa*sa);
+	T x(1.0 - sin_phi0);
+	double Y = e2/(1.0 - e2);
+	return SQ2*sa * (1.0 + x * (Y + sa2/3.0 - 0.25
+	                            +  x * (sa2*(Y-0.25) - 11.0/4.0 * Y + 0.5*Y*Y
+	                                    + 0.3*sa2*sa2 - 1.0/32.0)
+	                           )
+	                ) * AR::sqrt(x);
+}
+
+
+
+template<typename T>
+T HOM_constants<T>::compute_l0(const T& lambda_c, const T& G, const T& g0,
+                               const T& B)
+{
+	return lambda_c - AR::asin(AR::max(AR::min(G * AR::tan(g0),
+	                                           AR::constant(1.0)),
+	                                   AR::constant(-1.0))) / B;
+}
+
+template<typename T>
+hom_E_parabola_params_t HOM_constants<T>::fit_E_parabola_pos(double e)
+{
+	/* Computes the parabola that estimates E for z -> 1: */
+	double a = 0.0;
+	double e2 = e*e;
+	double C0 = std::pow((1.0 + e) / (1.0 - e), 0.5*e);
+	for (int i=0; i<8; ++i){
+		double phi_i = deg2rad(89.0 + 0.1*i);
+		double cp = std::cos(phi_i);
+		double B = HOM_constants<double>::compute_B(cp, e2);
+		double sp = std::sin(phi_i);
+		double t0 = HOM_constants<double>::compute_t0(phi_i, sp, e);
+		double D = HOM_constants<double>::compute_D(cp, sp, B, e2);
+		double F = HOM_constants<double>::compute_F(D, phi_i);
+		double yi = C0 - HOM_constants<double>::compute_E(F, t0, B);
+		double xi = 0.5*PI - phi_i;
+		a += yi/(xi*xi);
+	}
+	return {C0, a / 8};
+}
+
+template<typename T>
+double HOM_constants<T>::compute_G0(double e2)
+{
+	constexpr double SQ2 = std::sqrt(2.0);
+	double e4 = e2 * e2;
+	double e6 = e4 * e2;
+	double x = 1.0 - e2;
+	double x2 = x*x;
+	return -(8.0*e6 - 24.0*e4 + 24.0*e2 - 8.0)
+	        * (e4/(4.0*x2) + e2/x + e2/(2.0*x2) + 7.0/4.0 - 3.0/(4.0*x2))
+	        / (2.0*SQ2*(4.0*e6 - 12.0*e4 + 12.0*e2 - 4.0));
+}
+
+
+
+
 
 template<typename T>
 class HotineObliqueMercator {
@@ -30,7 +228,13 @@ public:
 	};
 
 	uv_t uv(double lambda, double phi) const;
+	T u(double lambda, double phi) const;
 
+
+	/* Mostly for debugging info: */
+	const T& E() const;
+	const T& gamma0() const;
+	const T& lambda0() const;
 
 private:
 	constexpr static double EPS_LARGE_PHI = 1e-9;
@@ -41,118 +245,78 @@ private:
 	const T k0_;
 	const T phi0;
 	const T alpha;
-	const T sin_phi0;
-	const T B;
-	const T A;
-	const T t0;
-	const T D;
-	const T F;
-	const T E;
-	const T G;
-	const T g0;
-	const T cos_g0;
-	const T sin_g0;
-	const T l0;
+	T B;
+	T A;
+	T E_;
+	T g0;
+	T cos_g0;
+	T sin_g0;
+	T l0;
 
 	/* Computation routines for all of the constants: */
-	static T compute_B(const T& phi0, double e2);
-	static T compute_A(const T& phi0, const T& k0, const T& sin_phi0,
-	                   const T& B, double e2);
-	static T compute_t0(const T& phi0, const T& sin_phi0, double e);
-	static T compute_D(const T& phi0, T&& cos_phi0, const T& sin_phi0,
-	                   const T& B, double e2);
-	static T compute_F(const T& D, const T& phi0);
-	static T compute_E(const T& F, const T& t0, const T& B);
-	static T compute_G(const T& F);
-	static T compute_g0(const T& alpha_c, const T& D);
-	static T compute_l0(const T& lambda_c, const T& G, const T& g0,
-	                    const T& B);
-
 };
 
+
+
+
+
+
+template<typename T>
+double to_double(const T& t);
 
 template<typename T>
 HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
                               const T& phi0, const T& alpha, const T& k0,
                               double f)
-   : e2(f*(2.0-f)), e(std::sqrt(e2)), k0_(k0), phi0(phi0), alpha(alpha),
-     sin_phi0(AR::sin(phi0)), B(compute_B(phi0, e2)),
-     A(compute_A(phi0, k0, sin_phi0, B, e2)),
-     t0(compute_t0(phi0, sin_phi0, e)),
-     D(compute_D(phi0, std::move(AR::cos(phi0)), sin_phi0, B, e2)),
-     F(compute_F(D, phi0)), E(compute_E(F, t0, B)), G(compute_G(F)),
-     g0(compute_g0(alpha, D)), cos_g0(AR::cos(g0)), sin_g0(AR::sin(g0)),
-     l0(compute_l0(lambda_c, G, g0, B))
+   : e2(f*(2.0-f)), e(std::sqrt(e2)), k0_(k0), phi0(phi0), alpha(alpha)
 {
-}
+	typedef HOM_constants<T> hom;
+	T sin_phi0(AR::sin(phi0));
+	T cos_phi0(AR::cos(phi0));
+	B = hom::compute_B(cos_phi0, e2);
+	A = hom::compute_A(sin_phi0, k0, B, e2);
+
+	if (phi0 > deg2rad(89.9)){
+		constexpr double SQ2 = std::sqrt(2);
+		std::cout << "*** Computing parabola data! ***\n";
+		auto C0a = hom::fit_E_parabola_pos(e);
+		std::cout << "  -> f :    " << f << "\n";
+		std::cout << "  -> e :    " << e << "\n";
+		std::cout << "  -> C0:    " << C0a.C0 << "\n";
+		std::cout << "  -> a :    " << C0a.a << "\n";
+		std::cout << "  -> alpha: " << to_double(alpha) << "\n";
+		E_ = C0a.C0 - C0a.a * (phi0 - PI/2) * (phi0 - PI/2);
+		T sa = AR::sin(alpha);
+		g0 = AR::sqrt(2.0*(1.0 - sin_phi0)) * sa;
+
+		l0 = lambda_c
+		   - AR::asin(
+		       AR::min(
+		         AR::max(
+		           hom::G_mul_sqx(sin_phi0, sa, e2)
+		              * hom::tan_g0_div_sqx_asymptotic_pos(sin_phi0, sa, e2),
+		           AR::constant(-1.0)),
+		       AR::constant(1.0))
+		     ) / B;
 
 
-template<typename T>
-T HotineObliqueMercator<T>::compute_B(const T& phi0, double e2)
-{
-	return AR::sqrt(1.0 + e2 * AR::pow(AR::cos(phi0),4) / (1.0 - e2));
+
+
+//	} else if (phi0 < rad2deg(-89.9)) {
+//
+	} else {
+		T t0(hom::compute_t0(phi0, sin_phi0, e));
+		T D(hom::compute_D(cos_phi0, sin_phi0, B, e2));
+		T F(hom::compute_F(D, phi0));
+		E_ = hom::compute_E(F, t0, B);
+		T G(hom::compute_G(F));
+		g0 = hom::compute_g0(alpha, D);
+		l0 = hom::compute_l0(lambda_c, G, g0, B);
+	}
+	cos_g0 = AR::cos(g0);
+	sin_g0 = AR::sin(g0);
 }
 
-template<typename T>
-T HotineObliqueMercator<T>::compute_A(const T& phi0, const T& k0,
-                                      const T& sin_phi0, const T& B,
-                                      double e2)
-{
-	return B * k0 * std::sqrt(1.0 - e2)
-	       / (1.0 - e2 * AR::pow2(sin_phi0));
-}
-
-template<typename T>
-T HotineObliqueMercator<T>::compute_t0(const T& phi0, const T& sin_phi0,
-                                       double e)
-{
-	return AR::tan(PI/4 - 0.5*phi0)
-	     * AR::pow((1.0 + e * sin_phi0) / (1.0 - e * sin_phi0),
-	               static_cast<double>(0.5*e));
-}
-
-template<typename T>
-T HotineObliqueMercator<T>::compute_D(const T& phi0, T&& cos_phi0,
-                                      const T& sin_phi0, const T& B,
-                                      double e2)
-{
-	return AR::max(B * std::sqrt(1.0 - e2)
-	               / (cos_phi0 * AR::sqrt(1.0 - e2 * sin_phi0 * sin_phi0)),
-	               AR::constant(1.0));
-}
-
-template<typename T>
-T HotineObliqueMercator<T>::compute_F(const T& D, const T& phi0)
-{
-	if (phi0 >= 0.0)
-		return D + AR::sqrt(D*D - 1.0);
-	return D - AR::sqrt(D*D - 1.0);
-}
-
-template<typename T>
-T HotineObliqueMercator<T>::compute_E(const T& F, const T& t0, const T& B)
-{
-	return F * AR::pow(t0, B);
-}
-
-template<typename T>
-T HotineObliqueMercator<T>::compute_G(const T& F)
-{
-	return 0.5*(F - 1.0 / F);
-}
-
-template<typename T>
-T HotineObliqueMercator<T>::compute_g0(const T& alpha_c, const T& D)
-{
-	return AR::asin(AR::sin(alpha_c) / D);
-}
-
-template<typename T>
-T HotineObliqueMercator<T>::compute_l0(const T& lambda_c, const T& G,
-                                       const T& g0, const T& B)
-{
-	return lambda_c - AR::asin(G * AR::tan(g0)) / B;
-}
 
 template<typename T>
 typename HotineObliqueMercator<T>::uv_t
@@ -172,7 +336,7 @@ HotineObliqueMercator<T>::uv(double lambda, double phi) const
 	const double sp = std::sin(phi);
 	double t = std::sqrt((1.0 - sp) / (1.0 + sp)
 	                     * std::pow((1.0 + e*sp) / (1.0 - e*sp), e));
-	T Q(E * AR::pow(t, -B));
+	T Q(E_ * AR::pow(t, -B));
 	T S(0.5*(Q - 1.0/Q));
 	T T_(0.5*(Q + 1.0/Q));
 	/* Delta lambda using the addition / subtraction rule of Snyder (p. 72) */
@@ -195,11 +359,41 @@ HotineObliqueMercator<T>::uv(double lambda, double phi) const
 
 
 template<typename T>
+T HotineObliqueMercator<T>::u(double lambda, double phi) const
+{
+	if (phi >  (1.0 - EPS_LARGE_PHI) * 0.5 * PI ||
+	    phi < -(1.0 - EPS_LARGE_PHI) * 0.5 * PI){
+		/* We are in the zone where the limiting approximation for
+		 * phi = +/- pi/2 is better than the actual code (1e-9 stemming from
+		 * some numerical investigations): */
+		return A/B*phi;
+	}
+	/* Can use the full equations. */
+	const double sp = std::sin(phi);
+	double t = std::sqrt((1.0 - sp) / (1.0 + sp)
+	                     * std::pow((1.0 + e*sp) / (1.0 - e*sp), e));
+	T Q(E_ * AR::pow(t, -B));
+	T S(0.5*(Q - 1.0/Q));
+	T T_(0.5*(Q + 1.0/Q));
+	/* Delta lambda using the addition / subtraction rule of Snyder (p. 72) */
+	T dlambda(lambda - l0);
+	if (dlambda < -PI)
+		dlambda += 2*PI;
+	else if (dlambda > PI)
+		dlambda -= 2*PI;
+	T V(AR::sin(B*dlambda));
+
+	T cBdl(AR::cos(B * dlambda));
+	/* Case cos(B*(lambda - lambda_0)) == 0:
+	 * Note: seems unproblematic.*/
+
+	return A / B * AR::atan2(S*cos_g0 + V*sin_g0, cBdl);
+}
+
+
+template<typename T>
 T HotineObliqueMercator<T>::k(double lambda, double phi) const
 {
-	/* Compute coordinate u: */
-	T u(uv(lambda, phi).u);
-
 	/* Compute dlambda: */
 	T dlambda(lambda - l0);
 	if (dlambda < -PI)
@@ -209,13 +403,36 @@ T HotineObliqueMercator<T>::k(double lambda, double phi) const
 
 	/* Compute k: */
 	double sp = std::sin(phi);
-	return A * AR::cos(B*u/A) * std::sqrt(1.0 - e2 * sp * sp)
+	return A * AR::cos(B*u(lambda, phi)/A) * std::sqrt(1.0 - e2 * sp * sp)
 	       / (std::cos(phi) * AR::cos(B*(dlambda)));
 }
+
+
 template<typename T>
 const T& HotineObliqueMercator<T>::k0() const
 {
 	return k0_;
+}
+
+
+template <typename T>
+const T& HotineObliqueMercator<T>::E() const
+{
+	return E_;
+}
+
+
+template <typename T>
+const T& HotineObliqueMercator<T>::gamma0() const
+{
+	return g0;
+}
+
+
+template <typename T>
+const T& HotineObliqueMercator<T>::lambda0() const
+{
+	return l0;
 }
 
 

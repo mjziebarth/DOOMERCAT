@@ -284,3 +284,26 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
 
     uv = uv.T
     return uv[0,:], uv[1,:]
+
+
+def _hotine_constants(lonc: float, lat_0: float, alpha: float, k_0: float,
+                      f: float):
+    # Input sanitization.
+    lonc = float(lonc)
+    lat_0 = float(lat_0)
+    alpha = float(alpha)
+    k_0 = float(k_0)
+    f = float(f)
+
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
+
+    # Result vector:
+    constants = np.empty(3)
+
+    _cppextensions_so.hotine_parameters_debug(
+            c_double(lonc), c_double(lat_0), c_double(alpha),
+            c_double(k_0), c_double(f),
+            constants.ctypes.data_as(POINTER(c_double)))
+
+    return constants

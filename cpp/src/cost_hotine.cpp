@@ -134,3 +134,4 @@ CostFunctionHotine<double>::operator()(const DataSet& data,
 	                                 sigma_k0, logarithmic, parallel)
 	);
 }
+
