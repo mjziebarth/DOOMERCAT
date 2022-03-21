@@ -62,14 +62,14 @@ class CostFunctionHotine {
  * A particular configuration of the cost function parameters.
  */
 public:
-	CostFunctionHotine(unsigned int pnorm, double k0_ap, double sigma_k0,
+	CostFunctionHotine(double pnorm, double k0_ap, double sigma_k0,
 	                   bool logarithmic, bool parallel=true);
 
 	CostHotine<T> operator()(const DataSet& data,
 	                         const HotineObliqueMercator<T>& hom) const;
 
 private:
-	unsigned int pnorm;
+	double pnorm;
 	double k0_ap;
 	double sigma_k0;
 	bool logarithmic;
@@ -79,7 +79,7 @@ private:
 
 
 template<typename T>
-CostFunctionHotine<T>::CostFunctionHotine(unsigned int pnorm,
+CostFunctionHotine<T>::CostFunctionHotine(double pnorm,
                                           double k0_ap,
                                           double sigma_k0,
                                           bool logarithmic,
@@ -87,7 +87,7 @@ CostFunctionHotine<T>::CostFunctionHotine(unsigned int pnorm,
     : pnorm(pnorm), k0_ap(k0_ap), sigma_k0(sigma_k0),
       logarithmic(logarithmic), parallel(parallel)
 {
-	if (pnorm < 2)
+	if (pnorm <= 0)
 		throw std::runtime_error("pnorm too small");
 }
 

@@ -55,18 +55,27 @@ static double sum(std::vector<double>& x)
 template<typename T>
 static T compute_cost(const DataSet& data,
                       const HotineObliqueMercator<T> hom,
-                      unsigned int pnorm, double k0_ap, double sigma_k0,
+                      double pnorm, double k0_ap, double sigma_k0,
                       bool logarithmic, bool parallel)
 {
 	typedef Arithmetic<T> AR;
 
 	/* Compute the weighted, potentiated distortions: */
 	std::vector<T> cost_vec(data.size(), AR::constant(0.0));
-	#pragma omp parallel for if(parallel)
-	for (size_t i=0; i<data.size(); ++i){
-		cost_vec[i] = data.w(i)
-		        * AR::pow(AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0),
-		                  static_cast<int>(pnorm));
+	if (pnorm == static_cast<int>(pnorm) && pnorm < 5){
+		#pragma omp parallel for if(parallel)
+		for (size_t i=0; i<data.size(); ++i){
+			cost_vec[i] = data.w(i)
+			        * AR::pow(AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0),
+			                  static_cast<int>(pnorm));
+		}
+	} else {
+		#pragma omp parallel for if(parallel)
+		for (size_t i=0; i<data.size(); ++i){
+			cost_vec[i] = data.w(i)
+			        * AR::pow(AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0),
+			                  pnorm);
+		}
 	}
 
 	T cost(sum(cost_vec));
