@@ -60,21 +60,31 @@ static T compute_cost(const DataSet& data,
 {
 	typedef Arithmetic<T> AR;
 
-	/* Compute the weighted, potentiated distortions: */
+	/* Compute the distortions: */
 	std::vector<T> cost_vec(data.size(), AR::constant(0.0));
+	#pragma omp parallel for if(parallel)
+	for (size_t i=0; i<data.size(); ++i){
+		cost_vec[i] = AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0);
+	}
+
+	/* Compute the maximum distortion: */
+	T distmax(cost_vec[0]);
+	for (size_t i=1; i<data.size(); ++i){
+		if (cost_vec[i] > distmax)
+			distmax = cost_vec[i];
+	}
+
+	/* Extract the factor (distmax)**pnorm and calculate the cost: */
 	if (pnorm == static_cast<int>(pnorm) && pnorm < 5){
+		const int ipnorm = static_cast<int>(pnorm);
 		#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
-			cost_vec[i] = data.w(i)
-			        * AR::pow(AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0),
-			                  static_cast<int>(pnorm));
+			cost_vec[i] = data.w(i) * AR::pow(cost_vec[i] / distmax, ipnorm);
 		}
 	} else {
 		#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
-			cost_vec[i] = data.w(i)
-			        * AR::pow(AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0),
-			                  pnorm);
+			cost_vec[i] = data.w(i) * AR::pow(cost_vec[i] / distmax, pnorm);
 		}
 	}
 
@@ -83,13 +93,15 @@ static T compute_cost(const DataSet& data,
 
 	/* Add the k0  prior: */
 	if (hom.k0() < k0_ap){
-		cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0);
+		cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
+		        * AR::pow(distmax, -pnorm);
 	}
 
-	if (logarithmic)
-		return AR::log(cost);
+	if (logarithmic){
+		return AR::log(cost) + pnorm * AR::log(distmax);
+	}
 
-	return cost;
+	return cost * AR::pow(distmax, pnorm);
 }
 
 
