@@ -21,46 +21,25 @@
 
 
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mpc
 import sys
+from math import degrees
+from .initial import _lola2xyz, initial_k0, _Rx, _Ry, _Rz
 
-def Rx(a):
-    R = np.array([
-        [1,0,0.],
-        [0.,np.cos(a),np.sin(a)],
-        [0.,-np.sin(a),np.cos(a)]
-    ])
-    return R
 
-def Ry(a):
-    R = np.array([
-        [np.cos(a),0.,-np.sin(a)],
-        [0,1,0.],
-        [np.sin(a),0.,np.cos(a)]
-    ])
-    return R
-
-def Rz(a):
-    R = np.array([
-        [np.cos(a),-np.sin(a),0.],
-        [np.sin(a),np.cos(a),0.],
-        [0,0.,1]
-    ])
-    return R
-
-def lola2xyz(lo,la,f):
-    e2 = 2*f-f**2
-
-    N = 1/np.sqrt(1-e2*np.sin(la))
-
-    X = np.zeros((3,lon.size))
-
-    X[0] = N*np.cos(lo)*np.cos(la)
-    X[1] = N*np.sin(lo)*np.cos(la)
-    X[2] = (N*(1-e2))*np.sin(la)
-
-    return X
+class HotineResult:
+    """
+    Result of the optimization.
+    """
+    def __init__(self, cost, lonc, lat_0, alpha, k0, steps, f):
+        self.cost = cost
+        self.lonc = lonc
+        self.lat_0 = lat_0
+        self.alpha = alpha
+        self.k0 = k0
+        self.N = 1
+        self.steps = steps
+        self.f = f
+        self.mode = 2
 
 
 def _B(phi0,e):
@@ -260,138 +239,20 @@ def confine(p):
 
     return p
 
-def initalphac(lon,lat,phi0,lmbdc):
-
-    a = np.stack([
-        np.cos(lmbdc)*np.cos(phi0),
-        np.sin(lmbdc)*np.cos(phi0),
-        np.sin(phi0)
-    ])
-
-    x = np.stack([
-        np.cos(lon)*np.cos(lat),
-        np.sin(lon)*np.cos(lat),
-        np.sin(lat)
-    ])
-
-    b = np.sum(x,axis=1)
-    b /= np.linalg.norm(b)
-
-    lat_b = np.arcsin(b[2])
-    lon_b = np.arctan2(b[1],b[0])
-
-    n = np.stack([
-        -np.cos(lmbdc)*np.sin(phi0),
-        -np.sin(lmbdc)*np.sin(phi0),
-        np.cos(phi0)
-    ])
-
-    h = 1/np.dot(a,b)
-
-    c = h*b-a
-    c /= np.linalg.norm(c)
-
-    alphac = np.arccos(np.sum(n*c))
-    alphac = (alphac + np.pi/2) % np.pi - np.pi/2
-
-    return alphac
-
-def FBaxes_initials(X,w=None):
-
-    if w is None:
-        w = 1.
-
-    mv = np.sum(w*X,axis=1)/np.sum(w)
-    Sv = 1/np.sum(w) * w*X@X.T
-
-    mv_ = mv/np.linalg.norm(mv)
-
-    ct = mv_[0]
-    st = np.sqrt(1-ct**2)
-
-    cp = mv_[1]/st
-    sp = mv_[2]/st
-
-    H = np.array([
-        [ct,-st,0.],
-        [st*cp,ct*cp,-sp],
-        [st*sp,ct*sp,cp]
-    ])
-
-    B = H.T@Sv@H
-    psi = .5*np.arctan2(2*B[1,2],(B[1,1]-B[2,2]))
-    K = np.array([[1,0,0],[0,np.cos(psi),-np.sin(psi)],[0,np.sin(psi),np.cos(psi)]])
-    G = H@K
-
-    g1 = G[:,0] # central axis, basis
-    g2 = G[:,1] # equator axis
-    # g3 = G[:,2] # pole axis
-
-    phi0 = np.arcsin(g1[2])
-    lmbdc = np.arctan2(g1[1],g1[0])
-
-    n = np.stack([
-        -np.cos(lmbdc)*np.sin(phi0),
-        -np.sin(lmbdc)*np.sin(phi0),
-        np.cos(phi0)
-    ])
-
-    alphac = np.arccos(np.sum(n*g2))
-    alphac = (alphac + np.pi/2) % np.pi - np.pi/2
-
-    return phi0,lmbdc,alphac
-
-    # basis for dispersion estimators
-#     V = G.T@mv
-#     T = G.T@Sv@G
-
-#     r1 = V[0]
-#     r2 = T[1,1]-T[2,2]
-
-
-def initk0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt):
-
-    X0 = (Rz(lmbdc)@Ry(phi0)@Rx(alphac-np.pi/2)).T@X
-
-    plt.figure()
-    plt.plot(X0[1],X0[2],'.')
-    plt.show()
-
-    k0v = np.sqrt(1-(X0[2])**2)
-    k0_init = np.mean(k0v)
-
-    for i in range(100):
-
-        if pnorm == 0  and is_p2opt:
-            w = np.zeros_like(k0v)
-            I = [np.argmax(k0_init-k0v), np.argmin(k0_init-k0v)]
-            w[I] = 1.
-        elif pnorm > 0. and pnorm <= 1:
-            w = (np.abs(k0_init-k0v)+1e-15)**(pnorm-2)
-        elif pnorm == 2 and not is_p2opt:
-            w = np.ones_like(k0v)
-        else:
-            w = np.abs(k0_init-k0v)**(pnorm-2)
-
-        k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
-
-    return k0_init
-
 
 def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
          diagnostics=False, k0_ap=None, k0_ap_std=None):
 
     # normalize data weights to sum(wdata) = number of data points
-    wdata /= wdata.mean()
+    wdata /= wdata.sum()
 
     e = np.sqrt(2*f-f**2)
-    X = lola2xyz(lon,lat,f)
 
     p = np.array([phi0,lmbdc,alphac,k0])
 
     x = 2.**np.arange(-1,2.)
-    al = 1e-2
-    la = 1e-2
+    al = 1e-4
+    la = 1e-1
 
     o = 1.
 
@@ -409,9 +270,6 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
     is_p2opt = False
     switch_to_p0 = True
-
-    p[3] = initk0(p[0],p[1],p[2],X,wdata,pnorm,is_p2opt)
-    print('k0 init',p[3])
 
     if diagnostics:
         alv = []
@@ -432,14 +290,12 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
         P_ap[3,3] = 1/k0_ap_std**2
         v_ap = np.array([0.,0.,0.,k0_ap])
 
-    print(v_ap,P_ap,k0_ap_std,k0_ap)
-
     for i in range(Niter):
 
         if pnorm != 0 or not is_p2opt:
             fk,J = f_d_k_cse(lon,lat,p[0],p[1],p[2],p[3],e)
         else:
-            X0 = (Rz(p[1])@Ry(p[0])@Rx(p[2]-np.pi/2)).T@X
+            X0 = (_Rz(p[1]) @ _Ry(p[0]) @ _Rx(p[2]-np.pi/2)).T @ X
             Z0 = np.abs(X0[2])
 
             I = np.ones_like(Z0,dtype=bool)
@@ -463,31 +319,20 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
         elif pnorm > 0. and pnorm <= 1:
             w = (np.abs(fk-1)+1e-15)**(pnorm-2)
             w *= wdata
-        elif pnorm == 2 and not is_p2opt:
+        elif pnorm == 2 or not is_p2opt:
             w = np.ones_like(fk)
             w *= wdata
         else:
             w = np.abs(fk-1)**(pnorm-2)
             w *= wdata
 
-        w /= w.mean()
+        w /= w.sum()
 
 
         if pnorm == 0 and is_p2opt:
 
             if signS_i == 0:
                 al = 1e-3
-
-#             if signS_i > signS_N:
-#                 signS_m = np.sign(np.diff(signS[signS_i-signS_N:signS_i])).mean()
-
-#                 if signS_m > -.5:
-#                     al *= .9
-#                 else:
-#                     al /= .9
-
-                # print(signS_m)
-
 
             dp = (J*np.sign(fk-1)).flatten()
             mm = alm*mm + (1-alm)*dp
@@ -520,7 +365,9 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
             neodp = np.zeros((x.size,4))
             for j in range(x.size):
-                neodp[j] = np.linalg.solve(JTJ@PJi + x[j]*la*np.eye(4) + P_ap, (J.T*w)@(fk-1) + P_ap@(p-v_ap) * (np.sign(p[3]-v_ap[3])+1)/2)
+                Theta =  (np.sign(v_ap[3]-p[3])+1)/2
+                neodp[j] = np.linalg.solve(JTJ@PJi + x[j]*la*np.eye(4) + P_ap*Theta,
+                                           (J.T*w)@(fk-1) + P_ap@(p-v_ap) * Theta)
                 neodp[j] = PJi@neodp[j]
 
                 for k in range(x.size):
@@ -529,9 +376,11 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
                     neofk = f_d_k_cse(lon,lat,neop[j,k,0],neop[j,k,1],neop[j,k,2],neop[j,k,3],e,noJ=True)
 
                     if pnorm == 0:
-                        S33[j,k] = np.sqrt(np.sum(wdata*np.abs(neofk-1)**2) + P_ap[3,3]*(p[3]-v_ap[3])**2 * (np.sign(p[3]-v_ap[3])+1)/2)
+                        S33[j,k] = np.sqrt(np.sum(wdata*np.abs(neofk-1)**2)
+                                           + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta)
                     else:
-                        S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm) + P_ap[3,3]*(p[3]-v_ap[3])**2 * (np.sign(p[3]-v_ap[3])+1)/2
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm) \
+                                          + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
 
                     if np.isnan(S33[j,k]):
                         S33[j,k] = np.inf
@@ -560,7 +409,8 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             is_p2opt = True
 
             if switch_to_p0:
-                p[3] = initk0(p[0],p[1],p[2],X,wdata,pnorm,is_p2opt)
+                X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
+                p[3] = initial_k0(p[0],p[1],p[2], X, wdata,np.inf)
                 print('new k0',p[3])
                 switch_to_p0 = False
 
@@ -574,6 +424,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
         P = np.array(P)
         return p,alv,lav,Sv,P
     else:
-        return p
+        return HotineResult(cost=S33[Ij,Ik], lonc=degrees(p[1]),
+                            lat_0=degrees(p[0]), alpha=degrees(p[2]),
+                            k0=p[3], steps=i, f=f)
 
-        
