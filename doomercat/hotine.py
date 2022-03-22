@@ -26,11 +26,11 @@ from math import degrees
 from .initial import _lola2xyz, initial_k0, _Rx, _Ry, _Rz
 
 
-class HotineResult:
+class HotineResultPy:
     """
     Result of the optimization.
     """
-    def __init__(self, cost, lonc, lat_0, alpha, k0, steps, f):
+    def __init__(self, cost, lonc, lat_0, alpha, k0, steps, f, error_flag):
         self.cost = cost
         self.lonc = lonc
         self.lat_0 = lat_0
@@ -40,6 +40,7 @@ class HotineResult:
         self.steps = steps
         self.f = f
         self.mode = 2
+        self.error_flag = error_flag
 
 
 def _B(phi0,e):
@@ -270,6 +271,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
     is_p2opt = False
     switch_to_p0 = True
+    error_flag = None
 
     if diagnostics:
         alv = []
@@ -366,8 +368,14 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             neodp = np.zeros((x.size,4))
             for j in range(x.size):
                 Theta =  (np.sign(v_ap[3]-p[3])+1)/2
-                neodp[j] = np.linalg.solve(JTJ@PJi + x[j]*la*np.eye(4) + P_ap*Theta,
-                                           (J.T*w)@(fk-1) + P_ap@(p-v_ap) * Theta)
+                try:
+                    neodp[j] = np.linalg.solve(JTJ @ PJi + x[j] * la * np.eye(4)
+                                                  + P_ap * Theta,
+                                               (J.T*w) @ (fk-1)
+                                                  + P_ap @ (p - v_ap) * Theta)
+                except np.linalg.LinAlgError:
+                    error_flag = "LinAlgError"
+                    break
                 neodp[j] = PJi@neodp[j]
 
                 for k in range(x.size):
@@ -402,6 +410,8 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             Sv.append(S33[Ij,Ik])
             P.append(p*1.)
 
+        if error_flag is not None:
+            break
 
         if pnorm != 0. and np.linalg.norm(neodp[Ij])<1e-7:
             break
@@ -424,7 +434,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
         P = np.array(P)
         return p,alv,lav,Sv,P
     else:
-        return HotineResult(cost=S33[Ij,Ik], lonc=degrees(p[1]),
-                            lat_0=degrees(p[0]), alpha=degrees(p[2]),
-                            k0=p[3], steps=i, f=f)
+        return HotineResultPy(cost=S33[Ij,Ik], lonc=degrees(p[1]),
+                              lat_0=degrees(p[0]), alpha=degrees(p[2]),
+                              k0=p[3], steps=i, f=f, error_flag=error_flag)
 
