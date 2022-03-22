@@ -376,6 +376,10 @@ fallback_gradient_BFGS
 		lina::fill_array(G, grad_fk);
 
 		#ifdef DEBUG
+			std::cout << "params[" << i << "]   = (";
+			for (size_t j=0; j<d; ++j)
+				std::cout << xk[j] << ",";
+			std::cout << ")\n";
 			std::cout << "gradient[" << i << "] = (";
 			for (size_t j=0; j<d; ++j)
 				std::cout << grad_fk[j] << ",";
