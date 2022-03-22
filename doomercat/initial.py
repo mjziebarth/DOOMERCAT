@@ -21,7 +21,7 @@
 # limitations under the Licence.
 
 import numpy as np
-from math import asin, degrees, sqrt
+from math import asin, degrees, sqrt, isinf
 from .fisherbingham import fisher_bingham_mom
 
 
@@ -31,6 +31,49 @@ def _xyz2lola(xyz):
     """
     xyz /= np.linalg.norm(xyz, axis=0)
     return np.rad2deg(np.arctan2(xyz[1], xyz[0])), np.rad2deg(np.arcsin(xyz[2]))
+
+
+def _lola2xyz(lo,la,f):
+    e2 = 2*f-f**2
+
+    lo = np.deg2rad(lo)
+    la = np.deg2rad(la)
+
+    N = 1/np.sqrt(1-e2*np.sin(la))
+
+    X = np.zeros((3,lo.size))
+
+    X[0] = N*np.cos(lo)*np.cos(la)
+    X[1] = N*np.sin(lo)*np.cos(la)
+    X[2] = (N*(1-e2))*np.sin(la)
+
+    return X
+
+# Rotational matrices:
+def _Rx(a):
+    R = np.array([
+        [1,0,0.],
+        [0.,np.cos(a),np.sin(a)],
+        [0.,-np.sin(a),np.cos(a)]
+    ])
+    return R
+
+def _Ry(a):
+    R = np.array([
+        [np.cos(a),0.,-np.sin(a)],
+        [0,1,0.],
+        [np.sin(a),0.,np.cos(a)]
+    ])
+    return R
+
+def _Rz(a):
+    R = np.array([
+        [np.cos(a),-np.sin(a),0.],
+        [np.sin(a),np.cos(a),0.],
+        [0,0.,1]
+    ])
+    return R
+
 
 
 def initial_axes_cross_product(lon,lat):
@@ -58,18 +101,60 @@ def initial_axes_cross_product(lon,lat):
     return _xyz2lola(est0), _xyz2lola(est1)
 
 
+def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm):
+    """
+    Computes the initial k0 given the initial central latitude,
+    longitude, and azimuth (phi0, lmbdc, alphac), the point set,
+    and the p-norm.
 
-def initial_axes_fisher_bingham(lon, lat, w):
+    Paramters:
+       phi0   : Initial central latitude (in radians)
+       lmbdc  : Initial central longitude (in radians)
+       alphac : Initial azimuth at the central line (in radians)
+    """
+    X0 = (_Rz(lmbdc) @ _Ry(phi0) @ _Rx(alphac-np.pi/2)).T @ X
+
+    k0v = np.sqrt(np.maximum(1-(X0[2])**2,0))
+    k0_init = np.mean(k0v)
+
+    for i in range(100):
+        if isinf(pnorm):
+            w = np.zeros_like(k0v)
+            I = [np.argmax(k0_init-k0v), np.argmin(k0_init-k0v)]
+            w[I] = 1.
+        elif pnorm > 0. and pnorm <= 1:
+            w = (np.abs(k0_init-k0v)+1e-15)**(pnorm-2)
+        elif pnorm == 2:
+            w = np.ones_like(k0v)
+        else:
+            w = np.abs(k0_init-k0v)**(pnorm-2)
+
+        k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
+
+    return k0_init
+
+
+
+def initial_parameters_fisher_bingham(lon, lat, w, pnorm, f):
     """
     Computes an initial estimate of the parameters using parameter
     estimates of the Fisher-Bingham distribution.
 
     Returns:
-       cylinder_axis, central_axis
+       lonc, lat_0, alpha, k_0
     """
-    g1, g2, g3 = fisher_bingham_mom(lon, lat, w)
+    # Sanity:
+    if w is None:
+        w = 1.0
+    # Use Fisher-Bingham distribution to compute the central
+    # latitude, longitude, and azimuth:
+    X = _lola2xyz(lon, lat, f)
+    phi0, lmbdc, alphac = fisher_bingham_mom(X, w)
 
-    return g3, g1
+    # Compute k0:
+    k0 = initial_k0(phi0, lmbdc, alphac, X, w, pnorm)
+
+    return np.rad2deg(lmbdc), np.rad2deg(phi0), np.rad2deg(alphac), k0
 
 
 def compute_azimuth(cylinder_axis, central_axis):
@@ -104,7 +189,7 @@ def compute_azimuth(cylinder_axis, central_axis):
     return -degrees(azimuth);
 
 
-def initial_parameters(lon, lat, w, how='fisher-bingham'):
+def initial_parameters(lon, lat, w, pnorm, f, how='fisher-bingham'):
     """
     Computes an initial estimate of the parameters.
 
@@ -112,9 +197,13 @@ def initial_parameters(lon, lat, w, how='fisher-bingham'):
        (lon_cyl, lat_cyl), (lonc, lat_0)
     """
     if how == 'fisher-bingham':
-        cylinder_axis, central_axis \
-           = initial_axes_fisher_bingham(lon, lat, w)
+        return initial_parameters_fisher_bingham(lon, lat, w, pnorm, f)
 
-    lonc, lat_0 = _xyz2lola(central_axis)
-    azimuth = compute_azimuth(cylinder_axis, central_axis)
+    elif how == 'cross-product':
+        #initial_axes_cross_product(lon,lat)
+        #azimuth = compute_azimuth(cylinder_axis, central_axis)
+        pass
+    else:
+        raise ValueError("Unknown 'how'.")
+
     return float(lonc), float(lat_0), float(azimuth)
