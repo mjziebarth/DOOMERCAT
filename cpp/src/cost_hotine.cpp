@@ -28,6 +28,7 @@ using doomercat::DataSet;
 using doomercat::HotineObliqueMercator;
 using doomercat::CostHotine;
 using doomercat::CostFunctionHotine;
+using doomercat::CostFunctionHotineInf;
 
 
 static real4v sum(std::vector<real4v>& x){
@@ -153,6 +154,70 @@ CostFunctionHotine<double>::operator()(const DataSet& data,
 	return CostHotine<double>(
 	            compute_cost<double>(data, hom, pnorm, k0_ap,
 	                                 sigma_k0, logarithmic, parallel)
+	);
+}
+
+
+
+
+
+/***************************************************************************
+ *                          Cost with p=infty                              *
+ ***************************************************************************/
+template<typename T>
+static T compute_cost_inf(const DataSet& data,
+                          const HotineObliqueMercator<T> hom,
+                          double k0_ap, double sigma_k0,
+                          bool logarithmic, bool parallel)
+{
+	typedef Arithmetic<T> AR;
+
+	/* Compute the absolute of the distortions: */
+	std::vector<T> cost_vec(data.size(), AR::constant(0.0));
+	#pragma omp parallel for if(parallel)
+	for (size_t i=0; i<data.size(); ++i){
+		cost_vec[i] = AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0);
+	}
+
+	T cost(cost_vec[0]);
+	for (size_t i=1; i<data.size(); ++i){
+		if (cost_vec[i] > cost)
+			cost = cost_vec[i];
+	}
+
+	/* Add the k0  prior: */
+	if (hom.k0() < k0_ap){
+		cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0);
+	}
+
+	if (logarithmic)
+		return AR::log(cost);
+
+	return cost;
+}
+
+
+
+template<>
+CostHotine<real4v>
+CostFunctionHotineInf<real4v>::operator()(const DataSet& data,
+                              const HotineObliqueMercator<real4v>& hom) const
+{
+	return CostHotine<real4v>(
+	            compute_cost_inf<real4v>(data, hom, k0_ap, sigma_k0,
+	                                     logarithmic, parallel)
+	);
+}
+
+
+template<>
+CostHotine<double>
+CostFunctionHotineInf<double>::operator()(const DataSet& data,
+                              const HotineObliqueMercator<double>& hom) const
+{
+	return CostHotine<double>(
+	            compute_cost_inf<double>(data, hom, k0_ap, sigma_k0,
+	                                     logarithmic, parallel)
 	);
 }
 

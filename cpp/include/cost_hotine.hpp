@@ -31,6 +31,9 @@ namespace doomercat {
 template<typename T>
 class CostFunctionHotine;
 
+template<typename T>
+class CostFunctionHotineInf;
+
 
 template<typename T>
 class CostHotine {
@@ -38,6 +41,7 @@ class CostHotine {
  *Result of a cost function evaluation.
  */
 friend CostFunctionHotine<T>;
+friend CostFunctionHotineInf<T>;
 
 public:
 	operator double() const;
@@ -89,6 +93,38 @@ CostFunctionHotine<T>::CostFunctionHotine(double pnorm,
 {
 	if (pnorm <= 0)
 		throw std::runtime_error("pnorm too small");
+}
+
+
+template<typename T>
+class CostFunctionHotineInf {
+/*
+ * A particular configuration of the cost function parameters.
+ */
+public:
+	CostFunctionHotineInf(double k0_ap, double sigma_k0,
+	                      bool logarithmic, bool parallel=true);
+
+	CostHotine<T> operator()(const DataSet& data,
+	                         const HotineObliqueMercator<T>& hom) const;
+
+private:
+	double k0_ap;
+	double sigma_k0;
+	bool logarithmic;
+	bool parallel = true;
+
+};
+
+
+template<typename T>
+CostFunctionHotineInf<T>::CostFunctionHotineInf(double k0_ap,
+                                                double sigma_k0,
+                                                bool logarithmic,
+                                                bool parallel)
+    : k0_ap(k0_ap), sigma_k0(sigma_k0),
+      logarithmic(logarithmic), parallel(parallel)
+{
 }
 
 
