@@ -29,7 +29,7 @@ extern "C" {
 int compute_cost_hotine_batch(const size_t N, const double* lon,
         const double* lat, const double* w, const size_t M,
         const double* lonc, const double* lat0, const double* alpha,
-        const double* k0, double f, unsigned int pnorm, double k0_ap,
+        const double* k0, double f, double pnorm, double k0_ap,
         double sigma_k0, double* result);
 
 int compute_k_hotine(const size_t N, const double* lon,
@@ -42,9 +42,10 @@ int hotine_project(const size_t N, const double* lon,
         double k0, double f, double* result);
 
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
-                const double* w, double f, unsigned int pnorm, double k0_ap,
+                const double* w, double f, double pnorm, double k0_ap,
                 double sigma_k0, double lonc_0, double lat_0_0,
                 double alpha_0, double k_0_0, unsigned int Nmax,
+                unsigned short log_cost_first, double epsilon,
                 double* result, unsigned int* n_steps);
 
 int hotine_parameters_debug(double lonc, double lat0, double alpha,

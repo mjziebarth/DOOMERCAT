@@ -35,9 +35,18 @@ std::vector<hotine_result_t>
 bfgs_optimize_hotine(const DataSet& data, const double lonc0,
                      const double lat_00, const double alpha0,
                      const double k00, const double f,
-                     const unsigned int pnorm, const double k0_ap,
+                     const double pnorm, const double k0_ap,
                      const double sigma_k0,
-                     const size_t Nmax);
+                     const size_t Nmax, const bool log_cost_first,
+                     const double epsilon);
+
+std::vector<hotine_result_t>
+bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
+                          const double lat_00, const double alpha0,
+                          const double k00, const double f,
+                          const double k0_ap, const double sigma_k0,
+                          const size_t Nmax, const bool log_cost_first,
+                          const double epsilon);
 
 }
 #endif

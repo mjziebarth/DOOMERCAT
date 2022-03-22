@@ -37,6 +37,7 @@
 
 using doomercat::DataSet;
 using doomercat::CostFunctionHotine;
+using doomercat::CostFunctionHotineInf;
 using doomercat::CostHotine;
 using doomercat::HotineObliqueMercator;
 
@@ -44,25 +45,43 @@ using doomercat::HotineObliqueMercator;
 int compute_cost_hotine_batch(const size_t N, const double* lon,
         const double* lat, const double* w, const size_t M,
         const double* lonc, const double* lat0, const double* alpha,
-        const double* k0, double f, unsigned int pnorm, double k0_ap,
+        const double* k0, double f, double pnorm, double k0_ap,
         double sigma_k0, double* result)
 {
 	/* Data set: */
 	const DataSet data(N, lon, lat, w);
 
 	/* Cost function: */
-	const CostFunctionHotine<double> cfun(pnorm, k0_ap, sigma_k0, true,
-	                                      false);
+	if (std::isinf(pnorm)){
+		const CostFunctionHotineInf<double> cfun(k0_ap, sigma_k0, true,
+			                                     false);
 
-	/* Compute the Hotine Mercator projections now: */
-	#pragma omp parallel for
-	for (size_t i=0; i<M; ++i){
-		HotineObliqueMercator<double>
-		   hom(deg2rad(lonc[i]), deg2rad(lat0[i]),
-		       deg2rad(alpha[i]), k0[i], f);
+		/* Compute the Hotine Mercator projections now: */
+		#pragma omp parallel for
+		for (size_t i=0; i<M; ++i){
+			HotineObliqueMercator<double>
+			   hom(deg2rad(lonc[i]), deg2rad(lat0[i]),
+			       deg2rad(alpha[i]), k0[i], f);
 
-		/* Compute the cost: */
-		result[i] = cfun(data, hom);
+			/* Compute the cost: */
+			result[i] = cfun(data, hom);
+		}
+
+	} else {
+		const CostFunctionHotine<double> cfun(pnorm, k0_ap, sigma_k0, true,
+		                                      false);
+
+		/* Compute the Hotine Mercator projections now: */
+		#pragma omp parallel for
+		for (size_t i=0; i<M; ++i){
+			HotineObliqueMercator<double>
+			   hom(deg2rad(lonc[i]), deg2rad(lat0[i]),
+			       deg2rad(alpha[i]), k0[i], f);
+
+			/* Compute the cost: */
+			result[i] = cfun(data, hom);
+		}
+
 	}
 
 	return 0;
@@ -122,9 +141,10 @@ double doomercat::to_double<real4v>(const real4v& t)
 
 
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
-                const double* w, double f, unsigned int pnorm, double k0_ap,
+                const double* w, double f, double pnorm, double k0_ap,
                 double sigma_k0, double lonc_0, double lat_0_0,
                 double alpha_0, double k_0_0, unsigned int Nmax,
+                unsigned short log_cost_first, double epsilon,
                 double* result, unsigned int* n_steps)
 {
 	// Sanity check on weights (probably very much redundant):
@@ -135,9 +155,16 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 	DataSet data(N, lon, lat, w);
 
 	/* Optimize: */
-	std::vector<doomercat::hotine_result_t> history
-	   = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0, k_0_0, f,
-	                          pnorm, k0_ap, sigma_k0, Nmax);
+	std::vector<doomercat::hotine_result_t> history;
+	if (std::isinf(pnorm)){
+		history = bfgs_optimize_hotine_pinf(data, lonc_0, lat_0_0, alpha_0,
+		                                    k_0_0, f, k0_ap, sigma_k0, Nmax,
+		                                    log_cost_first > 0u, epsilon);
+	} else {
+		history = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0, k_0_0, f,
+		                               pnorm, k0_ap, sigma_k0, Nmax,
+		                               log_cost_first > 0u, epsilon);
+	}
 
 	/* Return the results: */
 	for (size_t i=0; i<history.size(); ++i){

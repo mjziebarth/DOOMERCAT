@@ -19,7 +19,7 @@
 # limitations under the Licence.
 import platform
 import numpy as np
-from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER
+from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER, c_ushort
 from pathlib import Path
 from .messages import info
 
@@ -98,7 +98,8 @@ class HotineResult:
 
 
 def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
-                lat_0_0, alpha_0, k_0_0, Nmax, return_full_history=False):
+                lat_0_0, alpha_0, k_0_0, Nmax, return_full_history=False,
+                log_cost_first=True, epsilon=1e-7):
     """
     Perform BFGS on Hotine oblique Mercator cost function.
     """
@@ -111,7 +112,7 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
     N = data_lon.size
     assert data_lat.size == N
     assert w.size == N
-    pnorm = int(pnorm)
+    pnorm = float(pnorm)
     k0_ap = float(k0_ap)
     sigma_k0 = float(sigma_k0)
     lonc_0  = float(lonc_0)
@@ -121,6 +122,8 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
     f = float(f)
     Nmax = int(Nmax)
     assert Nmax > 0
+    log_cost_first = bool(log_cost_first)
+    epsilon = float(epsilon)
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
@@ -132,10 +135,12 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
                                  data_lon.ctypes.data_as(POINTER(c_double)),
                                  data_lat.ctypes.data_as(POINTER(c_double)),
                                  w.ctypes.data_as(POINTER(c_double)),
-                                 c_double(f), c_uint(pnorm), c_double(k0_ap),
+                                 c_double(f), c_double(pnorm), c_double(k0_ap),
                                  c_double(sigma_k0), c_double(lonc_0),
                                  c_double(lat_0_0), c_double(alpha_0),
                                  c_double(k_0_0), c_uint(Nmax),
+                                 c_ushort(1 if log_cost_first else 0),
+                                 c_double(epsilon),
                                  result.ctypes.data_as(POINTER(c_double)),
                                  M.ctypes.data_as(POINTER(c_uint)))
     M = int(M)
@@ -174,7 +179,7 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
                         alpha: np.ndarray, k_0: np.ndarray,
                         lon: np.ndarray, lat: np.ndarray,
                         w: np.ndarray,
-                        f: float, pnorm: int, k0_ap: float,
+                        f: float, pnorm: float, k0_ap: float,
                         sigma_k0: float):
     """
     Computes the cost function for different k0.
@@ -200,6 +205,7 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
     f = float(f)
     k0_ap = float(k0_ap)
     sigma_k0 = float(sigma_k0)
+    pnorm = float(pnorm)
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
@@ -216,7 +222,7 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
             lat_0.ctypes.data_as(POINTER(c_double)),
             alpha.ctypes.data_as(POINTER(c_double)),
             k_0.ctypes.data_as(POINTER(c_double)),
-            c_double(f), c_uint(pnorm), c_double(k0_ap),
+            c_double(f), c_double(pnorm), c_double(k0_ap),
             c_double(sigma_k0),
             cost.ctypes.data_as(POINTER(c_double)));
 
