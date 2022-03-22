@@ -19,11 +19,12 @@
 # limitations under the Licence.
 
 import numpy as np
-from math import atan2, degrees
+from math import atan2, degrees, isinf
 from .defs import _ellipsoids
 from .initial import initial_parameters
 from .enclosingsphere import BoundingSphere
 from .hotineproject import hotine_project
+from .hotine import grad
 
 
 class HotineObliqueMercator:
@@ -131,12 +132,12 @@ class HotineObliqueMercator:
                  sigma_k0=0.002, ellipsoid=None, f=None, a=None,
                  cyl_lon0=None, cyl_lat0=None, lonc0=None, lonc=None,
                  lat_0=None, alpha=None, k0=None, Nmax=1000, logger=None,
-                 fisher_bingham_use_weight=False,
-                 compute_enclosing_sphere=False):
+                 backend='C++', fisher_bingham_use_weight=False,
+                 compute_enclosing_sphere=False, bfgs_epsilon=1e-3):
         # Initialization.
         # 1) Sanity checks:
         assert ellipsoid in _ellipsoids or ellipsoid is None
-        assert pnorm >= 2
+        assert pnorm > 0
         Nmax = int(Nmax)
         assert Nmax > 0
 
@@ -173,6 +174,7 @@ class HotineObliqueMercator:
                 lat = np.array(lat)
             if weight is not None and not isinstance(weight,np.ndarray):
                 weight = np.array(weight)
+                weight /= weight.sum()
                 assert weight.shape == lon.shape
 
             assert lon.shape == lat.shape
@@ -182,22 +184,52 @@ class HotineObliqueMercator:
                 w_initial = weight
             else:
                 w_initial = None
-            lonc0, lat_00, alpha0 = initial_parameters(lon, lat, w_initial)
-            if k0 is None:
-                k0 = 1.0
+            lonc0, lat_00, alpha0, k00 = initial_parameters(lon, lat,
+                                                            w_initial,
+                                                            pnorm, f)
+
+            if backend in ('c++','C++'):
+                # Call the C++ BFGS backend.
+                if logger is not None:
+                    logger.log(20, "Starting BFGS optimization.")
+
+                # Load the C++ backend:
+                self._load_backend()
+
+                # If p=inf, pre-optimize with p=80 norm:
+                if isinf(pnorm):
+                    pre_res = \
+                        self._bfgs_hotine(lon, lat, weight, 80, k0_ap,
+                                          sigma_k0, f, lonc0, lat_00, alpha0,
+                                          k00, Nmax, epsilon=bfgs_epsilon)
+                    lonc0  = pre_res.lonc
+                    lat_00 = pre_res.lat_0
+                    alpha0 = pre_res.alpha
+                    k00    = pre_res.k0
+
+                # Optimize the Hotine oblique Mercator:
+                result = \
+                    self._bfgs_hotine(lon, lat, weight, pnorm, k0_ap,
+                                      sigma_k0, f, lonc0, lat_00, alpha0,
+                                      k00, Nmax, epsilon=bfgs_epsilon)
+
+            elif backend in ('python','Python'):
+                # Call the Python Levenberg-Marquardt backend.
+                if logger is not None:
+                    logger.log(20, "Starting Levenberg-Marquardt "
+                                   "optimization.")
+                if weight is None:
+                    weight = np.ones_like(lon)
+                if isinf(pnorm):
+                    k00 = initial_parameters(lon, lat, w_initial, 2, f)[3]
+                result = grad(np.deg2rad(lon), np.deg2rad(lat),
+                              weight, np.deg2rad(lat_00), np.deg2rad(lonc0),
+                              np.deg2rad(alpha0), k00, f,
+                              0 if isinf(pnorm) else pnorm, Nmax,
+                              False, k0_ap, sigma_k0)
             else:
-                k0 = float(k0)
+                raise ValueError("Backend unkown!")
 
-            if logger is not None:
-                logger.log(20, "Starting BFGS optimization.")
-
-            # Load the C++ backend:
-            self._load_backend()
-
-            # Optimize the Hotine oblique Mercator:
-            result = \
-                self._bfgs_hotine(lon, lat, weight, pnorm, k0_ap, sigma_k0,
-                                  f, lonc0, lat_00, alpha0, k0, Nmax)
             lonc = result.lonc
             lat_0 = result.lat_0
             alpha = result.alpha
