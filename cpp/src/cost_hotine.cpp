@@ -89,7 +89,7 @@ static T compute_cost(const DataSet& data,
 		}
 	}
 
-	T cost(sum(cost_vec));
+	T cost(AR::pow(sum(cost_vec), 1.0/pnorm));
 
 
 	/* Add the k0  prior: */
@@ -99,10 +99,10 @@ static T compute_cost(const DataSet& data,
 	}
 
 	if (logarithmic){
-		return AR::log(cost) + pnorm * AR::log(distmax);
+		return AR::log(cost) + AR::log(distmax);
 	}
 
-	return cost * AR::pow(distmax, pnorm);
+	return cost * distmax;
 }
 
 
