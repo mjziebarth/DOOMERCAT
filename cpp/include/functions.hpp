@@ -183,7 +183,8 @@ T min(const T& a, const T& b) {
 }
 
 template<class T>
-T min(const T& a, double b)
+typename std::enable_if<!std::is_same<T,double>::value,T>::type
+min(const T& a, double b)
 {
 	return T::min(a, T::constant(b));
 }
@@ -194,9 +195,16 @@ T max(const T& a, const T& b) {
 }
 
 template<class T>
-T max(const T& a, double b) {
+typename std::enable_if<!std::is_same<T,double>::value,T>::type
+max(const T& a, double b) {
 	return T::max(a, T::constant(b));
 }
+
+// Declare double templated specializations:
+template<>
+double min(const double& a, const double& b);
+template<>
+double max(const double& a, const double& b);
 
 // Constants and variables:
 real5v constant5(double x);

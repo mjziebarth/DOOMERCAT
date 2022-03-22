@@ -31,3 +31,15 @@ real4v constant4(double x)
 {
 	return real4v::constant(x);
 }
+
+template<>
+double min(const double& a, const double& b)
+{
+	return std::min(a,b);
+}
+
+template<>
+double max(const double& a, const double& b)
+{
+	return std::max(a,b);
+}
