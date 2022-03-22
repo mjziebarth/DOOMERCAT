@@ -73,6 +73,7 @@ public:
 	real& operator()(size_t i, size_t j);
 
 	ColVector<d,real> operator*(const ColVector<d,real>&) const;
+	RowVector<d,real> lmul(const RowVector<d,real>&) const;
 
 	static SqMatrix identity();
 
@@ -160,6 +161,26 @@ ColVector<d,real> SqMatrix<d,real>::operator*(const ColVector<d,real>& v) const
 		r[i] = ri;
 	}
 	return r;
+}
+
+template<size_t d, typename real>
+RowVector<d,real> SqMatrix<d,real>::lmul(const RowVector<d,real>& v) const
+{
+	RowVector<d,real> r;
+	for (size_t j=0; j<d; ++j){
+		double rj = 0.0;
+		for (size_t i=0; i<d; ++i)
+			rj += v.x[i] * M[i*d + j];
+		r[j] = rj;
+	}
+	return r;
+}
+
+template<size_t d, typename real>
+RowVector<d,real> operator*(const RowVector<d,real>& v,
+                            const SqMatrix<d,real>& M)
+{
+	return M.lmul(v);
 }
 
 
