@@ -76,6 +76,8 @@ public:
 
 	bool operator>=(const autodouble& other) const;
 	bool operator<=(const autodouble& other) const;
+	bool operator>(const autodouble& other) const;
+	bool operator<(const autodouble& other) const;
 	bool operator>=(double) const;
 	bool operator<=(double) const;
 	bool operator>(double) const;
@@ -469,6 +471,17 @@ template<dim_t d>
 bool autodouble<d>::operator<=(const autodouble& other) const
 {
 	return x <= other.x;
+}
+template<dim_t d>
+bool autodouble<d>::operator>(const autodouble& other) const
+{
+	return x > other.x;
+}
+
+template<dim_t d>
+bool autodouble<d>::operator<(const autodouble& other) const
+{
+	return x < other.x;
 }
 
 template<dim_t d>
