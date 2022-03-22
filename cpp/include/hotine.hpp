@@ -46,7 +46,6 @@ public:
 	                           double e2);
 
 	static hom_E_parabola_params_t fit_E_parabola_pos(double e);
-	static double compute_G0(double e);
 
 private:
 	typedef Arithmetic<T> AR;
@@ -193,19 +192,6 @@ hom_E_parabola_params_t HOM_constants<T>::fit_E_parabola_pos(double e)
 		a += yi/(xi*xi);
 	}
 	return {C0, a / 8};
-}
-
-template<typename T>
-double HOM_constants<T>::compute_G0(double e2)
-{
-	constexpr double SQ2 = std::sqrt(2.0);
-	double e4 = e2 * e2;
-	double e6 = e4 * e2;
-	double x = 1.0 - e2;
-	double x2 = x*x;
-	return -(8.0*e6 - 24.0*e4 + 24.0*e2 - 8.0)
-	        * (e4/(4.0*x2) + e2/x + e2/(2.0*x2) + 7.0/4.0 - 3.0/(4.0*x2))
-	        / (2.0*SQ2*(4.0*e6 - 12.0*e4 + 12.0*e2 - 4.0));
 }
 
 
