@@ -36,16 +36,25 @@ public:
 
 	/* Asymptotic computations: */
 
-	/* G*sqrt(1-sin(phi0)) in the limit phi0 -> +90° */
+	/* G*sqrt(1-sin(phi0)) in the limit phi0 -> +/-90° */
 	static T G_mul_sqx(const T& sin_phi0, const T& sin_alpha, double e2);
-	/* tan(g0)/sqrt(1 - sin(phi0)) in the limit phi0 -> +90° */
+	static T G_mul_sqx_neg(const T& z,const T& sa, double e2);
+
+	/* tan(g0)/sqrt(1 - sin(phi0)) in the limit phi0 -> +/-90° */
 	static T tan_g0_div_sqx_asymptotic_pos(const T& sin_phi0,
 	                                       const T& sin_alpha,
 	                                       double e2);
+	static T tan_g0_div_sqx_asymptotic_neg(const T& sin_phi0,
+	                                       const T& sin_alpha,
+	                                       double e2);
+	/* */
 	static T g0_asymptotic_pos(const T& sin_phi0, const T& sin_alpha,
+	                           double e2);
+	static T g0_asymptotic_neg(const T& sin_phi0, const T& sin_alpha,
 	                           double e2);
 
 	static hom_E_parabola_params_t fit_E_parabola_pos(double e);
+	static hom_E_parabola_params_t fit_E_parabola_neg(double e);
 
 private:
 	typedef Arithmetic<T> AR;
@@ -116,11 +125,25 @@ T HOM_constants<T>::G_mul_sqx(const T& z,const T& sa, double e2)
 	T xp(1.0 + z);
 	T xm(1.0 - z);
 	double Y = e2/(1.0 - e2);
-	T xpxm2 = AR::pow2(xp*xm);
-	double sq1me2 = std::sqrt(1.0 - e2);
-	T V(AR::sqrt((1.0 - e2) * (xpxm2*Y + 1.0) /(xp*(1.0 - e2*z*z)) - xm));
-	T W(sq1me2 * AR::sqrt((xpxm2*Y + 1.0) / (xp*(1.0 - e2 * z*z))) + V);
+	T V((1.0 - e2)*(Y*AR::pow2(xp*xm) + 1.0)/(xp*(1.0 - e2*z*z)));
+	T W(AR::sqrt(V) + AR::sqrt(V-xm));
 	return 0.5 * (W - xm/W);
+}
+
+template<typename T>
+T HOM_constants<T>::G_mul_sqx_neg(const T& z,const T& sa, double e2)
+{
+	/* Computes G*sqrt(1-sin_phi0) */
+	T xp(1.0 + z);
+	T xm(1.0 - z);
+	double Y = e2/(1.0 - e2);
+	T xpxm2 = AR::pow2(xp*xm);
+	T V((1.0 - e2)*(Y*xpxm2 + 1.0)/(xm*(1.0 - e2*z*z)));
+	T xpV(xp/V);
+	// Series of W = AR::sqrt(V) - AR::sqrt(V - xp),
+	// evaluated with Horner's method:
+	T W(xp/AR::sqrt(V)*(0.5 + xpV*(0.125 + 0.0625*xpV)));
+	return 0.5 * (W - xp/W);
 }
 
 template<typename T>
@@ -145,10 +168,32 @@ T HOM_constants<T>::tan_g0_div_sqx_asymptotic_pos(const T& sin_phi0,
 }
 
 template<typename T>
+T HOM_constants<T>::tan_g0_div_sqx_asymptotic_neg(const T& sin_phi0,
+                                                  const T& sa, double e2)
+{
+	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
+	constexpr double SQ2 = std::sqrt(2.0);
+	double e4 = e2*e2;
+	T sa2(sa*sa);
+	T sa4(sa2*sa2);
+	T x(1.0 + sin_phi0);
+	double Y = e2/(1.0 - e2);
+
+	return SQ2*sa * (1.0 + x * (Y + sa2 - 0.25
+	                            + x * (-Y*(11.0/4.0 + 0.5*Y) - 1.0/32.0
+	                                   + 1.5*sa4
+	                                   + 0.25*(15.0*e2 - 3.0)/(1.0-e2)*sa2
+	                                   )
+	                           )
+	                );
+}
+
+
+template<typename T>
 T HOM_constants<T>::g0_asymptotic_pos(const T& sin_phi0,
                                       const T& sa, double e2)
 {
-	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
+	/* Computes g0 in the asymptotic sin(phi0) -> 1 */
 	constexpr double SQ2 = std::sqrt(2.0);
 	double e4 = e2*e2;
 	T sa2(sa*sa);
@@ -158,6 +203,22 @@ T HOM_constants<T>::g0_asymptotic_pos(const T& sin_phi0,
 	                            +  x * (sa2*(Y-0.25) - 11.0/4.0 * Y + 0.5*Y*Y
 	                                    + 0.3*sa2*sa2 - 1.0/32.0)
 	                           )
+	                ) * AR::sqrt(x);
+}
+
+template<typename T>
+T HOM_constants<T>::g0_asymptotic_neg(const T& sin_phi0,
+                                      const T& sa, double e2)
+{
+	/* Computes g0 in the asymptotic sin(phi0) -> -1 */
+	constexpr double SQ2 = std::sqrt(2.0);
+	double e4 = e2*e2;
+	T sa2(sa*sa);
+	T x(1.0 + sin_phi0);
+	double Y = e2/(1.0 - e2);
+	return SQ2*sa * (1.0 + x  * ( Y - 0.25 + sa2/3.0
+	                             + x * (sa2*(Y - 0.25) - 11.0/4.0 * Y
+	                                    - 0.5*Y*Y - 1.0/32.0 + 0.3*sa2*sa2))
 	                ) * AR::sqrt(x);
 }
 
@@ -189,6 +250,28 @@ hom_E_parabola_params_t HOM_constants<T>::fit_E_parabola_pos(double e)
 		double F = HOM_constants<double>::compute_F(D, phi_i);
 		double yi = C0 - HOM_constants<double>::compute_E(F, t0, B);
 		double xi = 0.5*PI - phi_i;
+		a += yi/(xi*xi);
+	}
+	return {C0, a / 8};
+}
+
+template<typename T>
+hom_E_parabola_params_t HOM_constants<T>::fit_E_parabola_neg(double e)
+{
+	/* Computes the parabola that estimates E for z -> 1: */
+	double a = 0.0;
+	double e2 = e*e;
+	double C0 = std::pow((1.0 - e) / (1.0 + e), 0.5*e);
+	for (int i=0; i<8; ++i){
+		double phi_i = deg2rad(-89.0 - 0.1*i);
+		double cp = std::cos(phi_i);
+		double B = HOM_constants<double>::compute_B(cp, e2);
+		double sp = std::sin(phi_i);
+		double t0 = HOM_constants<double>::compute_t0(phi_i, sp, e);
+		double D = HOM_constants<double>::compute_D(cp, sp, B, e2);
+		double F = HOM_constants<double>::compute_F(D, phi_i);
+		double yi = HOM_constants<double>::compute_E(F, t0, B) - C0;
+		double xi = 0.5*PI + phi_i;
 		a += yi/(xi*xi);
 	}
 	return {C0, a / 8};
@@ -264,16 +347,10 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 
 	if (phi0 > deg2rad(89.9)){
 		constexpr double SQ2 = std::sqrt(2);
-		std::cout << "*** Computing parabola data! ***\n";
 		auto C0a = hom::fit_E_parabola_pos(e);
-		std::cout << "  -> f :    " << f << "\n";
-		std::cout << "  -> e :    " << e << "\n";
-		std::cout << "  -> C0:    " << C0a.C0 << "\n";
-		std::cout << "  -> a :    " << C0a.a << "\n";
-		std::cout << "  -> alpha: " << to_double(alpha) << "\n";
 		E_ = C0a.C0 - C0a.a * (phi0 - PI/2) * (phi0 - PI/2);
 		T sa = AR::sin(alpha);
-		g0 = AR::sqrt(2.0*(1.0 - sin_phi0)) * sa;
+		g0 = hom::g0_asymptotic_pos(sin_phi0, sa, e2);
 
 		l0 = lambda_c
 		   - AR::asin(
@@ -285,11 +362,23 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		       AR::constant(1.0))
 		     ) / B;
 
+	} else if (phi0 < deg2rad(-89.9)) {
+		constexpr double SQ2 = std::sqrt(2);
+		auto C0a = hom::fit_E_parabola_neg(e);
+		E_ = C0a.C0 + C0a.a * (phi0 + PI/2) * (phi0 + PI/2);
+		T sa = AR::sin(alpha);
+		g0 = hom::g0_asymptotic_neg(sin_phi0, sa, e2);
 
+		l0 = lambda_c
+		   - AR::asin(
+		       AR::min(
+		         AR::max(
+		           hom::G_mul_sqx_neg(sin_phi0, sa, e2)
+		              * hom::tan_g0_div_sqx_asymptotic_neg(sin_phi0, sa, e2),
+		           AR::constant(-1.0)),
+		       AR::constant(1.0))
+		     ) / B;
 
-
-//	} else if (phi0 < rad2deg(-89.9)) {
-//
 	} else {
 		T t0(hom::compute_t0(phi0, sin_phi0, e));
 		T D(hom::compute_D(cos_phi0, sin_phi0, B, e2));
