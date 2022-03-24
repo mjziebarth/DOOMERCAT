@@ -267,6 +267,11 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
     signS_N = 50
     signS_i = 0
 
+    Ssd = 1.
+    Ssd_th = 1e-7
+    Nsd = 5
+    Sv = []
+
     lminfloat = np.log10(sys.float_info.min)
 
     is_p2opt = False
@@ -276,7 +281,6 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
     if diagnostics:
         alv = []
         lav = []
-        Sv = []
         P = []
         L = []
 
@@ -334,7 +338,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
         if pnorm == 0 and is_p2opt:
 
             if signS_i == 0:
-                al = 1e-3
+                al = 1e-2 / (1.0 + 0.9*ti)
 
             dp = (J*np.sign(fk-1)).flatten()
             mm = alm*mm + (1-alm)*dp
@@ -404,28 +408,45 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
 
 
+        Sv.append(S33[Ij,Ik])
         if diagnostics:
             alv.append(al)
             lav.append(la)
-            Sv.append(S33[Ij,Ik])
             P.append(p*1.)
 
         if error_flag is not None:
             break
 
-        if pnorm != 0. and np.linalg.norm(neodp[Ij])<1e-7:
-            break
-        elif pnorm == 0. and np.linalg.norm(neodp[Ij])<1e-7:
-            is_p2opt = True
+        if i >= Nsd:
+            Ssd = np.std(np.log(Sv[-Nsd:]),ddof=1)
+            # print('var',np.log(Sv[-Nsd:]),Ssd)
+            if pnorm != 0. and Ssd<Ssd_th:
+                break
+            elif pnorm == 0. and Ssd<Ssd_th:
+                is_p2opt = True
 
-            if switch_to_p0:
-                X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
-                p[3] = initial_k0(p[0],p[1],p[2], X, wdata,np.inf)
-                print('new k0',p[3])
-                switch_to_p0 = False
+                if switch_to_p0:
+                    X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
+                    p[3] = initial_k0(p[0],p[1],p[2], X, wdata,np.inf)
+                    print('new k0',p[3])
 
-        elif np.linalg.norm(neodp[Ij])<1e-7:
-            break
+                    switch_to_p0 = False
+
+            elif Ssd<Ssd_th:
+                break
+#        if pnorm != 0. and np.linalg.norm(neodp[Ij])<1e-7:
+#            break
+#        elif pnorm == 0. and np.linalg.norm(neodp[Ij])<1e-7:
+#            is_p2opt = True
+#
+#            if switch_to_p0:
+#                X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
+#                p[3] = initial_k0(p[0],p[1],p[2], X, wdata,np.inf)
+#                print('new k0',p[3])
+#                switch_to_p0 = False
+#
+#        elif np.linalg.norm(neodp[Ij])<1e-7:
+#            break
 
     if diagnostics:
         alv = np.array(alv)
