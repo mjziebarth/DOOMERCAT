@@ -123,6 +123,8 @@ class DOOMERCATPlugin:
         self.cbOrientCenter.addItem(_ORIENT_NORTH_DATA_CENTER)
         self.cbOrientCenter.addItem(_ORIENT_NORTH_PROJ_CENTER)
         self.cbOrientCenter.addItem(_ORIENT_NORTH_CUSTOM)
+        self.cbInfinityNorm = QCheckBox(self.dialog)
+        self.cbInfinityNorm.setCheckState(Qt.Unchecked)
         self.sb_k0= QDoubleSpinBox(self.dialog)
         self.sb_k0.setMinimum(0.0)
         self.sb_k0.setValue(0.95)
@@ -146,6 +148,12 @@ class DOOMERCATPlugin:
         dialog_layout.addWidget(QLabel("Cost function exponent:", self.dialog),
                                 row,0)
         dialog_layout.addWidget(self.sbExponent, row, 1)
+        row += 1
+        dialog_layout.addWidget(QLabel("is infinite:", self.dialog),
+                                row, 0,
+                                alignment = Qt.AlignRight | Qt.AlignCenter)
+        dialog_layout.addWidget(self.cbInfinityNorm, row, 1)
+        self.cbInfinityNorm.stateChanged.connect(self.infinityNormCheckboxClick)
         row += 1
         dialog_layout.addWidget(QLabel("Minimum k0 constraint:", self.dialog),
                                 row,0)
@@ -596,9 +604,10 @@ class DOOMERCATPlugin:
         # Obtain optimzied HOM:
         k0_ap = self.sb_k0.value() if self.cb_k0.checkState() == Qt.Checked \
                 else 0.0
+        pnorm = np.inf if self.cbInfinityNorm.checkState() == Qt.Checked \
+                else self.sbExponent.value()
         threadpool = QThreadPool.globalInstance()
-        worker = OptimizationWorker(lon, lat, weight=weight,
-                                    pnorm=self.sbExponent.value(),
+        worker = OptimizationWorker(lon, lat, weight=weight, pnorm=pnorm,
                                     k0_ap=k0_ap,
                                     sigma_k0=self.sb_k0_std.value(),
                                     ellipsoid= None if ellps == 'custom'
@@ -897,6 +906,15 @@ class DOOMERCATPlugin:
         disabled = (state == 0)
         self.sb_k0.setDisabled(disabled)
         self.sb_k0_std.setDisabled(disabled)
+
+
+    def infinityNormCheckboxClick(self, state):
+        """
+        This slot is called when the infinity norm should be selected
+        or deselected.
+        """
+        infinite = (state != 0)
+        self.sbExponent.setDisabled(infinite)
 
 
     def orientNorthCheckboxClicked(self, state):
