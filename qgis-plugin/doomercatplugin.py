@@ -30,7 +30,7 @@ from . import resources
 from .dialogs import SaveProjectionDialog, ProgressDialog
 from .worker import OptimizationWorker
 from .qgisproject import project
-from .doomercat.defs import _ellipsoids
+from doomercat.defs import _ellipsoids
 from .help import help_html
 from .messages import info
 
@@ -38,7 +38,7 @@ import numpy as np
 import os.path
 
 # Import the DOOMERCAT library:
-from .doomercat import points_from_shapefile
+from doomercat import points_from_shapefile
 
 # See if the shapefile module is loaded:
 try:

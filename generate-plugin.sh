@@ -46,7 +46,7 @@ fi
 
 
 # Create the plugin directory:
-MODULE=build/doomercat_plugin/doomercat/
+MODULE=build/doomercat_plugin/module/doomercat/
 mkdir -p $MODULE
 
 # Generate the help files:
@@ -57,7 +57,7 @@ cp doomercat/__init__.py doomercat/defs.py doomercat/hom.py \
    doomercat/shapefile.py doomercat/lomerror.py \
    doomercat/cppextensions.py doomercat/initial.py doomercat/messages.py \
    doomercat/fisherbingham.py doomercat/enclosingsphere.py \
-   doomercat/hotineproject.py \
+   doomercat/hotineproject.py doomercat/hotine.py \
    $MODULE
 #mv build/doomercat_plugin/__init__.py build/doomercat_plugin/doomercat.py
 
@@ -84,6 +84,7 @@ cp qgis-plugin/__init__.py qgis-plugin/doomercatplugin.py \
    qgis-plugin/metadata.txt qgis-plugin/dialogs.py qgis-plugin/worker.py \
    qgis-plugin/graph.py qgis-plugin/qgisproject.py qgis-plugin/LICENSE \
    qgis-plugin/README.md qgis-plugin/process.py qgis-plugin/messages.py \
+   qgis-plugin/moduleloader.py \
    build/doomercat_plugin
 
 # Generate the resources.py:

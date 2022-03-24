@@ -29,6 +29,7 @@ if len(sys.argv) < 3:
 
 # Change to the working directory (the QGIS plugin path):
 os.chdir(sys.argv[2])
+sys.path.append(sys.argv[2])
 
 # Now load the data and the LOM optimization code:
 from pickle import Unpickler, Pickler

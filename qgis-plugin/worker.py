@@ -25,6 +25,7 @@ from pickle import Pickler, Unpickler
 from tempfile import TemporaryDirectory
 from qgis.PyQt.QtCore import QRunnable, QObject, pyqtSlot, pyqtSignal
 from .messages import info
+from .moduleloader import _plugin_dir
 from doomercat import HotineObliqueMercator
 
 
@@ -68,8 +69,8 @@ class OptimizationWorker(QRunnable):
                 with open(fpath,'wb') as f:
                     Pickler(f).dump((self._args, self._kwargs))
 
-                working_dir = Path(__file__).parent
-                script_path = working_dir / "process.py"
+                working_dir = _plugin_dir / "module"
+                script_path = _plugin_dir / "process.py"
                 cmd = [sys.executable, str(script_path), str(fpath),
                        str(working_dir)]
                 result = subprocess.run(cmd, capture_output=True,
