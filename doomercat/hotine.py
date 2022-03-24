@@ -93,9 +93,6 @@ def _V(B,lmbd,lmbd0):
 def _U(V,gamma0,S,T):
     return (-V*np.cos(gamma0)+S*np.sin(gamma0))/T
 
-def _v(A,U,B):
-    return A*log((1-U)/(1+U))/(2*B)
-
 def _u(A,S,gamma0,V,B,lmbd,lmbd0):
     return A*np.arctan2((S*np.cos(gamma0)+V*np.sin(gamma0)),np.cos(B*(lmbd-lmbd0)))/B
 
@@ -271,6 +268,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
     Ssd_th = 1e-7
     Nsd = 5
     Sv = []
+    X = None
 
     lminfloat = np.log10(sys.float_info.min)
 
