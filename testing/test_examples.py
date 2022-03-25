@@ -45,10 +45,10 @@ def test_chile_places():
     HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - (-37.18081321)) < 1e-8
-    assert abs(HOM.lonc()  - (-71.86409572)) < 1e-8
-    assert abs(HOM.alpha() - (4.11568120)) < 1e-8
-    assert abs(HOM.k0()    - (0.99999999)) < 1e-8
+    assert abs(HOM.lat_0() - (-22.74393664)) < 1e-8
+    assert abs(HOM.lonc()  - (-70.55450760)) < 1e-8
+    assert abs(HOM.alpha() - (4.52169941)) < 1e-8
+    assert abs(HOM.k0()    - (0.99997618)) < 1e-8
 
 
 def test_australia_small_circle():
@@ -60,10 +60,11 @@ def test_australia_small_circle():
     lon, lat = read_geojson('data/small-circle-australia.geojson')
 
     HOM = HotineObliqueMercator(lon=lon, lat=lat, k0_ap=0.0,
-                                cyl_lon0=-25.0, cyl_lat0=-50.0)
+                                lonc0=170.0, lat_00=-10.0, alpha0=-45.0,
+                                k00=0.5)
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - (50.69431355)) < 1e-8
-    assert abs(HOM.lonc()  - (132.92366983)) < 1e-8
-    assert abs(HOM.alpha() - (-86.12007385)) < 1e-8
-    assert abs(HOM.k0()    - (0.87303766)) < 1e-8
+    assert abs(HOM.lat_0() - (44.70375631)) < 1e-8
+    assert abs(HOM.lonc()  - (164.90948924)) < 1e-8
+    assert abs(HOM.alpha() - (164.90948924)) < 1e-8
+    assert abs(HOM.k0()    - (0.75295376)) < 1e-8
