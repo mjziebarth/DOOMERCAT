@@ -130,7 +130,7 @@ class HotineObliqueMercator:
     """
     def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
                  sigma_k0=0.002, ellipsoid=None, f=None, a=None,
-                 cyl_lon0=None, cyl_lat0=None, lonc0=None, lonc=None,
+                 lonc0=None, lat_00=None, alpha0=None, k00=None, lonc=None,
                  lat_0=None, alpha=None, k0=None, Nmax=1000, logger=None,
                  backend='C++', fisher_bingham_use_weight=False,
                  compute_enclosing_sphere=False, bfgs_epsilon=1e-3):
@@ -179,14 +179,15 @@ class HotineObliqueMercator:
 
             assert lon.shape == lat.shape
 
-            # Initial guess for the cylinder axis and central point:
-            if fisher_bingham_use_weight:
-                w_initial = weight
-            else:
-                w_initial = None
-            lonc0, lat_00, alpha0, k00 = initial_parameters(lon, lat,
-                                                            w_initial,
-                                                            pnorm, f)
+            # Initial guess for the parameters:
+            if any(p is None for p in (lonc0, lat_00, alpha0, k00)):
+                if fisher_bingham_use_weight:
+                    w_initial = weight
+                else:
+                    w_initial = None
+                lonc0, lat_00, alpha0, k00 = initial_parameters(lon, lat,
+                                                                w_initial,
+                                                                pnorm, f)
 
             if backend in ('c++','C++'):
                 # Call the C++ BFGS backend.
