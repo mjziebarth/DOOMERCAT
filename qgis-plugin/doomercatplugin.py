@@ -49,7 +49,8 @@ except:
 _ORIENT_NORTH_PROJ_CENTER = "projection center"
 _ORIENT_NORTH_DATA_CENTER = "data center"
 _ORIENT_NORTH_CUSTOM = "custom"
-
+_ALGORITHM_CPP = "C++"
+_ALGORITHM_PY = "Python"
 
 
 class DOOMERCATPlugin:
@@ -106,6 +107,10 @@ class DOOMERCATPlugin:
         self.sbExponent.setMinimum(2.0)
         self.cb_k0 = QCheckBox(self.dialog)
         self.cb_k0.setCheckState(Qt.Checked)
+        self.cbAlgorithm = QComboBox(self.dialog)
+        self.cbAlgorithm.addItem(_ALGORITHM_PY)
+        if HAS_CPPEXTENSIONS:
+            self.cbAlgorithm.addItem(_ALGORITHM_CPP)
         self.cbEllipsoid = QComboBox(self.dialog)
         self.cbEllipsoid.addItem('WGS84')
         self.cbEllipsoid.addItem('GRS80')
@@ -177,6 +182,12 @@ class DOOMERCATPlugin:
         hbox_layout.addWidget(self.leEllipsoidA)
         hbox_layout.addWidget(QLabel("1/f:"))
         hbox_layout.addWidget(self.leEllipsoidInverseFlattening)
+
+        # Algorithm selection:
+        row += 1
+        dialog_layout.addWidget(QLabel("Optimizer:",
+                                self.dialog), row, 0)
+        dialog_layout.addWidget(self.cbAlgorithm, row, 1)
 
 
 
@@ -603,6 +614,8 @@ class DOOMERCATPlugin:
                 else 0.0
         pnorm = np.inf if self.cbInfinityNorm.checkState() == Qt.Checked \
                 else self.sbExponent.value()
+        backend = 'Python' if self.cbAlgorithm.currentText() == _ALGORITHM_PY \
+                  else 'C++'
         threadpool = QThreadPool.globalInstance()
         worker = OptimizationWorker(lon, lat, weight=weight, pnorm=pnorm,
                                     k0_ap=k0_ap,
@@ -610,7 +623,8 @@ class DOOMERCATPlugin:
                                     ellipsoid= None if ellps == 'custom'
                                                else ellps,
                                     f = f if ellps == 'custom' else None,
-                                    a = 1e3*a_km if ellps == 'custom' else None)
+                                    a = 1e3*a_km if ellps == 'custom' else None,
+                                    backend = backend)
         worker.signals.result.connect(self.receiveResult)
         worker.signals.error.connect(self.receiveError)
         worker.signals.finished.connect(self.workerFinished)
