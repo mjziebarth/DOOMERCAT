@@ -25,8 +25,7 @@ from pickle import Pickler, Unpickler
 from tempfile import TemporaryDirectory
 from qgis.PyQt.QtCore import QRunnable, QObject, pyqtSlot, pyqtSignal
 from .messages import info
-from .moduleloader import _plugin_dir
-from doomercat import HotineObliqueMercator
+from .moduleloader import _plugin_dir, HotineObliqueMercator
 
 
 class OptimizationSignals(QObject):

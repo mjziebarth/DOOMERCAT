@@ -21,3 +21,15 @@ from pathlib import Path
 # Find the doomercat module inside the QGIS plugin directory:
 _plugin_dir = Path(__file__).parent
 sys.path.insert(0,str(_plugin_dir / "module"))
+
+# See whether the C++ code is available:
+from doomercat.cppextensions import find_cppextensions_file
+
+try:
+    HAS_CPPEXTENSIONS = find_cppextensions_file() is not None
+except:
+    HAS_CPPEXTENSIONS = False
+
+# Load doomercat imports:
+from doomercat import points_from_shapefile, HotineObliqueMercator
+from doomercat.defs import _ellipsoids

@@ -31,6 +31,27 @@ from .messages import info
 
 _cppextensions_so = None
 
+def find_cppextensions_file():
+    """
+    Find the C++ extension object file.
+    """
+    system = platform.system()
+    if system == 'Linux':
+        paths = list(Path(__file__).resolve().parent.glob('_cppextensions*.so'))
+        if len(paths) > 1:
+            raise ImportError("Could not find a unique binary _cppextensions "
+                              "library.")
+        elif len(paths) == 0:
+            raise ImportError("Could not find any binary _cppextensions library.")
+
+        return paths[0]
+
+    elif system == 'Windows':
+        raise NotImplementedError()
+    elif system == 'Darwin':
+        raise NotImplementedError()
+
+
 def load_cppextensions():
     """
     Reload the extension.
@@ -40,24 +61,9 @@ def load_cppextensions():
         return
 
     # Now load:
-    system = platform.system()
-    if system == 'Linux':
-        paths = list(Path(__file__).resolve().parent.glob('_cppextensions*.so'))
-        if len(paths) > 1:
-            raise ImportError("Could not find a unique binary _cppextensions "
-                              "library.")
-        elif len(paths) == 0:
-            print("parent path:",Path(__file__).resolve().parent)
-            print("files:")
-            print(list(Path(__file__).resolve().parent.glob('*')))
-            raise ImportError("Could not find any binary _cppextensions library.")
-        _cppextensions_so = CDLL(paths[0])
-        info("Loaded shared library \"" + str(paths[0]) + "\"")
-
-    elif system == 'Windows':
-        raise NotImplementedError()
-    elif system == 'Darwin':
-        raise NotImplementedError()
+    path = find_cppextensions_file()
+    _cppextensions_so = CDLL(path)
+    info("Loaded shared library \"" + str(path) + "\"")
 
 
 
