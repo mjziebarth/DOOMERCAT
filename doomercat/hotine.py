@@ -260,21 +260,19 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
     vm = 0.
     eps = 1e-10
     ti = 1
-    signS = np.zeros(Niter)
-    signS_N = 50
-    signS_i = 0
-
-    Ssd = 1.
-    Ssd_th = 1e-7
-    Nsd = 5
-    Sv = []
     X = None
 
     lminfloat = np.log10(sys.float_info.min)
 
+    pnorm_p0 = 10.
     is_p2opt = False
     switch_to_p0 = True
     error_flag = None
+
+    Ssd = 1.
+    Ssd_th = 1e-8
+    Nsd = 10
+    Sv = []
 
     if diagnostics:
         alv = []
@@ -304,8 +302,14 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
             I = np.ones_like(Z0,dtype=bool)
             xper = .025
-            I[int(xper*Z0.size):int((1-xper)*Z0.size)] = False
-            I_batch = np.argsort(Z0)[I]
+            nper = 50
+            if Z0.size*(xper)>nper:
+                I1 = int(xper*Z0.size)
+                I2 = int((1-xper)*Z0.size)
+                I[I1:I2] = False
+                I_batch = np.argpartition(Z0,(I1,I2))[I]
+            else:
+                I_batch = np.arange(Z0.size)
 
             fk = f_d_k_cse(lon[I_batch],lat[I_batch],p[0],p[1],p[2],p[3],e,noJ = True)
 
@@ -318,14 +322,17 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             J.shape = (1,4)
 
 
-        if pnorm == 0  and is_p2opt:
-            w = np.array([1.])
+        if pnorm == 0:
+            if is_p2opt:
+                w = np.array([1.])
+            else:
+                w = np.abs(fk-1)**(pnorm_p0-2)
+                w *= wdata
         elif pnorm > 0. and pnorm <= 1:
             w = (np.abs(fk-1)+1e-15)**(pnorm-2)
             w *= wdata
-        elif pnorm == 2 or not is_p2opt:
-            w = np.ones_like(fk)
-            w *= wdata
+        elif pnorm == 2:
+            w = wdata*1.
         else:
             w = np.abs(fk-1)**(pnorm-2)
             w *= wdata
@@ -335,8 +342,14 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
         if pnorm == 0 and is_p2opt:
 
-            if signS_i == 0:
-                al = 1e-2 / (1.0 + 0.9*ti)
+            if i > iswitch+21:
+                vn = np.arange(-10,11)
+                Svn = np.log(Sv[-21:])
+                cS = np.sum(vn*(Svn-Svn.mean()))/np.sqrt(np.sum(vn**2)*np.sum((Svn-Svn.mean())**2))
+                if cS>-.25:
+                    al /= 1+1./20
+                elif cS<-.75:
+                    al *= 1+1./20
 
             dp = (J*np.sign(fk-1)).flatten()
             mm = alm*mm + (1-alm)*dp
@@ -353,8 +366,6 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             Ij,Ik = 0,0
             S33[0,0] = (np.abs(fk-1))
 
-            signS[signS_i] = fk-1
-            signS_i += 1
         else:
 
             JTJ = (J.T*w)@J
@@ -365,16 +376,15 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
             S33 = np.zeros((x.size,x.size))
             neop = np.zeros((x.size,x.size,4))
-
-
             neodp = np.zeros((x.size,4))
+
             for j in range(x.size):
                 Theta =  (np.sign(v_ap[3]-p[3])+1)/2
                 try:
-                    neodp[j] = np.linalg.solve(JTJ @ PJi + x[j] * la * np.eye(4)
-                                                  + P_ap * Theta,
-                                               (J.T*w) @ (fk-1)
-                                                  + P_ap @ (p - v_ap) * Theta)
+                   neodp[j] = np.linalg.solve(JTJ @ PJi + x[j] * la * np.eye(4)
+                                                 + P_ap * Theta,
+                                              (J.T*w)@(fk-1)
+                                                 + P_ap @ (p-v_ap) * Theta)
                 except np.linalg.LinAlgError:
                     error_flag = "LinAlgError"
                     break
@@ -386,8 +396,8 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
                     neofk = f_d_k_cse(lon,lat,neop[j,k,0],neop[j,k,1],neop[j,k,2],neop[j,k,3],e,noJ=True)
 
                     if pnorm == 0:
-                        S33[j,k] = np.sqrt(np.sum(wdata*np.abs(neofk-1)**2)
-                                           + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta)
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm_p0) \
+                                          + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
                     else:
                         S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm) \
                                           + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
@@ -425,31 +435,22 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
                 if switch_to_p0:
                     X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
-                    p[3] = initial_k0(p[0],p[1],p[2], X, wdata,np.inf)
-                    print('new k0',p[3])
+                    p[3] = initial_k0(p[0], p[1], p[2], X, wdata, np.inf,
+                                      is_p2opt, pnorm_p0)
 
                     switch_to_p0 = False
+                    iswitch = i*1
+                    al = 1e-5
+                    la = .1
+                else:
+                    break
 
             elif Ssd<Ssd_th:
                 break
-#        if pnorm != 0. and np.linalg.norm(neodp[Ij])<1e-7:
-#            break
-#        elif pnorm == 0. and np.linalg.norm(neodp[Ij])<1e-7:
-#            is_p2opt = True
-#
-#            if switch_to_p0:
-#                X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
-#                p[3] = initial_k0(p[0],p[1],p[2], X, wdata,np.inf)
-#                print('new k0',p[3])
-#                switch_to_p0 = False
-#
-#        elif np.linalg.norm(neodp[Ij])<1e-7:
-#            break
 
     if diagnostics:
         alv = np.array(alv)
         lav = np.array(lav)
-        Sv = np.array(Sv)
         P = np.array(P)
         return p,alv,lav,Sv,P
     else:

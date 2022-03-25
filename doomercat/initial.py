@@ -75,7 +75,8 @@ def _Rz(a):
     return R
 
 
-def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm):
+def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
+               pnorm_p0=None):
     """
     Computes the initial k0 given the initial central latitude,
     longitude, and azimuth (phi0, lmbdc, alphac), the point set,
@@ -93,9 +94,12 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm):
 
     for i in range(100):
         if isinf(pnorm):
-            w = np.zeros_like(k0v)
-            I = [np.argmax(k0_init-k0v), np.argmin(k0_init-k0v)]
-            w[I] = 1.
+            if is_p2opt:
+                w = np.zeros_like(k0v)
+                I = [np.argmax(k0_init-k0v), np.argmin(k0_init-k0v)]
+                w[I] = 1.
+            else:
+                w = np.abs(k0_init-k0v)**(pnorm_p0-2)
         elif pnorm > 0. and pnorm <= 1:
             w = (np.abs(k0_init-k0v)+1e-15)**(pnorm-2)
         elif pnorm == 2:
