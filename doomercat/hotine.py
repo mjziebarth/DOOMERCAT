@@ -261,6 +261,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
     eps = 1e-10
     ti = 1
     X = None
+    iswitch = None
 
     lminfloat = np.log10(sys.float_info.min)
 
