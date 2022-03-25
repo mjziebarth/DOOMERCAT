@@ -45,10 +45,10 @@ def test_chile_places():
     HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - (-22.74393664)) < 1e-8
-    assert abs(HOM.lonc()  - (-70.55450760)) < 1e-8
-    assert abs(HOM.alpha() - (4.52169941)) < 1e-8
-    assert abs(HOM.k0()    - (0.99997618)) < 1e-8
+    assert abs(HOM.lat_0() - (-22.74393664)) < 1e-6
+    assert abs(HOM.lonc()  - (-70.55450760)) < 1e-6
+    assert abs(HOM.alpha() - (4.52169941)) < 1e-6
+    assert abs(HOM.k0()    - (0.99997618)) < 1e-6
 
 
 def test_australia_small_circle():
@@ -64,7 +64,7 @@ def test_australia_small_circle():
                                 k00=0.5)
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - (44.70375631)) < 1e-8
-    assert abs(HOM.lonc()  - (164.90948924)) < 1e-8
-    assert abs(HOM.alpha() - (164.90948924)) < 1e-8
-    assert abs(HOM.k0()    - (0.75295376)) < 1e-8
+    assert abs(HOM.lat_0() - (44.70375631)) < 1e-6
+    assert abs(HOM.lonc()  - (164.90948924)) < 1e-6
+    assert abs(HOM.alpha() - (164.90948924)) < 1e-6
+    assert abs(HOM.k0()    - (0.75295376)) < 1e-6

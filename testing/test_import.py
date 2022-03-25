@@ -32,7 +32,7 @@ def test_basic_setup():
     HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - 11.73733039) < 1e-8
-    assert abs(HOM.lonc()  - 26.70254348) < 1e-8
-    assert abs(HOM.alpha() - 70.67908827) < 1e-8
-    assert abs(HOM.k0()    - 0.99997646) < 1e-8
+    assert abs(HOM.lat_0() - 11.73733039) < 1e-6
+    assert abs(HOM.lonc()  - 26.70254348) < 1e-6
+    assert abs(HOM.alpha() - 70.67908827) < 1e-6
+    assert abs(HOM.k0()    - 0.99997646) < 1e-6
