@@ -21,6 +21,7 @@ from doomercat import HotineObliqueMercator
 import numpy as np
 import json
 
+
 def read_geojson(filename):
     """
     Reads places from a geojson.

@@ -21,8 +21,6 @@
 # limitations under the Licence.
 
 import numpy as np
-import scipy.special as sp
-from warnings import warn
 
 #
 # Main code to compute the Fisher-Bingham central axes
@@ -47,7 +45,7 @@ def fisher_bingham_mom(X, w):
     if w is None:
         w = 1.0
 
-    mv = np.sum(w*X,axis=1)/np.sum(w)
+    mv = np.sum(w*X, axis=1)/np.sum(w)
     Sv = 1/np.sum(w) * w*X@X.T
 
     mv_ = mv/np.linalg.norm(mv)
@@ -59,27 +57,23 @@ def fisher_bingham_mom(X, w):
     sp = mv_[2]/st
 
     H = np.array([
-        [ct,-st,0.],
-        [st*cp,ct*cp,-sp],
-        [st*sp,ct*sp,cp]
+        [ct,    -st,    0.],
+        [st*cp, ct*cp, -sp],
+        [st*sp, ct*sp,  cp]
     ])
 
     B = H.T @ Sv @ H
 
-    psi = .5*np.arctan2(2*B[1,2],(B[1,1]-B[2,2]))
+    psi = .5*np.arctan2(2*B[1,2], (B[1,1]-B[2,2]))
 
-    K = np.array([[1,       0,               0],
-                  [0, np.cos(psi),-np.sin(psi)],
-                  [0, np.sin(psi),np.cos(psi)]])
+    K = np.array([[1,       0,                0],
+                  [0, np.cos(psi), -np.sin(psi)],
+                  [0, np.sin(psi),  np.cos(psi)]])
 
     G = H @ K
 
     V = G.T @ mv
     T = G.T @ Sv @ G
-
-    r1 = V[0]
-
-    r2 = T[1,1]-T[2,2]
 
     g1 = G[:,0] # central axis
     g2 = G[:,1] # equator axis

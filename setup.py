@@ -18,30 +18,29 @@
 # limitations under the Licence.
 
 # Imports:
-from setuptools import setup, Extension
+from setuptools import setup
 from compile import setup_compile
 
 
 # Compile the C++ code:
 libname = setup_compile()
-print("libname:",libname)
 
 # Setup:
 
 setup(
-	name='doomercat',
-	version='1.0.0',
-	description="Data-Optimized Oblique MERCATor",
-	long_description="Algorithm and convenience class to optimize a Laborde "
-	                 "oblique Mercator projection for a geospatial data set "
-	                 "minimizing distortion.",
-	author='Malte J. Ziebarth, Sebastian von Specht',
-	author_email='ziebarth@gfz-potsdam.de',
-	packages=['doomercat'],
-	py_modules=['doomercat'],
-	provides=['doomercat'],
-	package_data={'doomercat' : [libname]},
-	scripts=[],
-	install_requires=['numpy'],
-	license='EUPLv1.2',
+    name='doomercat',
+    version='1.0.0',
+    description="Data-Optimized Oblique MERCATor",
+    long_description="Algorithm and convenience class to optimize a Laborde "
+                     "oblique Mercator projection for a geospatial data set "
+                     "minimizing distortion.",
+    author='Malte J. Ziebarth, Sebastian von Specht',
+    author_email='ziebarth@gfz-potsdam.de',
+    packages=['doomercat'],
+    py_modules=['doomercat'],
+    provides=['doomercat'],
+    package_data={'doomercat' : [libname]},
+    scripts=[],
+    install_requires=['numpy'],
+    license='EUPLv1.2',
 )

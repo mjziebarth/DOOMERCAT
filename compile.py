@@ -21,8 +21,8 @@ import os
 import subprocess
 
 # Source and header files:
-sources = ['functions.cpp','arithmetic.cpp','ctypesinterface.cpp',
-           'dataset.cpp','optimize.cpp','linalg.cpp','cost_hotine.cpp']
+sources = ['functions.cpp', 'arithmetic.cpp', 'ctypesinterface.cpp',
+           'dataset.cpp', 'optimize.cpp', 'linalg.cpp', 'cost_hotine.cpp']
 sources = ['cpp/src/' + s for s in sources]
 
 include = 'cpp/include/'
@@ -30,6 +30,7 @@ include = 'cpp/include/'
 #
 # Compile routines for linux and windows:
 #
+
 
 def compile_linux(compiler: str = 'g++', native: bool = True,
                   openmp: bool = True) -> str:
@@ -46,7 +47,7 @@ def compile_linux(compiler: str = 'g++', native: bool = True,
         if openmp:
             cmd.append('-fopenmp')
         libname = name + '.so'
-        cmd += sources + ['-shared','-o','doomercat/' + libname,
+        cmd += sources + ['-shared', '-o', 'doomercat/' + libname,
                           '-Wl,-z,defs']
     else:
         raise NotImplementedError("Only g++ compilation implemented.")
@@ -66,8 +67,8 @@ def cross_compile_win(compiler: str = 'mingw-g++') -> str:
     Uses mingw g++ to cross compile from a linux machine.
     """
     if compiler == 'mingw-g++':
-        cmd = ['x86_64-w64-mingw32-g++', '-I'+include, '-O3', '-g0','-fPIC']
-        cmd += sources + ['-shared','-o','doomercat/_cppextensions.dll']
+        cmd = ['x86_64-w64-mingw32-g++', '-I'+include, '-O3', '-g0', '-fPIC']
+        cmd += sources + ['-shared', '-o', 'doomercat/_cppextensions.dll']
     else:
         raise NotImplementedError("Only g++ compilation implemented.")
 
