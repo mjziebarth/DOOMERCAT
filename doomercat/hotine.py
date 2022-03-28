@@ -429,6 +429,15 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
         if i >= Nsd:
             Ssd = np.std(np.log(Sv[-Nsd:]),ddof=1)
             # print('var',np.log(Sv[-Nsd:]),Ssd)
+
+            # Especially for high pnorm, it might happen that the cost evaluation
+            # of S33 gives 0.0 for all data points if the distortions are already
+            # fairly small.
+            # Catch this case here:
+            #if min(Sv[-Nsd:]) == 0.0:
+            if np.isnan(Ssd):
+                Ssd = 0.0
+
             if pnorm != 0. and Ssd<Ssd_th:
                 break
             elif pnorm == 0. and Ssd<Ssd_th:
