@@ -142,8 +142,8 @@ T HOM_constants<T>::G_mul_sqx_neg(const T& z,const T& sa, double e2)
 	T xpV(xp/V);
 	// Series of W = AR::sqrt(V) - AR::sqrt(V - xp),
 	// evaluated with Horner's method:
-	T W(xp/AR::sqrt(V)*(0.5 + xpV*(0.125 + 0.0625*xpV)));
-	return 0.5 * (W - xp/W);
+	T W(1.0/AR::sqrt(V)*(0.5 + xpV*(0.125 + 0.0625*xpV)));
+	return 0.5 * (xp*W - 1.0/W);
 }
 
 template<typename T>
