@@ -67,7 +67,7 @@ class CostFunctionHotine {
  */
 public:
 	CostFunctionHotine(double pnorm, double k0_ap, double sigma_k0,
-	                   bool logarithmic, bool parallel=true);
+	                   bool proot, bool logarithmic, bool parallel=true);
 
 	CostHotine<T> operator()(const DataSet& data,
 	                         const HotineObliqueMercator<T>& hom) const;
@@ -78,6 +78,7 @@ private:
 	double sigma_k0;
 	bool logarithmic;
 	bool parallel = true;
+	bool proot = true;
 
 };
 
@@ -86,10 +87,11 @@ template<typename T>
 CostFunctionHotine<T>::CostFunctionHotine(double pnorm,
                                           double k0_ap,
                                           double sigma_k0,
+                                          bool proot,
                                           bool logarithmic,
                                           bool parallel)
     : pnorm(pnorm), k0_ap(k0_ap), sigma_k0(sigma_k0),
-      logarithmic(logarithmic), parallel(parallel)
+      logarithmic(logarithmic), parallel(parallel), proot(proot)
 {
 	if (pnorm <= 0)
 		throw std::runtime_error("pnorm too small");

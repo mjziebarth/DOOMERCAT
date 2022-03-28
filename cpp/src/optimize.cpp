@@ -48,7 +48,7 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
                          const double k00, const double f,
                          const double pnorm, const double k0_ap,
                          const double sigma_k0,
-                         const size_t Nmax, const bool log_cost_first,
+                         const size_t Nmax, const bool proot,
                          const double epsilon)
 {
 	/* Number of parameters used in the optimization: */
@@ -60,7 +60,8 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 
 
 	/* Initial config: */
-	CostFunctionHotine<real4v> cost_function(pnorm, k0_ap, sigma_k0, true);
+	CostFunctionHotine<real4v> cost_function(pnorm, k0_ap, sigma_k0, proot,
+	                                         true, true);
 	CostHotine<real4v> cost(cost_function(data,
 	                             hom_t(variable4<0>(deg2rad(lonc0)),
 	                                   variable4<1>(deg2rad(lat_00)),
@@ -154,30 +155,32 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	                        });
 
 	BFGS_result_t<lina_t> y, y2;
-	if (log_cost_first){
-		y = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
-		                                     gradient_lambda_redux,
-		                                     Nmax, epsilon,
-		                                     in_boundary,
-		                                     propose_jump);
-		// Poor man's cache invalidation.
-		for (int i=0; i<P; ++i){
-			last_x[i] *= 2;
-		}
-		x0 = y.history.back().parameters;
+	y = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
+	                                     gradient_lambda_redux,
+	                                     Nmax, epsilon,
+	                                     in_boundary,
+	                                     propose_jump);
+	// Poor man's cache invalidation.
+	for (int i=0; i<P; ++i){
+		last_x[i] *= 2;
 	}
+	x0 = y.history.back().parameters;
 
 	/*
 	 * Optimize non-logarithmic cost:
 	 */
-	cost_function = CostFunctionHotine<real4v>(pnorm, k0_ap, sigma_k0, false);
+	constexpr bool LINEAR_OPTIMIZATION = false;
+	if (LINEAR_OPTIMIZATION){
+		cost_function = CostFunctionHotine<real4v>(pnorm, k0_ap, sigma_k0,
+		                                           proot, false, true);
 
-	y2 = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
-	                                      gradient_lambda_redux,
-	                                      Nmax-y.history.size(),
-	                                      epsilon,
-	                                      in_boundary,
-	                                      propose_jump);
+		y2 = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
+		                                      gradient_lambda_redux,
+		                                      Nmax-y.history.size(),
+		                                      epsilon,
+		                                      in_boundary,
+		                                      propose_jump);
+	}
 
 
 
@@ -230,8 +233,7 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
                          const double lat_00, const double alpha0,
                          const double k00, const double f,
                          const double k0_ap, const double sigma_k0,
-                         const size_t Nmax, const bool log_cost_first,
-                         const double epsilon)
+                         const size_t Nmax, const double epsilon)
 {
 	/* Number of parameters used in the optimization: */
 	constexpr size_t P = 4;
@@ -242,7 +244,7 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 
 
 	/* Initial config: */
-	CostFunctionHotineInf<real4v> cost_function(k0_ap, sigma_k0, true);
+	CostFunctionHotineInf<real4v> cost_function(k0_ap, sigma_k0, true, true);
 	CostHotine<real4v> cost(cost_function(data,
 	                             hom_t(variable4<0>(deg2rad(lonc0)),
 	                                   variable4<1>(deg2rad(lat_00)),
@@ -336,23 +338,21 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 	                        });
 
 	BFGS_result_t<lina_t> y, y2;
-	if (log_cost_first){
-		y = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
-		                                     gradient_lambda_redux,
-		                                     Nmax, epsilon,
-		                                     in_boundary,
-		                                     propose_jump);
-		// Poor man's cache invalidation.
-		for (int i=0; i<P; ++i){
-			last_x[i] *= 2;
-		}
-		x0 = y.history.back().parameters;
+	y = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
+	                                     gradient_lambda_redux,
+	                                     Nmax, epsilon,
+	                                     in_boundary,
+	                                     propose_jump);
+	// Poor man's cache invalidation.
+	for (int i=0; i<P; ++i){
+		last_x[i] *= 2;
 	}
+	x0 = y.history.back().parameters;
 
 	/*
 	 * Optimize non-logarithmic cost:
 	 */
-	cost_function = CostFunctionHotineInf<real4v>(k0_ap, sigma_k0, false);
+	cost_function = CostFunctionHotineInf<real4v>(k0_ap, sigma_k0, false, true);
 
 	y2 = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
 	                                      gradient_lambda_redux,

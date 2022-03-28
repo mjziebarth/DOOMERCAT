@@ -53,7 +53,7 @@ static double sum(std::vector<double>& x)
 }
 
 
-template<typename T>
+template<typename T, bool proot>
 static T compute_cost(const DataSet& data,
                       const HotineObliqueMercator<T> hom,
                       double pnorm, double k0_ap, double sigma_k0,
@@ -76,7 +76,7 @@ static T compute_cost(const DataSet& data,
 	}
 
 	/* Extract the factor (distmax)**pnorm and calculate the cost: */
-	if (pnorm == static_cast<int>(pnorm) && pnorm < 5){
+	if (pnorm == static_cast<double>(static_cast<int>(pnorm)) && pnorm < 5){
 		const int ipnorm = static_cast<int>(pnorm);
 		#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
@@ -89,20 +89,37 @@ static T compute_cost(const DataSet& data,
 		}
 	}
 
-	T cost(AR::pow(sum(cost_vec), 1.0/pnorm));
+	if (proot){
+		T cost(AR::pow(sum(cost_vec), 1.0/pnorm));
 
 
-	/* Add the k0  prior: */
-	if (hom.k0() < k0_ap){
-		cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
-		        * AR::pow(distmax, -pnorm);
+		/* Add the k0  prior: */
+		if (hom.k0() < k0_ap){
+			cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
+			        / distmax;
+		}
+
+		if (logarithmic){
+				return AR::log(cost) + AR::log(distmax);
+		}
+
+		return cost * distmax;
+
+	} else {
+		T cost(sum(cost_vec));
+
+		/* Add the k0  prior: */
+		if (hom.k0() < k0_ap){
+			cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
+				    * AR::pow(distmax, -pnorm);
+		}
+
+		if (logarithmic){
+			return AR::log(cost) + pnorm*AR::log(distmax);
+		}
+
+		return cost * AR::pow(distmax,pnorm);
 	}
-
-	if (logarithmic){
-		return AR::log(cost) + AR::log(distmax);
-	}
-
-	return cost * distmax;
 }
 
 
@@ -139,9 +156,15 @@ CostHotine<real4v>
 CostFunctionHotine<real4v>::operator()(const DataSet& data,
                               const HotineObliqueMercator<real4v>& hom) const
 {
+	if (proot)
+		return CostHotine<real4v>(
+		            compute_cost<real4v,true>(data, hom, pnorm, k0_ap,
+		                                      sigma_k0, logarithmic, parallel)
+		);
+
 	return CostHotine<real4v>(
-	            compute_cost<real4v>(data, hom, pnorm, k0_ap,
-	                                 sigma_k0, logarithmic, parallel)
+	            compute_cost<real4v,false>(data, hom, pnorm, k0_ap,
+	                                       sigma_k0, logarithmic, parallel)
 	);
 }
 
@@ -151,9 +174,15 @@ CostHotine<double>
 CostFunctionHotine<double>::operator()(const DataSet& data,
                               const HotineObliqueMercator<double>& hom) const
 {
+	if (proot)
+		return CostHotine<double>(
+		            compute_cost<double,true>(data, hom, pnorm, k0_ap,
+		                                      sigma_k0, logarithmic, parallel)
+		);
+
 	return CostHotine<double>(
-	            compute_cost<double>(data, hom, pnorm, k0_ap,
-	                                 sigma_k0, logarithmic, parallel)
+	            compute_cost<double,false>(data, hom, pnorm, k0_ap,
+	                                       sigma_k0, logarithmic, parallel)
 	);
 }
 

@@ -131,7 +131,8 @@ class HotineObliqueMercator:
     def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
                  sigma_k0=0.002, ellipsoid=None, f=None, a=None,
                  lonc0=None, lat_00=None, alpha0=None, k00=None, lonc=None,
-                 lat_0=None, alpha=None, k0=None, Nmax=1000, logger=None,
+                 lat_0=None, alpha=None, k0=None, Nmax=1000,
+                 proot=False, logger=None,
                  backend='C++', fisher_bingham_use_weight=False,
                  compute_enclosing_sphere=False, bfgs_epsilon=1e-3):
         # Initialization.
@@ -202,7 +203,8 @@ class HotineObliqueMercator:
                     pre_res = \
                         self._bfgs_hotine(lon, lat, weight, 80, k0_ap,
                                           sigma_k0, f, lonc0, lat_00, alpha0,
-                                          k00, Nmax, epsilon=bfgs_epsilon)
+                                          k00, Nmax, proot,
+                                          epsilon=bfgs_epsilon)
                     lonc0  = pre_res.lonc
                     lat_00 = pre_res.lat_0
                     alpha0 = pre_res.alpha
@@ -212,7 +214,7 @@ class HotineObliqueMercator:
                 result = \
                     self._bfgs_hotine(lon, lat, weight, pnorm, k0_ap,
                                       sigma_k0, f, lonc0, lat_00, alpha0,
-                                      k00, Nmax, epsilon=bfgs_epsilon)
+                                      k00, Nmax, proot, epsilon=bfgs_epsilon)
 
             elif backend in ('python','Python'):
                 # Call the Python Levenberg-Marquardt backend.

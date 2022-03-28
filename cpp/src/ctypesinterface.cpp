@@ -46,15 +46,17 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
         const double* lat, const double* w, const size_t M,
         const double* lonc, const double* lat0, const double* alpha,
         const double* k0, double f, double pnorm, double k0_ap,
-        double sigma_k0, double* result)
+        double sigma_k0, unsigned short proot,
+        unsigned short logarithmic, double* result)
 {
 	/* Data set: */
 	const DataSet data(N, lon, lat, w);
 
 	/* Cost function: */
 	if (std::isinf(pnorm)){
-		const CostFunctionHotineInf<double> cfun(k0_ap, sigma_k0, true,
-			                                     false);
+		const CostFunctionHotineInf<double> cfun(k0_ap, sigma_k0,
+		                                         logarithmic > 0u,
+		                                         false);
 
 		/* Compute the Hotine Mercator projections now: */
 		#pragma omp parallel for
@@ -68,7 +70,8 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
 		}
 
 	} else {
-		const CostFunctionHotine<double> cfun(pnorm, k0_ap, sigma_k0, true,
+		const CostFunctionHotine<double> cfun(pnorm, k0_ap, sigma_k0,
+		                                      proot > 0u, logarithmic > 0u,
 		                                      false);
 
 		/* Compute the Hotine Mercator projections now: */
@@ -144,8 +147,8 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 const double* w, double f, double pnorm, double k0_ap,
                 double sigma_k0, double lonc_0, double lat_0_0,
                 double alpha_0, double k_0_0, unsigned int Nmax,
-                unsigned short log_cost_first, double epsilon,
-                double* result, unsigned int* n_steps)
+                unsigned short proot, double epsilon, double* result,
+                unsigned int* n_steps)
 {
 	// Sanity check on weights (probably very much redundant):
 	if (w == 0)
@@ -159,11 +162,11 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 	if (std::isinf(pnorm)){
 		history = bfgs_optimize_hotine_pinf(data, lonc_0, lat_0_0, alpha_0,
 		                                    k_0_0, f, k0_ap, sigma_k0, Nmax,
-		                                    log_cost_first > 0u, epsilon);
+		                                    epsilon);
 	} else {
 		history = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0, k_0_0, f,
 		                               pnorm, k0_ap, sigma_k0, Nmax,
-		                               log_cost_first > 0u, epsilon);
+		                               proot > 0u, epsilon);
 	}
 
 	/* Return the results: */

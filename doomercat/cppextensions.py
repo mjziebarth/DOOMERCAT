@@ -104,8 +104,8 @@ class HotineResult:
 
 
 def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
-                lat_0_0, alpha_0, k_0_0, Nmax, return_full_history=False,
-                log_cost_first=True, epsilon=1e-7):
+                lat_0_0, alpha_0, k_0_0, Nmax, proot,
+                return_full_history=False, epsilon=1e-7):
     """
     Perform BFGS on Hotine oblique Mercator cost function.
     """
@@ -128,8 +128,8 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
     f = float(f)
     Nmax = int(Nmax)
     assert Nmax > 0
-    log_cost_first = bool(log_cost_first)
     epsilon = float(epsilon)
+    proot = bool(proot)
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
@@ -145,7 +145,7 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
                                  c_double(sigma_k0), c_double(lonc_0),
                                  c_double(lat_0_0), c_double(alpha_0),
                                  c_double(k_0_0), c_uint(Nmax),
-                                 c_ushort(1 if log_cost_first else 0),
+                                 c_ushort(1 if proot else 0),
                                  c_double(epsilon),
                                  result.ctypes.data_as(POINTER(c_double)),
                                  M.ctypes.data_as(POINTER(c_uint)))
@@ -186,7 +186,8 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
                         lon: np.ndarray, lat: np.ndarray,
                         w: np.ndarray,
                         f: float, pnorm: float, k0_ap: float,
-                        sigma_k0: float):
+                        sigma_k0: float, proot: bool,
+                        logarithmic: bool):
     """
     Computes the cost function for different k0.
     """
@@ -200,9 +201,8 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
     N = lon.size
     if w is None:
         w = np.ones_like(lon)
-    else:
-        w = np.ascontiguousarray(w, dtype=np.double)
-        assert w.size == N
+    w = np.ascontiguousarray(w, dtype=np.double)
+    assert w.size == N
     assert lat.size == N
     M = lonc.size
     assert lat_0.size == M
@@ -229,7 +229,8 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
             alpha.ctypes.data_as(POINTER(c_double)),
             k_0.ctypes.data_as(POINTER(c_double)),
             c_double(f), c_double(pnorm), c_double(k0_ap),
-            c_double(sigma_k0),
+            c_double(sigma_k0), c_ushort(1 if proot else 0),
+            c_ushort(1 if logarithmic else 0),
             cost.ctypes.data_as(POINTER(c_double)));
 
     return cost
