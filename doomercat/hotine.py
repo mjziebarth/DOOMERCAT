@@ -352,7 +352,8 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
                 elif cS<-.75:
                     al *= 1+1./20
 
-            dp = (J*np.sign(fk-1)).flatten()
+            Theta =  (np.sign(v_ap[3]-p[3])+1)/2
+            dp = (J*np.sign(fk-1)).flatten() + P_ap @ (p-v_ap) * Theta
             mm = alm*mm + (1-alm)*dp
             vm = bem*vm + (1-bem)*dp**2
             mt = mm/(1.-alm**ti)
@@ -365,7 +366,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             p = confine(p)
             S33 = np.zeros((1,1))
             Ij,Ik = 0,0
-            S33[0,0] = (np.abs(fk-1))
+            S33[0,0] = (np.abs(fk-1)) + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
 
         else:
 
