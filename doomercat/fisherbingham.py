@@ -77,7 +77,20 @@ def fisher_bingham_mom(X, w):
 
     g1 = G[:,0] # central axis
     g2 = G[:,1] # equator axis
-    # g3 = G[:,2] # pole axis
+    g3 = G[:,2] # pole axis
+
+    return g1, g2, g3
+
+
+def fisher_bingham_angles(X, w):
+    """
+    Based on the three axes of the Fisher-Bingham MOM estimator,
+    compute the Hotine oblique Mercator axes.
+    """
+    g1, g2, g3 = fisher_bingham_mom(X,w)
+
+    # Fix the orientation:
+    g2 *= np.sign(g2[2])
 
     # Compute the angles:
     phi0 = np.arcsin(g1[2])
