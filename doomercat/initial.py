@@ -23,56 +23,8 @@
 import numpy as np
 from math import asin, degrees, sqrt, isinf
 from .fisherbingham import fisher_bingham_mom, fisher_bingham_angles
+from .euclid import _lola2xyz, _Rx, _Ry, _Rz
 
-
-def _xyz2lola(xyz):
-    """
-    Takes a vector (N,3) and computes the spherical coordinates.
-    """
-    xyz /= np.linalg.norm(xyz, axis=0)
-    return np.rad2deg(np.arctan2(xyz[1], xyz[0])), np.rad2deg(np.arcsin(xyz[2]))
-
-
-def _lola2xyz(lo,la,f):
-    e2 = 2*f-f**2
-
-    lo = np.deg2rad(lo)
-    la = np.deg2rad(la)
-
-    N = 1/np.sqrt(1-e2*np.sin(la))
-
-    X = np.zeros((3,lo.size))
-
-    X[0] = N*np.cos(lo)*np.cos(la)
-    X[1] = N*np.sin(lo)*np.cos(la)
-    X[2] = (N*(1-e2))*np.sin(la)
-
-    return X
-
-# Rotational matrices:
-def _Rx(a):
-    R = np.array([
-        [1,0,0.],
-        [0.,np.cos(a),np.sin(a)],
-        [0.,-np.sin(a),np.cos(a)]
-    ])
-    return R
-
-def _Ry(a):
-    R = np.array([
-        [np.cos(a),0.,-np.sin(a)],
-        [0,1,0.],
-        [np.sin(a),0.,np.cos(a)]
-    ])
-    return R
-
-def _Rz(a):
-    R = np.array([
-        [np.cos(a),-np.sin(a),0.],
-        [np.sin(a),np.cos(a),0.],
-        [0,0.,1]
-    ])
-    return R
 
 
 def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
@@ -167,7 +119,7 @@ def compute_azimuth(cylinder_axis, central_axis):
 
 
 
-def initial_parameters(lon, lat, w, pnorm, f, how='fisher-bingham-alt'):
+def initial_parameters(lon, lat, w, pnorm, f, how='fisher-bingham'):
     """
     Computes an initial estimate of the parameters.
 

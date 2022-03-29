@@ -21,6 +21,7 @@
 # limitations under the Licence.
 
 import numpy as np
+from .euclid import _Ry, _Rz
 
 #
 # Main code to compute the Fisher-Bingham central axes
@@ -89,20 +90,17 @@ def fisher_bingham_angles(X, w):
     """
     g1, g2, g3 = fisher_bingham_mom(X,w)
 
-    # Fix the orientation:
-    g2 *= np.sign(g2[2])
-
     # Compute the angles:
     phi0 = np.arcsin(g1[2])
     lmbdc = np.arctan2(g1[1],g1[0])
 
-    n = np.stack([
-        -np.cos(lmbdc)*np.sin(phi0),
-        -np.sin(lmbdc)*np.sin(phi0),
-        np.cos(phi0)
-    ])
 
-    alphac = np.arccos(np.sum(n*g2))
+    # To compute the azimuth, rotate the central axis to coincide
+    # with x axis (Rotation Ry(-phi0) @ Rz(-lmbdc).
+    # Then rotate the equator axis with the same rotation and be
+    # able to read the azimuth using arctan2:
+    g2_ = _Ry(-phi0) @ _Rz(-lmbdc) @ g2
+    alphac = np.arctan2(g2_[1],g2_[2])
     alphac = (alphac + np.pi/2) % np.pi - np.pi/2
 
     return phi0,lmbdc,alphac

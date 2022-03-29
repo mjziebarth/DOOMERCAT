@@ -23,7 +23,8 @@
 import numpy as np
 import sys
 from math import degrees
-from .initial import _lola2xyz, initial_k0, _Rx, _Ry, _Rz
+from .euclid import _lola2xyz, _Rx, _Ry, _Rz
+from .initial import initial_k0
 
 
 class HotineResultPy:
