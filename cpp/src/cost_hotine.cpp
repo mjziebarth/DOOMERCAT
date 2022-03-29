@@ -201,18 +201,27 @@ static T compute_cost_inf(const DataSet& data,
 {
 	typedef Arithmetic<T> AR;
 
-	/* Compute the absolute of the distortions: */
-	std::vector<T> cost_vec(data.size(), AR::constant(0.0));
+	/* Compute the absolute of the distortions (here without taking
+	 * into consideration the derivatives since we need it only for the
+	 * largest distortion): */
+	HotineObliqueMercator<double> homd(hom);
+	std::vector<double> cost_vec(data.size(), 0.0);
 	#pragma omp parallel for if(parallel)
 	for (size_t i=0; i<data.size(); ++i){
-		cost_vec[i] = AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0);
+		cost_vec[i] = std::abs(homd.k(data.lambda(i), data.phi(i)) - 1.0);
 	}
 
-	T cost(cost_vec[0]);
+	size_t imin=0;
+	double costd(cost_vec[0]);
 	for (size_t i=1; i<data.size(); ++i){
-		if (cost_vec[i] > cost)
-			cost = cost_vec[i];
+		if (cost_vec[i] > costd){
+			costd = cost_vec[i];
+			imin = i;
+		}
 	}
+
+	/* Get the minimum cost with derivatives: */
+	T cost(AR::abs(hom.k(data.lambda(imin), data.phi(imin)) - 1.0));
 
 	/* Add the k0  prior: */
 	if (hom.k0() < k0_ap){

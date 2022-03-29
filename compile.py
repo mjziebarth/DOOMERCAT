@@ -21,8 +21,9 @@ import os
 import subprocess
 
 # Source and header files:
-sources = ['functions.cpp', 'arithmetic.cpp', 'ctypesinterface.cpp',
-           'dataset.cpp', 'optimize.cpp', 'linalg.cpp', 'cost_hotine.cpp']
+sources = ['hotine.cpp', 'functions.cpp', 'arithmetic.cpp',
+           'ctypesinterface.cpp', 'dataset.cpp', 'optimize.cpp', 'linalg.cpp',
+           'cost_hotine.cpp']
 sources = ['cpp/src/' + s for s in sources]
 
 include = 'cpp/include/'

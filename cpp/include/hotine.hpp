@@ -283,9 +283,13 @@ hom_E_parabola_params_t HOM_constants<T>::fit_E_parabola_neg(double e)
 
 template<typename T>
 class HotineObliqueMercator {
+	friend HotineObliqueMercator<double>;
 public:
 	HotineObliqueMercator(const T& lambda_c, const T& phi0, const T& alpha,
 	                      const T& k0, double f);
+
+	template<typename T2>
+	HotineObliqueMercator(const HotineObliqueMercator<T2>&);
 
 	T k(double lambda, double phi) const;
 

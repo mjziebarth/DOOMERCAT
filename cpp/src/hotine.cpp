@@ -1,21 +1,20 @@
 /*
- * Pure compilation test source file.
+ * HotineObliqueMercator specialization.
  */
 
 #include <../include/hotine.hpp>
-#include <../include/functions.hpp>
-#include <iostream>
 
 using doomercat::HotineObliqueMercator;
 
-int main(){
-	real5v lambda_c(constant5(deg2rad(20.0)));
-	real5v phi0(constant5(deg2rad(15.0)));
-	real5v alpha(constant5(deg2rad(23.0)));
-	real5v k0(constant5(0.99));
-	double f = 1.0/298.;
-	HotineObliqueMercator hom(lambda_c, phi0, alpha, k0, f);
-
-	std::cout << "k(10,20): " << hom.k(deg2rad(10.0), deg2rad(20.0)).value()
-	          << "\n";
+template<>
+template<>
+HotineObliqueMercator<double>::HotineObliqueMercator(
+	const HotineObliqueMercator<real4v>& other
+)
+	: e2(other.e2), e(other.e), k0_(other.k0_.value()),
+	  phi0(other.phi0.value()), alpha(other.alpha.value()),
+	  B(other.B.value()), A(other.A.value()), E_(other.E_.value()),
+	  g0(other.g0.value()), cos_g0(other.cos_g0.value()),
+	  sin_g0(other.sin_g0.value()), l0(other.l0.value())
+{
 }
