@@ -108,21 +108,18 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 		if (   (x[1] > 89.0 * PI/180.0  && grad[1] < 0)
 		    || (x[1] < -89.0 * PI/180.0 && grad[1] > 0))
 		{
-			double grad_scale = 2 * (90.0 - std::abs(x[1]))
+			double grad_scale = 1.1 * (0.5*PI - std::abs(x[1]))
 			                    / std::abs(grad[1]);
 			double lonc  = x[0] - grad_scale * grad[0] + PI;
-			double lat0  = x[1] - grad_scale * grad[1];
+			double lat0  = PI - (x[1] - grad_scale * grad[1]);
 			double alpha = x[2] - grad_scale * grad[2];
 			double k0    = x[3] - grad_scale * grad[3];
-			lonc = x[0] + PI;
-			lat0 = x[1];
-			alpha = x[2];
 			std::unique_ptr<std::array<double,P>> res
 			   = std::make_unique<std::array<double,P>>();
 			(*res)[0] = lonc;
 			(*res)[1] = lat0;
 			(*res)[2] = alpha;
-			(*res)[3] = x[3];
+			(*res)[3] = k0;
 			return res;
 		}
 		return std::unique_ptr<std::array<double,P>>();
@@ -291,21 +288,18 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 		if (   (x[1] > 89.0 * PI/180.0  && grad[1] < 0)
 		    || (x[1] < -89.0 * PI/180.0 && grad[1] > 0))
 		{
-			double grad_scale = 2 * (90.0 - std::abs(x[1]))
+			double grad_scale = 1.1 * (0.5*PI - std::abs(x[1]))
 			                    / std::abs(grad[1]);
 			double lonc  = x[0] - grad_scale * grad[0] + PI;
-			double lat0  = x[1] - grad_scale * grad[1];
+			double lat0  = PI - (x[1] - grad_scale * grad[1]);
 			double alpha = x[2] - grad_scale * grad[2];
 			double k0    = x[3] - grad_scale * grad[3];
-			lonc = x[0] + PI;
-			lat0 = x[1];
-			alpha = x[2];
 			std::unique_ptr<std::array<double,P>> res
 			   = std::make_unique<std::array<double,P>>();
 			(*res)[0] = lonc;
 			(*res)[1] = lat0;
 			(*res)[2] = alpha;
-			(*res)[3] = x[3];
+			(*res)[3] = k0;
 			return res;
 		}
 		return std::unique_ptr<std::array<double,P>>();
