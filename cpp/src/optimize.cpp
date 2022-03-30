@@ -59,8 +59,10 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	typedef HotineObliqueMercator<real4v> hom_t;
 
 
-	/* Initial config: */
-	CostFunctionHotine<real4v> cost_function(pnorm, k0_ap, sigma_k0, proot,
+	/* Initial config:
+	 * Optimize with proot=true first to prevent instable descent
+	 * to very low k_0: */
+	CostFunctionHotine<real4v> cost_function(pnorm, k0_ap, sigma_k0, true,
 	                                         true, true);
 	CostHotine<real4v> cost(cost_function(data,
 	                             hom_t(variable4<0>(deg2rad(lonc0)),
@@ -197,13 +199,10 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	}
 	x0 = y.history.back().parameters;
 
-	/*
-	 * Optimize non-logarithmic cost:
-	 */
-	constexpr bool LINEAR_OPTIMIZATION = false;
-	if (LINEAR_OPTIMIZATION){
+	/* Optimize without proot if wanted: */
+	if (!proot){
 		cost_function = CostFunctionHotine<real4v>(pnorm, k0_ap, sigma_k0,
-		                                           proot, false, true);
+		                                           proot, true, true);
 
 		y2 = fallback_gradient_BFGS<P,lina_t>(x0, cost_lambda,
 		                                      gradient_lambda_redux,
@@ -248,12 +247,13 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 				           deg2rad(z.grad[2]),
 				           z.grad[3],
 				           state,
-				           static_cast<unsigned int>(z.mode)});
+				           static_cast<unsigned int>(z.mode),
+				           z.step});
 		}
 	};
 
 	append_history(y, true);
-	append_history(y2, false);
+	append_history(y2, true);
 
 	return res;
 }
