@@ -21,7 +21,7 @@
 # limitations under the Licence.
 
 import numpy as np
-from math import asin, degrees, sqrt, isinf
+from math import asin, degrees, sqrt, isinf, isnan
 from .fisherbingham import fisher_bingham_mom, fisher_bingham_angles
 from .euclid import _lola2xyz, _Rx, _Ry, _Rz
 
@@ -41,7 +41,7 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
     """
     X0 = (_Rz(lmbdc) @ _Ry(phi0) @ _Rx(alphac-np.pi/2)).T @ X
 
-    k0v = np.sqrt(np.maximum(1-(X0[2])**2,0))
+    k0v = np.sqrt(np.maximum(1-(X0[2])**2,1e-3))
     k0_init = np.mean(k0v)
 
     for i in range(100):
@@ -60,6 +60,9 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
             w = np.abs(k0_init-k0v)**(pnorm-2)
 
         k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
+
+    if isnan(k0_init):
+        return np.mean(k0v)
 
     return k0_init
 
