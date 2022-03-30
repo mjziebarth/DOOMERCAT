@@ -360,6 +360,7 @@ public:
 
 	real norm() const;
 
+	bool operator==(const ColVector&) const;
 
 private:
 	std::array<real,d> x;
@@ -447,6 +448,16 @@ ColVector<d,real>& ColVector<d,real>::operator-=(const ColVector& other)
 		x[i] -= other.x[i];
 
 	return *this;
+}
+
+template<size_t d, typename real>
+bool ColVector<d,real>::operator==(const ColVector<d,real>& v) const
+{
+	for (size_t i=0; i<d; ++i){
+		if (x[i] != v.x[i])
+			return false;
+	}
+	return true;
 }
 
 
