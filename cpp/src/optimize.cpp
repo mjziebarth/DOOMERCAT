@@ -144,6 +144,39 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 		return grad;
 	};
 
+	/* Preconditioning for gradient descent: */
+	int angle_steps = 20;
+	int k0_steps = 0;
+	auto preconditioner = [&](std::array<double,P>& grad)
+	   -> bool
+	{
+		static_assert(P==4, "Adjust preconditioner.");
+
+		if (angle_steps > 0){
+			grad[3] = 0.0;
+			--angle_steps;
+			if (angle_steps == 0){
+				k0_steps = 20;
+				return true;
+			}
+		} else {
+			const double nrm_angles
+			   = std::sqrt(grad[0]*grad[0] + grad[1]*grad[1]
+			               + grad[2]*grad[2]);
+			grad[0] = 0.0;
+			grad[1] = 0.0;
+			grad[2] = 0.0;
+			grad[3] = std::min(std::max(-1.0, grad[3]), 1.0);
+			--k0_steps;
+			if (k0_steps == 0){
+				angle_steps = 20;
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	/* Initial config and optimization: */
 	std::array<double,P> x0({deg2rad(lonc0),
 	                         deg2rad(lat_00),
@@ -156,7 +189,8 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	                                     gradient_lambda_redux,
 	                                     Nmax, epsilon,
 	                                     in_boundary,
-	                                     propose_jump);
+	                                     propose_jump,
+	                                     preconditioner);
 	// Poor man's cache invalidation.
 	for (int i=0; i<P; ++i){
 		last_x[i] *= 2;
@@ -176,7 +210,8 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 		                                      Nmax-y.history.size(),
 		                                      epsilon,
 		                                      in_boundary,
-		                                      propose_jump);
+		                                      propose_jump,
+		                                      preconditioner);
 	}
 
 
@@ -324,6 +359,38 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 		return grad;
 	};
 
+	/* Preconditioning for gradient descent: */
+	int angle_steps = 20;
+	int k0_steps = 0;
+	auto preconditioner = [&](std::array<double,P>& grad)
+	   -> bool
+	{
+		static_assert(P==4, "Adjust preconditioner.");
+		if (angle_steps > 0){
+			grad[3] = 0.0;
+			--angle_steps;
+			if (angle_steps == 0){
+				k0_steps = 20;
+				return true;
+			}
+		} else {
+			const double nrm_angles
+			   = std::sqrt(grad[0]*grad[0] + grad[1]*grad[1]
+			               + grad[2]*grad[2]);
+			grad[0] = 0.0;
+			grad[1] = 0.0;
+			grad[2] = 0.0;
+			grad[3] = std::min(std::max(-1.0, grad[3]), 1.0);
+			--k0_steps;
+			if (k0_steps == 0){
+				angle_steps = 20;
+				return true;
+			}
+		}
+		/* No step reset required. */
+		return false;
+	};
+
 	/* Initial config and optimization: */
 	std::array<double,P> x0({deg2rad(lonc0),
 	                         deg2rad(lat_00),
@@ -336,7 +403,8 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 	                                     gradient_lambda_redux,
 	                                     Nmax, epsilon,
 	                                     in_boundary,
-	                                     propose_jump);
+	                                     propose_jump,
+	                                     preconditioner);
 	// Poor man's cache invalidation.
 	for (int i=0; i<P; ++i){
 		last_x[i] *= 2;
@@ -389,7 +457,8 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 				           deg2rad(z.grad[2]),
 				           z.grad[3],
 				           state,
-				           static_cast<unsigned int>(z.mode)});
+				           static_cast<unsigned int>(z.mode),
+				           z.step});
 		}
 	};
 

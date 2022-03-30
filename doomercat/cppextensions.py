@@ -76,7 +76,7 @@ class HotineResult:
     Result of the optimization.
     """
     def __init__(self, cost, lonc, lat_0, alpha, k0, grad_lonc, grad_lat0,
-                 grad_alpha, grad_k0, steps, f, mode):
+                 grad_alpha, grad_k0, steps, f, mode, step_size):
         self.cost = cost
         self.lonc = lonc
         self.lat_0 = lat_0
@@ -90,6 +90,7 @@ class HotineResult:
         self.steps = steps
         self.f = f
         self.mode = mode
+        self.step_size = step_size
 
     def last(self):
         if self.N == 1:
@@ -100,7 +101,8 @@ class HotineResult:
                             grad_lat0=self.grad_lat0[-1],
                             grad_alpha=self.grad_alpha[-1],
                             grad_k0=self.grad_k0[-1], steps=self.steps,
-                            f=self.f, mode=self.mode[-1])
+                            f=self.f, mode=self.mode[-1],
+                            step_size=self.step_size[-1])
 
 
 def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
@@ -134,7 +136,7 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
 
-    result = np.zeros((Nmax,10))
+    result = np.zeros((Nmax,11))
     M = np.zeros(1,dtype=np.uint)
 
     res = _cppextensions_so.hotine_bfgs(c_size_t(N),
@@ -163,10 +165,11 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
                             grad_k0=result[:M,8],
                             steps=M,
                             f=f,
-                            mode=result[:M,9].astype(int))
+                            mode=result[:M,9].astype(int),
+                            step_size=result[:M,10])
 
     cost, lonc, lat_0, alpha, k0, grad_lonc, grad_lat0,\
-       grad_alpha, grad_k0, mode = result[M-1,:]
+       grad_alpha, grad_k0, mode, step_size = result[M-1,:]
     return HotineResult(cost=float(cost),
                         lonc=float(lonc),
                         lat_0=float(lat_0),
@@ -178,7 +181,7 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
                         grad_k0=float(grad_k0),
                         steps=M,
                         f=f,
-                        mode=int(mode))
+                        mode=int(mode), step_size=float(step_size))
 
 
 def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,

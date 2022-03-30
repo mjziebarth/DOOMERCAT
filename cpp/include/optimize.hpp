@@ -29,6 +29,7 @@ struct hotine_result_t {
 	double grad_k0;
 	return_state_t state;
 	unsigned int algorithm_state;
+	double step;
 };
 
 std::vector<hotine_result_t>

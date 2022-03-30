@@ -171,16 +171,17 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 
 	/* Return the results: */
 	for (size_t i=0; i<history.size(); ++i){
-		result[10*i]   = history[i].cost;
-		result[10*i+1] = history[i].lonc;
-		result[10*i+2] = history[i].lat_0;
-		result[10*i+3] = history[i].alpha;
-		result[10*i+4] = history[i].k0;
-		result[10*i+5] = history[i].grad_lonc;
-		result[10*i+6] = history[i].grad_lat0;
-		result[10*i+7] = history[i].grad_alpha;
-		result[10*i+8] = history[i].grad_k0;
-		result[10*i+9] = history[i].algorithm_state;
+		result[11*i]    = history[i].cost;
+		result[11*i+1]  = history[i].lonc;
+		result[11*i+2]  = history[i].lat_0;
+		result[11*i+3]  = history[i].alpha;
+		result[11*i+4]  = history[i].k0;
+		result[11*i+5]  = history[i].grad_lonc;
+		result[11*i+6]  = history[i].grad_lat0;
+		result[11*i+7]  = history[i].grad_alpha;
+		result[11*i+8]  = history[i].grad_k0;
+		result[11*i+9]  = history[i].algorithm_state;
+		result[11*i+10] = history[i].step;
 	}
 
 	if (n_steps){
