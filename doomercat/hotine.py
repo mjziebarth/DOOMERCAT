@@ -275,6 +275,8 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
     Ssd_th = 1e-8
     Nsd = 10
     Sv = []
+    S33 = np.zeros((1,1)) + np.NaN
+    Ij = Ik = 0
 
     if diagnostics:
         alv = []
@@ -363,8 +365,17 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
 
             neodp = np.zeros((1,4))
             neodp[0] = mt/(np.sqrt(vt)+eps)
-            p -= al*neodp[0]
-            p = confine(p)
+            p1 = confine(p - al*neodp[0])
+            if np.any(np.isnan(p1)) or np.any(np.isinf(p1)):
+                # Exit before breaking parameters:
+                Sv.append(S33[Ij,Ik])
+                if diagnostics:
+                    alv.append(al)
+                    lav.append(la)
+                    P.append(p*1.)
+                error_flag = "NaNParameter"
+                break
+            p = p1
             S33 = np.zeros((1,1))
             Ij,Ik = 0,0
             S33[0,0] = (np.abs(fk-1)) + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
@@ -415,7 +426,17 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             al *= x[Ik]
             la *= x[Ij]
 
-            p = neop[Ij,Ik]
+            p1 = neop[Ij,Ik]
+            if np.any(np.isnan(p1)) or np.any(np.isinf(p1)):
+                # Exit before breaking parameters:
+                Sv.append(S33[Ij,Ik])
+                if diagnostics:
+                    alv.append(al)
+                    lav.append(la)
+                    P.append(p*1.)
+                error_flag = "NaNParameter"
+                break
+            p = p1
 
 
 
