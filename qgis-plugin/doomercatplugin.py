@@ -144,7 +144,8 @@ class DOOMERCATPlugin:
         self.svg_widget = QSvgWidget(self._icon_path + ".svg")
         self.svg_widget.customContextMenuRequested.connect(self.switchIcon)
         self.svg_widget.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.svg_widget.renderer().setAspectRatioMode(Qt.KeepAspectRatio)
+        if hasattr(self.svg_widget.renderer(), "setAspectRatioMode"):
+            self.svg_widget.renderer().setAspectRatioMode(Qt.KeepAspectRatio)
         dialog_layout.addWidget(self.svg_widget, row, 2, 3, 2,
                                 alignment=Qt.AlignCenter | Qt.AlignRight)
         dialog_layout.addWidget(QLabel("Cost function exponent:", self.dialog),
