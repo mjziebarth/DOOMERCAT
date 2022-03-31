@@ -68,7 +68,11 @@ def cross_compile_win(compiler: str = 'mingw-g++') -> str:
     Uses mingw g++ to cross compile from a linux machine.
     """
     if compiler == 'mingw-g++':
-        cmd = ['x86_64-w64-mingw32-g++', '-I'+include, '-O3', '-g0', '-fPIC']
+        cmd = ['x86_64-w64-mingw32-g++', '-I'+include, '-O3', '-g0', '-fPIC',
+               '-fopenmp', '-DMS_WIN64', '-static-libgcc',
+               '-static-libstdc++',
+               '-Wl,-Bstatic,--whole-archive', '-lwinpthread', '-lgomp',
+               '-Wl,-Bdynamic,--no-whole-archive']
         cmd += sources + ['-shared', '-o', 'doomercat/_cppextensions.dll']
     else:
         raise NotImplementedError("Only g++ compilation implemented.")

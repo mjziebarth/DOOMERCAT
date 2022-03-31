@@ -30,11 +30,17 @@ if [ "$1" = "--portable" ]; then
         echo "(to build optimized native version, call script without '--portable' option)"
         python -c "from compile import compile_linux;compile_linux(native=False)"
     fi
+    if [ -f doomercat/_cppextensions_native.so ]; then
+        rm doomercat/_cppextensions_native.so
+    fi
 else
     if [ ! -f doomercat/_cppextensions_native.so ]; then
         echo "Compiling native linux shared object..."
         echo "(to build portable version, call script with '--portable' option)"
         python -c "from compile import compile_linux;compile_linux()"
+    fi
+    if [ -f doomercat/_cppextensions.so ]; then
+        rm doomercat/_cppextensions.so
     fi
 fi
 if [ ! -f doomercat/_cppextensions.dll ]; then

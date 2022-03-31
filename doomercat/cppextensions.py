@@ -47,7 +47,11 @@ def find_cppextensions_file():
         return paths[0]
 
     elif system == 'Windows':
-        raise NotImplementedError()
+        paths = list(Path(__file__).resolve().parent.glob('_cppextensions.dll'))
+        if len(paths) == 0:
+            raise ImportError("Could not find any binary _cppextensions "
+                              "library.")
+        return str(paths[0])
     elif system == 'Darwin':
         raise NotImplementedError()
 
