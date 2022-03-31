@@ -152,7 +152,6 @@ T HOM_constants<T>::tan_g0_div_sqx_asymptotic_pos(const T& sin_phi0,
 {
 	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
 	constexpr double SQ2 = std::sqrt(2.0);
-	double e4 = e2*e2;
 	T sa2(sa*sa);
 	T sa4(sa2*sa2);
 	T x(1.0 - sin_phi0);
@@ -173,7 +172,6 @@ T HOM_constants<T>::tan_g0_div_sqx_asymptotic_neg(const T& sin_phi0,
 {
 	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
 	constexpr double SQ2 = std::sqrt(2.0);
-	double e4 = e2*e2;
 	T sa2(sa*sa);
 	T sa4(sa2*sa2);
 	T x(1.0 + sin_phi0);
@@ -195,7 +193,6 @@ T HOM_constants<T>::g0_asymptotic_pos(const T& sin_phi0,
 {
 	/* Computes g0 in the asymptotic sin(phi0) -> 1 */
 	constexpr double SQ2 = std::sqrt(2.0);
-	double e4 = e2*e2;
 	T sa2(sa*sa);
 	T x(1.0 - sin_phi0);
 	double Y = e2/(1.0 - e2);
@@ -212,7 +209,6 @@ T HOM_constants<T>::g0_asymptotic_neg(const T& sin_phi0,
 {
 	/* Computes g0 in the asymptotic sin(phi0) -> -1 */
 	constexpr double SQ2 = std::sqrt(2.0);
-	double e4 = e2*e2;
 	T sa2(sa*sa);
 	T x(1.0 + sin_phi0);
 	double Y = e2/(1.0 - e2);
@@ -350,7 +346,6 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 	A = hom::compute_A(sin_phi0, k0, B, e2);
 
 	if (phi0 > deg2rad(89.9)){
-		constexpr double SQ2 = std::sqrt(2);
 		auto C0a = hom::fit_E_parabola_pos(e);
 		E_ = C0a.C0 - C0a.a * (phi0 - PI/2) * (phi0 - PI/2);
 		T sa = AR::sin(alpha);
@@ -367,7 +362,6 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		     ) / B;
 
 	} else if (phi0 < deg2rad(-89.9)) {
-		constexpr double SQ2 = std::sqrt(2);
 		auto C0a = hom::fit_E_parabola_neg(e);
 		E_ = C0a.C0 + C0a.a * (phi0 + PI/2) * (phi0 + PI/2);
 		T sa = AR::sin(alpha);
@@ -453,7 +447,6 @@ T HotineObliqueMercator<T>::u(double lambda, double phi) const
 	                     * std::pow((1.0 + e*sp) / (1.0 - e*sp), e));
 	T Q(E_ * AR::pow(t, -B));
 	T S(0.5*(Q - 1.0/Q));
-	T T_(0.5*(Q + 1.0/Q));
 	/* Delta lambda using the addition / subtraction rule of Snyder (p. 72) */
 	T dlambda(lambda - l0);
 	if (dlambda < -PI)

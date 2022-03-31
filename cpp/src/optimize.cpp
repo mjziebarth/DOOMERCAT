@@ -166,9 +166,6 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 				return true;
 			}
 		} else {
-			const double nrm_angles
-			   = std::sqrt(grad[0]*grad[0] + grad[1]*grad[1]
-			               + grad[2]*grad[2]);
 			grad[0] = 0.0;
 			grad[1] = 0.0;
 			grad[2] = 0.0;
@@ -382,9 +379,6 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 				return true;
 			}
 		} else {
-			const double nrm_angles
-			   = std::sqrt(grad[0]*grad[0] + grad[1]*grad[1]
-			               + grad[2]*grad[2]);
 			grad[0] = 0.0;
 			grad[1] = 0.0;
 			grad[2] = 0.0;
