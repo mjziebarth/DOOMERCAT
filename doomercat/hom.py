@@ -254,6 +254,7 @@ class HotineObliqueMercator:
             k0 = float(k0)
             alpha = float(alpha)
             bscenter = None
+            self.optimization_result = None
 
 
         # Save all attributes:
@@ -269,13 +270,13 @@ class HotineObliqueMercator:
 
     def __getstate__(self):
         return self._alpha, self._lonc, self._lat_0, self._k0, self._f, \
-               self._a, self._ellipsoid, self._bscenter
+               self._a, self._ellipsoid, self._bscenter, self.optimization_result
 
 
     def __setstate__(self, state):
         print("__setstate__ tuple ",len(state))
         self._alpha, self._lonc, self._lat_0, self._k0, self._f, self._a, \
-           self._ellipsoid, self._bscenter = state
+           self._ellipsoid, self._bscenter, self.optimization_result = state
         self._backend_loaded = False
 
 
