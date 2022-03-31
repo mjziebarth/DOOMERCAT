@@ -113,7 +113,11 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 			double grad_scale = 1.1 * (0.5*PI - std::abs(x[1]))
 			                    / std::abs(grad[1]);
 			double lonc  = x[0] - grad_scale * grad[0] + PI;
-			double lat0  = PI - (x[1] - grad_scale * grad[1]);
+			double lat0;
+			if (x[1] > 0)
+				lat0 = PI - (x[1] - grad_scale * grad[1]);
+			else
+				lat0 = -PI - (x[1] - grad_scale * grad[1]);
 			double alpha = x[2] - grad_scale * grad[2];
 			double k0    = x[3] - grad_scale * grad[3];
 			std::unique_ptr<std::array<double,P>> res
@@ -326,7 +330,11 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 			double grad_scale = 1.1 * (0.5*PI - std::abs(x[1]))
 			                    / std::abs(grad[1]);
 			double lonc  = x[0] - grad_scale * grad[0] + PI;
-			double lat0  = PI - (x[1] - grad_scale * grad[1]);
+			double lat0;
+			if (x[1] > 0)
+				lat0 = PI - (x[1] - grad_scale * grad[1]);
+			else
+				lat0 = -PI - (x[1] - grad_scale * grad[1]);
 			double alpha = x[2] - grad_scale * grad[2];
 			double k0    = x[3] - grad_scale * grad[3];
 			std::unique_ptr<std::array<double,P>> res
