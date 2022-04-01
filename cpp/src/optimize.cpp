@@ -215,6 +215,15 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	}
 
 
+	auto fmod = [=](double a, double b) -> double {
+		/* True modulo operation (similar to Python's (a % b)).
+		 * Implemented here only for positive b (which is what we use).
+		 */
+		double y = std::fmod(a,b);
+		if (y < 0.0)
+			return y+b;
+		return y;
+	};
 
 	std::vector<hotine_result_t> res;
 	res.reserve(y.history.size() + y2.history.size());
@@ -233,10 +242,10 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 				case COST_DIVERGENCE:
 					state = return_state_t::ERROR;
 			}
-			const double lambda_c = std::fmod(z.parameters[0]+PI, 2*PI) - PI;
+			const double lambda_c = fmod(z.parameters[0]+PI, 2*PI) - PI;
 
 			/* Same for alpha: */
-			const double alpha = std::fmod(z.parameters[2]+PI/2, PI) - PI/2;
+			const double alpha = fmod(z.parameters[2]+PI/2, PI) - PI/2;
 
 			res.push_back({(cost_log) ? std::exp(z.cost) : z.cost,
 				           rad2deg(lambda_c),
