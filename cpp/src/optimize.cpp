@@ -70,6 +70,15 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 	                                   variable4<2>(deg2rad(alpha0)),
 	                                   variable4<3>(k00), f)));
 
+	auto fmod = [=](double a, double b) -> double {
+		/* True modulo operation (similar to Python's (a % b)).
+		 * Implemented here only for positive b (which is what we use).
+		 */
+		double y = std::fmod(a,b);
+		if (y < 0.0)
+			return y+b;
+		return y;
+	};
 
 	/*  A lambda function that checks whether the currently cached version
 	 * of 'cost' is equal to a given one: */
@@ -85,8 +94,8 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 
 		if (x_new){
 			/* Recalculate. */
-			const double lambda_c = std::fmod(x[0] + PI, 2*PI) - PI;
-			const double alpha    = std::fmod(x[2] + PI/2, PI) - PI/2;
+			const double lambda_c = fmod(x[0] + PI, 2*PI) - PI;
+			const double alpha    = fmod(x[2] + PI/2, PI) - PI/2;
 			cost = cost_function(data, hom_t(variable4<0>(lambda_c),
 			                                 variable4<1>(x[1]),
 			                                 variable4<2>(alpha),
@@ -214,17 +223,6 @@ doomercat::bfgs_optimize_hotine(const DataSet& data, const double lonc0,
 		                                      preconditioner);
 	}
 
-
-	auto fmod = [=](double a, double b) -> double {
-		/* True modulo operation (similar to Python's (a % b)).
-		 * Implemented here only for positive b (which is what we use).
-		 */
-		double y = std::fmod(a,b);
-		if (y < 0.0)
-			return y+b;
-		return y;
-	};
-
 	std::vector<hotine_result_t> res;
 	res.reserve(y.history.size() + y2.history.size());
 	auto append_history = [&](const BFGS_result_t<lina_t>& Y, bool cost_log) {
@@ -293,6 +291,16 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 	                                   variable4<2>(deg2rad(alpha0)),
 	                                   variable4<3>(k00), f)));
 
+	auto fmod = [=](double a, double b) -> double {
+		/* True modulo operation (similar to Python's (a % b)).
+		 * Implemented here only for positive b (which is what we use).
+		 */
+		double y = std::fmod(a,b);
+		if (y < 0.0)
+			return y+b;
+		return y;
+	};
+
 
 	/*  A lambda function that checks whether the currently cached version
 	 * of 'cost' is equal to a given one: */
@@ -308,8 +316,8 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 
 		if (x_new){
 			/* Recalculate. */
-			const double lambda_c = std::fmod(x[0] + PI, 2*PI) - PI;
-			const double alpha    = std::fmod(x[2] + PI/2, PI) - PI/2;
+			const double lambda_c = fmod(x[0] + PI, 2*PI) - PI;
+			const double alpha    = fmod(x[2] + PI/2, PI) - PI/2;
 			cost = cost_function(data, hom_t(variable4<0>(lambda_c),
 			                                 variable4<1>(x[1]),
 			                                 variable4<2>(alpha),
@@ -453,10 +461,10 @@ doomercat::bfgs_optimize_hotine_pinf(const DataSet& data, const double lonc0,
 				case COST_DIVERGENCE:
 					state = return_state_t::ERROR;
 			}
-			const double lambda_c = std::fmod(z.parameters[0]+PI, 2*PI) - PI;
+			const double lambda_c = fmod(z.parameters[0]+PI, 2*PI) - PI;
 
 			/* Same for alpha: */
-			const double alpha = std::fmod(z.parameters[2]+PI/2, PI) - PI/2;
+			const double alpha = fmod(z.parameters[2]+PI/2, PI) - PI/2;
 
 			res.push_back({(cost_log) ? std::exp(z.cost) : z.cost,
 				           rad2deg(lambda_c),
