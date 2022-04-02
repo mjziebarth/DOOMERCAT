@@ -499,8 +499,26 @@ fallback_gradient_BFGS
 				       = - step * gpre_norm * gpre_norm;
 				if (cost1 < cost0 + c1 * delta_cost_expected){
 					// Accept step.
+					// Inverse Hessian update:
+					vd_t grad_fkp1;
+					lina::init_column_vectord(grad_fkp1, gradient(Pp1));
+					if (lina::dot(grad_fkp1,grad_pre)
+					    >= c2 * gpre_norm * gpre_norm)
+					{
+						vd_t sk = xkp1 - xk;
+						vd_t yk = grad_fkp1 - grad_fk;
+						const double rhok = 1.0 / lina::dot(yk,sk);
+						if (!std::isnan(rhok) && !std::isinf(rhok)){
+							Hk = (I - rhok * sk * lina::transpose(yk)) * Hk
+							            * (I - rhok * yk * lina::transpose(sk))
+							     + rhok * sk * lina::transpose(sk);
+							++Hk_age;
+						}
+					}
+
+					// Advance the gradient step:
 					xk = xkp1;
-					lina::init_column_vectord(grad_fk, gradient(Pp1));
+					grad_fk = grad_fkp1;
 					if (cost1 < cost0 + c1 * 1.1 * delta_cost_expected)
 						step *= 1.1;
 					cost0 = cost1;
