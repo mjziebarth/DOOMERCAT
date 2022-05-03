@@ -189,6 +189,9 @@ class HotineObliqueMercator:
                 lonc0, lat_00, alpha0, k00 = initial_parameters(lon, lat,
                                                                 w_initial,
                                                                 pnorm, f)
+            else:
+                # Could be required in Python backend:
+                w_initial = None
 
             if backend in ('c++','C++'):
                 # Call the C++ BFGS backend.
