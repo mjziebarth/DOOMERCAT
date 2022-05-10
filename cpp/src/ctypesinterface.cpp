@@ -40,6 +40,7 @@ using doomercat::CostFunctionHotine;
 using doomercat::CostFunctionHotineInf;
 using doomercat::CostHotine;
 using doomercat::HotineObliqueMercator;
+using doomercat::HotineObliqueMercatorProjection;
 
 
 int compute_cost_hotine_batch(const size_t N, const double* lon,
@@ -110,7 +111,7 @@ int compute_k_hotine(const size_t N, const double* lon,
 }
 
 
-int hotine_project(const size_t N, const double* lon,
+int hotine_project_uv(const size_t N, const double* lon,
         const double* lat, double lonc, double lat0, double alpha,
         double k0, double f, double* result)
 {
@@ -125,6 +126,47 @@ int hotine_project(const size_t N, const double* lon,
 		                                              deg2rad(lat[i])));
 		result[2*i]   = uv.u;
 		result[2*i+1] = uv.v;
+	}
+
+	return 0;
+}
+
+
+int hotine_project(const size_t N, const double* lon,
+        const double* lat, double lonc, double lat0, double alpha,
+        double k0, double gamma, double f, double* result)
+{
+	/* Compute the Hotine Mercator projections now: */
+	const HotineObliqueMercatorProjection
+	   hom(deg2rad(lonc),deg2rad(lat0), deg2rad(alpha), k0, deg2rad(gamma), f);
+
+	#pragma omp parallel for
+	for (size_t i=0; i<N; ++i){
+		/* Compute the cost: */
+		HotineObliqueMercatorProjection::xy_t
+		    xy(hom.project(deg2rad(lon[i]), deg2rad(lat[i])));
+		result[2*i]   = xy.x;
+		result[2*i+1] = xy.y;
+	}
+
+	return 0;
+}
+
+
+int hotine_inverse(const size_t N, const double* x,
+        const double* y, double lonc, double lat0, double alpha,
+        double k0, double gamma, double f, double* result)
+{
+	/* Compute the Hotine Mercator projections now: */
+	const HotineObliqueMercatorProjection
+	   hom(deg2rad(lonc),deg2rad(lat0), deg2rad(alpha), k0, deg2rad(gamma), f);
+
+	#pragma omp parallel for
+	for (size_t i=0; i<N; ++i){
+		/* Compute the cost: */
+		HotineObliqueMercatorProjection::geo_t lp(hom.inverse(x[i], y[i]));
+		result[2*i]   = rad2deg(lp.lambda);
+		result[2*i+1] = rad2deg(lp.phi);
 	}
 
 	return 0;

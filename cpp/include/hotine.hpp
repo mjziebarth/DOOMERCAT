@@ -305,7 +305,7 @@ public:
 	const T& gamma0() const;
 	const T& lambda0() const;
 
-private:
+protected:
 	constexpr static double EPS_LARGE_PHI = 1e-9;
 
 	typedef Arithmetic<T> AR;
@@ -507,6 +507,31 @@ const T& HotineObliqueMercator<T>::lambda0() const
 	return l0;
 }
 
+
+class HotineObliqueMercatorProjection : public HotineObliqueMercator<double> {
+public:
+	HotineObliqueMercatorProjection(double lambda_c, double phi0, double alpha,
+	                                double k0, double gamma, double f);
+
+	struct xy_t {
+		double x;
+		double y;
+	};
+	struct geo_t {
+		double lambda;
+		double phi;
+	};
+
+	/* Projection and inverse projection: */
+	xy_t project(double lambda, double phi) const;
+	geo_t inverse(double x, double y) const;
+
+private:
+	const double lambda_c;
+	const double uc;
+	const double cosg;
+	const double sing;
+};
 
 
 } // namespace.

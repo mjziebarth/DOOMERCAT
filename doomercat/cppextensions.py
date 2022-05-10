@@ -274,9 +274,9 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
     return k
 
 
-def project_hotine(lon: np.ndarray, lat: np.ndarray,
-                   lonc: float, lat_0: float, alpha: float, k_0: float,
-                   f: float):
+def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
+                      lonc: float, lat_0: float, alpha: float, k_0: float,
+                      f: float):
     # Input sanitization.
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -295,7 +295,7 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
     # Result vector:
     uv = np.empty((N,2))
 
-    _cppextensions_so.hotine_project(c_size_t(N),
+    _cppextensions_so.hotine_project_uv(c_size_t(N),
             lon.ctypes.data_as(POINTER(c_double)),
             lat.ctypes.data_as(POINTER(c_double)),
             c_double(lonc), c_double(lat_0), c_double(alpha),
@@ -304,6 +304,71 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
 
     uv = uv.T
     return uv[0,:], uv[1,:]
+
+
+def project_hotine(lon: np.ndarray, lat: np.ndarray,
+                   lonc: float, lat_0: float, alpha: float, k_0: float,
+                   gamma: float, f: float):
+    # Input sanitization.
+    lon = np.ascontiguousarray(lon, dtype=np.double)
+    lat = np.ascontiguousarray(lat, dtype=np.double)
+    w = np.ones_like(lon)
+    N = lon.size
+    assert lat.size == N
+    lonc = float(lonc)
+    lat_0 = float(lat_0)
+    alpha = float(alpha)
+    k_0 = float(k_0)
+    gamma = float(gamma)
+    f = float(f)
+
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
+
+    # Result vector:
+    xy = np.empty((N,2))
+
+    _cppextensions_so.hotine_project(c_size_t(N),
+            lon.ctypes.data_as(POINTER(c_double)),
+            lat.ctypes.data_as(POINTER(c_double)),
+            c_double(lonc), c_double(lat_0), c_double(alpha),
+            c_double(k_0), c_double(gamma), c_double(f),
+            xy.ctypes.data_as(POINTER(c_double)))
+
+    xy = xy.T
+    return xy[0,:], xy[1,:]
+
+
+def hotine_inverse(x: np.ndarray, y: np.ndarray, lonc: float, lat_0: float,
+                   alpha: float, k_0: float, gamma: float, f: float):
+    # Input sanitization.
+    x = np.ascontiguousarray(x, dtype=np.double)
+    y = np.ascontiguousarray(y, dtype=np.double)
+    w = np.ones_like(x)
+    N = x.size
+    assert y.size == N
+    lonc = float(lonc)
+    lat_0 = float(lat_0)
+    alpha = float(alpha)
+    k_0 = float(k_0)
+    gamma = float(gamma)
+    f = float(f)
+
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
+
+    # Result vector:
+    lola = np.empty((N,2))
+
+    _cppextensions_so.hotine_inverse(c_size_t(N),
+            x.ctypes.data_as(POINTER(c_double)),
+            y.ctypes.data_as(POINTER(c_double)),
+            c_double(lonc), c_double(lat_0), c_double(alpha),
+            c_double(k_0), c_double(gamma), c_double(f),
+            lola.ctypes.data_as(POINTER(c_double)))
+
+    lola = lola.T
+    return lola[0,:], lola[1,:]
 
 
 def _hotine_constants(lonc: float, lat_0: float, alpha: float, k_0: float,

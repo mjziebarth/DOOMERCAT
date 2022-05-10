@@ -3,7 +3,7 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -25,8 +25,8 @@ from math import sqrt, radians, sin, cos, tan, pi, asin
 EPS_LARGE_PHI = 1e-9;
 
 
-def hotine_project(lon: np.ndarray, lat: np.ndarray, lonc: float,
-                   lat_0: float, alpha: float, k0: float, f: float):
+def hotine_project_uv(lon: np.ndarray, lat: np.ndarray, lonc: float,
+                      lat_0: float, alpha: float, k0: float, f: float):
     """
     Performs the Hotine oblique Mercator projection in Python.
     Might be used in cases where loading the external Ctypes library

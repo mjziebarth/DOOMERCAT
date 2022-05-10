@@ -3,7 +3,7 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -23,7 +23,7 @@ from math import atan2, degrees, isinf
 from .defs import _ellipsoids
 from .initial import initial_parameters
 from .enclosingsphere import BoundingSphere
-from .hotineproject import hotine_project
+from .hotineproject import hotine_project_uv
 from .hotine import grad
 
 
@@ -417,10 +417,10 @@ class HotineObliqueMercator:
         # Compute the local vectors in north direction:
         lon = float(lon)
         lat = float(lat)
-        u,v = hotine_project(np.array((lon,lon)),
-                             np.array((lat-delta, lat+delta)),
-                             self._lonc, self._lat_0, self._alpha,
-                             self._k0, self._f)
+        u,v = hotine_project_uv(np.array((lon,lon)),
+                                np.array((lat-delta, lat+delta)),
+                                self._lonc, self._lat_0, self._alpha,
+                                self._k0, self._f)
         dx = u[1] - u[0]
         dy = v[1] - v[0]
 

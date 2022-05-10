@@ -38,9 +38,17 @@ int compute_k_hotine(const size_t N, const double* lon,
         double lonc, double lat0, double alpha, double k0, double f,
         double* result);
 
-int hotine_project(const size_t N, const double* lon,
+int hotine_project_uv(const size_t N, const double* lon,
         const double* lat, double lonc, double lat0, double alpha,
         double k0, double f, double* result);
+
+int hotine_project(const size_t N, const double* lon,
+        const double* lat, double lonc, double lat0, double alpha,
+        double k0, double gamma, double f, double* result);
+
+int hotine_inverse(const size_t N, const double* x,
+        const double* y, double lonc, double lat0, double alpha,
+        double k0, double gamma, double f, double* result);
 
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 const double* w, double f, double pnorm, double k0_ap,
