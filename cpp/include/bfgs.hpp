@@ -36,6 +36,8 @@
 
 #include <../include/linalg.hpp>
 
+#ifndef DOOMERCAT_BFGS_H
+#define DOOMERCAT_BFGS_H
 
 enum BFGS_exit_code_t {
 	MAX_ITERATIONS, CONVERGED, RHO_DIVERGENCE, LINESEARCH_FAIL, COST_DIVERGENCE
@@ -735,3 +737,5 @@ fallback_gradient_BFGS
 
 	return result;
 }
+
+#endif // include guard

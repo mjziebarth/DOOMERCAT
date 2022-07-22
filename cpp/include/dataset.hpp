@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <stdexcept>
 #include <../include/functions.hpp>
 
 #ifndef DOOMERCAT_DATASET_H
@@ -29,31 +30,130 @@
 
 namespace doomercat {
 
+/*
+ * The data entries: (un-)weighted, with(out) height information:
+ */
+
+template<bool has_height, bool has_weight>
+struct data_entry_t;
+
+template<>
+struct data_entry_t<true,true> {
+	double lambda;
+	double phi;
+	double hrel;
+	double w;
+};
+
+template<>
+struct data_entry_t<true,false> {
+	double lambda;
+	double phi;
+	double hrel;
+};
+
+template<>
+struct data_entry_t<false,true> {
+	double lambda;
+	double phi;
+	double w;
+};
+
+template<>
+struct data_entry_t<false,false> {
+	double lambda;
+	double phi;
+};
+
+
+/*
+ * The common functionality:
+ */
+
+template<bool has_height, bool has_weight>
 class DataSet {
 /*
  * Class representing a data set in optimization.
  */
 
 public:
-	DataSet(const size_t N, const double* lon, const double* lat,
-	        const double* w = nullptr);
+	DataSet(size_t N) : data(N)
+	{};
 
-	size_t size() const;
+	size_t size() const {
+		return data.size();
+	};
 
-	double lambda(size_t i) const;
-	double phi(size_t i) const;
-	double w(size_t i) const;
+	double lambda(size_t i) const {
+		if (i >= data.size())
+			throw std::runtime_error("Out-of-bounds in DataSet lambda access.");
+		return data[i].lambda;
+	};
+
+	double phi(size_t i) const {
+		if (i >= data.size())
+			throw std::runtime_error("Out-of-bounds in DataSet phi access.");
+		return data[i].phi;
+	};
 
 protected:
-	struct entry_t {
-		double lambda;
-		double phi;
-		double w;
-	};
+	typedef data_entry_t<has_height,has_weight> entry_t;
 
 	std::vector<entry_t> data;
 
 };
+
+
+/*
+ * Height and weight functionality:
+ */
+class WeightedDataSetWithHeight : public DataSet<true,true> {
+public:
+	WeightedDataSetWithHeight(const size_t N, const double* lon,
+	                          const double* lat, const double* hrel,
+	                          const double* w, double a, double f);
+
+	double w(size_t i) const;
+	double hrel(size_t i) const;
+};
+
+class DataSetWithHeight : public DataSet<true,false> {
+public:
+	DataSetWithHeight(const size_t N, const double* lon, const double* lat,
+	                  const double* h, double a, double f);
+
+	constexpr double w(size_t i) const {
+		return 1.0;
+	};
+
+	double hrel(size_t i) const;
+};
+
+class WeightedDataSet : public DataSet<false,true> {
+public:
+	WeightedDataSet(const size_t N, const double* lon, const double* lat,
+	                const double* w);
+
+	double w(size_t i) const;
+
+	constexpr double hrel(size_t i) const {
+		return 1.0;
+	};
+};
+
+class SimpleDataSet : public DataSet<false,false> {
+public:
+	SimpleDataSet(const size_t N, const double* lon, const double* lat);
+
+	constexpr double w(size_t i) const {
+		return 1.0;
+	};
+
+	constexpr double hrel(size_t i) const {
+		return 1.0;
+	};
+};
+
 
 }
 

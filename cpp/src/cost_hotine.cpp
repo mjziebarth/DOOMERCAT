@@ -31,13 +31,15 @@ using doomercat::CostFunctionHotine;
 using doomercat::CostFunctionHotineInf;
 
 
-static real4v sum(std::vector<real4v>& x){
+template<>
+real4v CostFunctionHotine<real4v>::sum(const std::vector<real4v>& x){
 	return real4v::sum(x);
 }
 
 // Make sure that Kahan summation is not killed by re-association:
 #pragma GCC optimize("-fno-associative-math")
-static double sum(std::vector<double>& x)
+template<>
+double CostFunctionHotine<double>::sum(const std::vector<double>& x)
 {
 	/* Copy of the code from autodouble.hpp */
 	long double S = 0.0;
@@ -51,81 +53,6 @@ static double sum(std::vector<double>& x)
 
 	return static_cast<double>(S);
 }
-
-
-template<typename T, bool proot>
-static T compute_cost(const DataSet& data,
-                      const HotineObliqueMercator<T> hom,
-                      double pnorm, double k0_ap, double sigma_k0,
-                      bool logarithmic, bool parallel)
-{
-	typedef Arithmetic<T> AR;
-
-	/* Compute the distortions: */
-	std::vector<T> cost_vec(data.size(), AR::constant(0.0));
-	#pragma omp parallel for if(parallel)
-	for (size_t i=0; i<data.size(); ++i){
-		cost_vec[i] = AR::abs(hom.k(data.lambda(i), data.phi(i)) - 1.0);
-	}
-
-	/* Compute the maximum distortion: */
-	T distmax(cost_vec[0]);
-	for (size_t i=1; i<data.size(); ++i){
-		if (cost_vec[i] > distmax)
-			distmax = cost_vec[i];
-	}
-
-	/* Extract the factor (distmax)**pnorm and calculate the cost: */
-	if (pnorm == static_cast<double>(static_cast<int>(pnorm)) && pnorm < 5){
-		const int ipnorm = static_cast<int>(pnorm);
-		#pragma omp parallel for if(parallel)
-		for (size_t i=0; i<data.size(); ++i){
-			cost_vec[i] = data.w(i) * AR::pow(cost_vec[i] / distmax, ipnorm);
-		}
-	} else {
-		#pragma omp parallel for if(parallel)
-		for (size_t i=0; i<data.size(); ++i){
-			cost_vec[i] = data.w(i) * AR::pow(cost_vec[i] / distmax, pnorm);
-		}
-	}
-
-	if (proot){
-		T cost(AR::pow(sum(cost_vec), 1.0/pnorm));
-
-
-		/* Add the k0  prior: */
-		if (hom.k0() < k0_ap){
-			cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
-			        / distmax;
-		}
-
-		if (logarithmic){
-				return AR::log(cost) + AR::log(distmax);
-		}
-
-		return cost * distmax;
-
-	} else {
-		T cost(sum(cost_vec));
-
-		/* Add the k0  prior: */
-		if (hom.k0() < k0_ap){
-			cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
-				    * AR::pow(distmax, -pnorm);
-		}
-
-		if (logarithmic){
-			return AR::log(cost) + pnorm*AR::log(distmax);
-		}
-
-		return cost * AR::pow(distmax,pnorm);
-	}
-}
-
-
-
-
-
 
 template<>
 CostHotine<real4v>::operator double() const
@@ -151,111 +78,10 @@ std::array<double,4> CostHotine<real4v>::grad() const
 }
 
 
-template<>
-CostHotine<real4v>
-CostFunctionHotine<real4v>::operator()(const DataSet& data,
-                              const HotineObliqueMercator<real4v>& hom) const
-{
-	if (proot)
-		return CostHotine<real4v>(
-		            compute_cost<real4v,true>(data, hom, pnorm, k0_ap,
-		                                      sigma_k0, logarithmic, parallel)
-		);
-
-	return CostHotine<real4v>(
-	            compute_cost<real4v,false>(data, hom, pnorm, k0_ap,
-	                                       sigma_k0, logarithmic, parallel)
-	);
-}
-
-
-template<>
-CostHotine<double>
-CostFunctionHotine<double>::operator()(const DataSet& data,
-                              const HotineObliqueMercator<double>& hom) const
-{
-	if (proot)
-		return CostHotine<double>(
-		            compute_cost<double,true>(data, hom, pnorm, k0_ap,
-		                                      sigma_k0, logarithmic, parallel)
-		);
-
-	return CostHotine<double>(
-	            compute_cost<double,false>(data, hom, pnorm, k0_ap,
-	                                       sigma_k0, logarithmic, parallel)
-	);
-}
-
-
 
 
 
 /***************************************************************************
  *                          Cost with p=infty                              *
  ***************************************************************************/
-template<typename T>
-static T compute_cost_inf(const DataSet& data,
-                          const HotineObliqueMercator<T> hom,
-                          double k0_ap, double sigma_k0,
-                          bool logarithmic, bool parallel)
-{
-	typedef Arithmetic<T> AR;
-
-	/* Compute the absolute of the distortions (here without taking
-	 * into consideration the derivatives since we need it only for the
-	 * largest distortion): */
-	HotineObliqueMercator<double> homd(hom);
-	std::vector<double> cost_vec(data.size(), 0.0);
-	#pragma omp parallel for if(parallel)
-	for (size_t i=0; i<data.size(); ++i){
-		cost_vec[i] = std::abs(homd.k(data.lambda(i), data.phi(i)) - 1.0);
-	}
-
-	size_t imin=0;
-	double costd(cost_vec[0]);
-	for (size_t i=1; i<data.size(); ++i){
-		if (cost_vec[i] > costd){
-			costd = cost_vec[i];
-			imin = i;
-		}
-	}
-
-	/* Get the minimum cost with derivatives: */
-	T cost(AR::abs(hom.k(data.lambda(imin), data.phi(imin)) - 1.0));
-
-	/* Add the k0  prior: */
-	if (hom.k0() < k0_ap){
-		cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0);
-	}
-
-	if (logarithmic)
-		return AR::log(cost);
-
-	return cost;
-}
-
-
-
-template<>
-CostHotine<real4v>
-CostFunctionHotineInf<real4v>::operator()(const DataSet& data,
-                              const HotineObliqueMercator<real4v>& hom) const
-{
-	return CostHotine<real4v>(
-	            compute_cost_inf<real4v>(data, hom, k0_ap, sigma_k0,
-	                                     logarithmic, parallel)
-	);
-}
-
-
-template<>
-CostHotine<double>
-CostFunctionHotineInf<double>::operator()(const DataSet& data,
-                              const HotineObliqueMercator<double>& hom) const
-{
-	return CostHotine<double>(
-	            compute_cost_inf<double>(data, hom, k0_ap, sigma_k0,
-	                                     logarithmic, parallel)
-	);
-}
 

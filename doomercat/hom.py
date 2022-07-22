@@ -37,12 +37,13 @@ class HotineObliqueMercator:
 
     (1) Optimize the HOM for a set of points:
 
-    HotineObliqueMercator(lon, lat, weight=None, pnorm=2, k0_ap=0.98,
+    HotineObliqueMercator(lon, lat, h=None, weight=None, pnorm=2, k0_ap=0.98,
                           sigma_k0=0.02, ellipsoid='WGS84', f=None, a=None,
                           Nmax=200)
 
        lon, lat       : Iterable sets of longitude and latitude coordinates
                         of the data set.
+       h              : Optional iterable set of heights of the data points.
        weight         : Optional iterable set of multiplicative weights assigned
                         to the data points in the cost function. Need to be
                         positive real weights.
@@ -128,8 +129,8 @@ class HotineObliqueMercator:
     Roggero, M. (2009). Laborde projection in Madagascar cartography and its
     recovery in WGS84 datum. Appl Geomat 1, 131. doi:10.1007/s12518-009-0010-4
     """
-    def __init__(self, lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
-                 sigma_k0=0.002, ellipsoid=None, f=None, a=None,
+    def __init__(self, lon=None, lat=None, h=None, weight=None, pnorm=2,
+                 k0_ap=0.98, sigma_k0=0.002, ellipsoid=None, f=None, a=None,
                  lonc0=None, lat_00=None, alpha0=None, k00=None, lonc=None,
                  lat_0=None, alpha=None, k0=None, Nmax=1000,
                  proot=False, logger=None,
@@ -173,10 +174,15 @@ class HotineObliqueMercator:
                 lon = np.array(lon)
             if not isinstance(lat,np.ndarray):
                 lat = np.array(lat)
-            if weight is not None and not isinstance(weight,np.ndarray):
-                weight = np.array(weight)
+            if weight is not None:
+                if not isinstance(weight,np.ndarray):
+                    weight = np.array(weight)
                 weight /= weight.sum()
                 assert weight.shape == lon.shape
+            if h is not None:
+                if not isinstance(h,np.ndarray):
+                    h = np.array(h)
+                assert h.shape == lon.shape
 
             assert lon.shape == lat.shape
 
@@ -204,8 +210,8 @@ class HotineObliqueMercator:
                 # If p=inf, pre-optimize with p=80 norm:
                 if isinf(pnorm):
                     pre_res = \
-                        self._bfgs_hotine(lon, lat, weight, 80, k0_ap,
-                                          sigma_k0, f, lonc0, lat_00, alpha0,
+                        self._bfgs_hotine(lon, lat, h, weight, 80, k0_ap,
+                                          sigma_k0, a, f, lonc0, lat_00, alpha0,
                                           k00, Nmax, proot,
                                           epsilon=bfgs_epsilon)
                     lonc0  = pre_res.lonc
@@ -215,8 +221,8 @@ class HotineObliqueMercator:
 
                 # Optimize the Hotine oblique Mercator:
                 result = \
-                    self._bfgs_hotine(lon, lat, weight, pnorm, k0_ap,
-                                      sigma_k0, f, lonc0, lat_00, alpha0,
+                    self._bfgs_hotine(lon, lat, h, weight, pnorm, k0_ap,
+                                      sigma_k0, a, f, lonc0, lat_00, alpha0,
                                       k00, Nmax, proot, epsilon=bfgs_epsilon)
 
             elif backend in ('python','Python'):

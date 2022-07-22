@@ -109,7 +109,7 @@ class HotineResult:
                             step_size=self.step_size[-1])
 
 
-def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
+def bfgs_hotine(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
                 lat_0_0, alpha_0, k_0_0, Nmax, proot,
                 return_full_history=False, epsilon=1e-7):
     """
@@ -117,13 +117,17 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
     """
     # Ensure types:
     if w is None:
-        w = np.ones_like(data_lon)
+        w = np.empty(0)
+    if h is None:
+        h = np.empty(0)
     data_lon = np.ascontiguousarray(data_lon, dtype=np.double)
     data_lat = np.ascontiguousarray(data_lat, dtype=np.double)
     w = np.ascontiguousarray(w, dtype=np.double)
+    h = np.ascontiguousarray(h, dtype=np.double)
     N = data_lon.size
     assert data_lat.size == N
-    assert w.size == N
+    assert w.size == N or w.size == 0
+    assert h.size == N or h.size == 0
     pnorm = float(pnorm)
     k0_ap = float(k0_ap)
     sigma_k0 = float(sigma_k0)
@@ -131,6 +135,7 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
     lat_0_0 = float(lat_0_0)
     alpha_0 = float(alpha_0)
     k_0_0   = float(k_0_0)
+    a = float(a)
     f = float(f)
     Nmax = int(Nmax)
     assert Nmax > 0
@@ -146,12 +151,15 @@ def bfgs_hotine(data_lon, data_lat, w, pnorm, k0_ap, sigma_k0, f, lonc_0,
     res = _cppextensions_so.hotine_bfgs(c_size_t(N),
                                  data_lon.ctypes.data_as(POINTER(c_double)),
                                  data_lat.ctypes.data_as(POINTER(c_double)),
-                                 w.ctypes.data_as(POINTER(c_double)),
-                                 c_double(f), c_double(pnorm), c_double(k0_ap),
-                                 c_double(sigma_k0), c_double(lonc_0),
-                                 c_double(lat_0_0), c_double(alpha_0),
-                                 c_double(k_0_0), c_uint(Nmax),
-                                 c_ushort(1 if proot else 0),
+                                 h.ctypes.data_as(POINTER(c_double))
+                                    if h.size > 0 else None,
+                                 w.ctypes.data_as(POINTER(c_double))
+                                    if w.size > 0 else None,
+                                 c_double(a), c_double(f), c_double(pnorm),
+                                 c_double(k0_ap), c_double(sigma_k0),
+                                 c_double(lonc_0), c_double(lat_0_0),
+                                 c_double(alpha_0), c_double(k_0_0),
+                                 c_uint(Nmax), c_ushort(1 if proot else 0),
                                  c_double(epsilon),
                                  result.ctypes.data_as(POINTER(c_double)),
                                  M.ctypes.data_as(POINTER(c_uint)))
@@ -192,7 +200,7 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
                         alpha: np.ndarray, k_0: np.ndarray,
                         lon: np.ndarray, lat: np.ndarray,
                         w: np.ndarray,
-                        f: float, pnorm: float, k0_ap: float,
+                        a: float, f: float, pnorm: float, k0_ap: float,
                         sigma_k0: float, proot: bool,
                         logarithmic: bool):
     """
@@ -207,14 +215,19 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
     lat = np.ascontiguousarray(lat, dtype=np.double)
     N = lon.size
     if w is None:
-        w = np.ones_like(lon)
+        w = np.empty(0)
+    if h is None:
+        h = np.empty(0)
     w = np.ascontiguousarray(w, dtype=np.double)
-    assert w.size == N
+    h = np.ascontiguousarray(h, dtype=np.double)
+    assert w.size == N or w.size == 0
+    assert h.size == N or h.size == 0
     assert lat.size == N
     M = lonc.size
     assert lat_0.size == M
     assert alpha.size == M
     assert k_0.size == M
+    a = float(a)
     f = float(f)
     k0_ap = float(k0_ap)
     sigma_k0 = float(sigma_k0)
@@ -229,13 +242,16 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
     _cppextensions_so.compute_cost_hotine_batch(c_size_t(N),
             lon.ctypes.data_as(POINTER(c_double)),
             lat.ctypes.data_as(POINTER(c_double)),
-            w.ctypes.data_as(POINTER(c_double)),
+            h.ctypes.data_as(POINTER(c_double))
+               if h.size > 0 else None,
+            w.ctypes.data_as(POINTER(c_double))
+               if w.size > 0 else None,
             c_size_t(M),
             lonc.ctypes.data_as(POINTER(c_double)),
             lat_0.ctypes.data_as(POINTER(c_double)),
             alpha.ctypes.data_as(POINTER(c_double)),
             k_0.ctypes.data_as(POINTER(c_double)),
-            c_double(f), c_double(pnorm), c_double(k0_ap),
+            c_double(a), c_double(f), c_double(pnorm), c_double(k0_ap),
             c_double(sigma_k0), c_ushort(1 if proot else 0),
             c_ushort(1 if logarithmic else 0),
             cost.ctypes.data_as(POINTER(c_double)));

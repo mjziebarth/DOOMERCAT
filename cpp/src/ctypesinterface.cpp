@@ -35,25 +35,22 @@
 #include <chrono>
 #include <thread>
 
-using doomercat::DataSet;
 using doomercat::CostFunctionHotine;
 using doomercat::CostFunctionHotineInf;
 using doomercat::CostHotine;
 using doomercat::HotineObliqueMercator;
 using doomercat::HotineObliqueMercatorProjection;
+using doomercat::SimpleDataSet;
+using doomercat::WeightedDataSet;
+using doomercat::DataSetWithHeight;
+using doomercat::WeightedDataSetWithHeight;
 
-
-int compute_cost_hotine_batch(const size_t N, const double* lon,
-        const double* lat, const double* w, const size_t M,
-        const double* lonc, const double* lat0, const double* alpha,
-        const double* k0, double f, double pnorm, double k0_ap,
-        double sigma_k0, unsigned short proot,
-        unsigned short logarithmic, double* result)
+template<typename T>
+void cost_batch(const T& data, double pnorm, double k0_ap, double sigma_k0,
+                unsigned short proot, bool logarithmic, const size_t M,
+                const double* lonc, const double* lat0, const double* alpha,
+                const double* k0, double f, double* result)
 {
-	/* Data set: */
-	const DataSet data(N, lon, lat, w);
-
-	/* Cost function: */
 	if (std::isinf(pnorm)){
 		const CostFunctionHotineInf<double> cfun(k0_ap, sigma_k0,
 		                                         logarithmic > 0u,
@@ -86,6 +83,45 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
 			result[i] = cfun(data, hom);
 		}
 
+	}
+}
+
+
+int compute_cost_hotine_batch(const size_t N, const double* lon,
+        const double* lat, const double* h, const double* w, const size_t M,
+        const double* lonc, const double* lat0, const double* alpha,
+        const double* k0, double a, double f, double pnorm, double k0_ap,
+        double sigma_k0, unsigned short proot,
+        unsigned short logarithmic, double* result)
+{
+	/*
+	 * Compute the cost function for many different HOM parameters
+	 * given a single data set.
+	 */
+	if (w){
+		if (h){
+			WeightedDataSetWithHeight data(N, lon, lat, h, w, a, f);
+
+			cost_batch(data, pnorm, k0_ap, sigma_k0, proot, logarithmic, M,
+			           lonc, lat0, alpha, k0, f, result);
+		} else {
+			WeightedDataSet data(N, lon, lat, w);
+
+			cost_batch(data, pnorm, k0_ap, sigma_k0, proot, logarithmic, M,
+			           lonc, lat0, alpha, k0, f, result);
+		}
+	} else {
+		if (h){
+			DataSetWithHeight data(N, lon, lat, h, a, f);
+
+			cost_batch(data, pnorm, k0_ap, sigma_k0, proot, logarithmic, M,
+			           lonc, lat0, alpha, k0, f, result);
+		} else {
+			SimpleDataSet data(N, lon, lat);
+
+			cost_batch(data, pnorm, k0_ap, sigma_k0, proot, logarithmic, M,
+			           lonc, lat0, alpha, k0, f, result);
+		}
 	}
 
 	return 0;
@@ -186,9 +222,9 @@ double doomercat::to_double<real4v>(const real4v& t)
 
 
 int hotine_bfgs(const size_t N, const double* lon, const double* lat,
-                const double* w, double f, double pnorm, double k0_ap,
-                double sigma_k0, double lonc_0, double lat_0_0,
-                double alpha_0, double k_0_0, unsigned int Nmax,
+                const double* h, const double* w, double a, double f,
+                double pnorm, double k0_ap, double sigma_k0, double lonc_0,
+                double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
                 unsigned short proot, double epsilon, double* result,
                 unsigned int* n_steps)
 {
@@ -196,19 +232,66 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 	if (w == 0)
 		w = nullptr;
 
-	// Init the data set:
-	DataSet data(N, lon, lat, w);
-
-	/* Optimize: */
+	/* Result of the optimization goes here: */
 	std::vector<doomercat::hotine_result_t> history;
-	if (std::isinf(pnorm)){
-		history = bfgs_optimize_hotine_pinf(data, lonc_0, lat_0_0, alpha_0,
-		                                    k_0_0, f, k0_ap, sigma_k0, Nmax,
-		                                    epsilon);
+
+	/* Init the data set and optimize: */
+	if (w){
+		if (h){
+			WeightedDataSetWithHeight data(N, lon, lat, h, w, a, f);
+
+			/* Optimize: */
+			if (std::isinf(pnorm)){
+				history = bfgs_optimize_hotine_pinf(data, lonc_0, lat_0_0,
+				                                    alpha_0, k_0_0, f, k0_ap,
+				                                    sigma_k0, Nmax, epsilon);
+			} else {
+				history = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0,
+				                               k_0_0, f, pnorm, k0_ap, sigma_k0,
+				                               Nmax, proot > 0u, epsilon);
+			}
+		} else {
+			WeightedDataSet data(N, lon, lat, w);
+
+			/* Optimize: */
+			if (std::isinf(pnorm)){
+				history = bfgs_optimize_hotine_pinf(data, lonc_0, lat_0_0,
+				                                    alpha_0, k_0_0, f, k0_ap,
+				                                    sigma_k0, Nmax, epsilon);
+			} else {
+				history = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0,
+				                               k_0_0, f, pnorm, k0_ap, sigma_k0,
+				                               Nmax, proot > 0u, epsilon);
+			}
+		}
 	} else {
-		history = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0, k_0_0, f,
-		                               pnorm, k0_ap, sigma_k0, Nmax,
-		                               proot > 0u, epsilon);
+		if (h){
+			DataSetWithHeight data(N, lon, lat, h, a, f);
+
+			/* Optimize: */
+			if (std::isinf(pnorm)){
+				history = bfgs_optimize_hotine_pinf(data, lonc_0, lat_0_0,
+				                                    alpha_0, k_0_0, f, k0_ap,
+				                                    sigma_k0, Nmax, epsilon);
+			} else {
+				history = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0,
+				                               k_0_0, f, pnorm, k0_ap, sigma_k0,
+				                               Nmax, proot > 0u, epsilon);
+			}
+		} else {
+			SimpleDataSet data(N, lon, lat);
+
+			/* Optimize: */
+			if (std::isinf(pnorm)){
+				history = bfgs_optimize_hotine_pinf(data, lonc_0, lat_0_0,
+				                                    alpha_0, k_0_0, f, k0_ap,
+				                                    sigma_k0, Nmax, epsilon);
+			} else {
+				history = bfgs_optimize_hotine(data, lonc_0, lat_0_0, alpha_0,
+				                               k_0_0, f, pnorm, k0_ap, sigma_k0,
+				                               Nmax, proot > 0u, epsilon);
+			}
+		}
 	}
 
 	/* Return the results: */

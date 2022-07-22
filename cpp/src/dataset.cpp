@@ -23,12 +23,19 @@
 #include <../include/dataset.hpp>
 #include <stdexcept>
 
-using doomercat::DataSet;
+using doomercat::SimpleDataSet;
+using doomercat::DataSetWithHeight;
+using doomercat::WeightedDataSet;
+using doomercat::WeightedDataSetWithHeight;
 
+static double compute_hrel(double h, double a, double f, double phi)
+{
+	return h / a;
+}
 
-DataSet::DataSet(const size_t N, const double* lon, const double* lat,
-                 const double* w)
-    : data(N)
+SimpleDataSet::SimpleDataSet(const size_t N, const double* lon,
+                             const double* lat)
+    : DataSet<false,false>(N)
 {
 	for (size_t i=0; i<N; ++i){
 		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);
@@ -36,42 +43,75 @@ DataSet::DataSet(const size_t N, const double* lon, const double* lat,
 	for (size_t i=0; i<N; ++i){
 		data[i].phi = deg2rad(lat[i]);
 	}
-	if (w){
-		for (size_t i=0; i<N; ++i){
-			data[i].w = w[i];
-		}
-	} else {
-		for (size_t i=0; i<N; ++i){
-			data[i].w = 1.0;
-		}
+}
+
+DataSetWithHeight::DataSetWithHeight(const size_t N, const double* lon,
+                                     const double* lat, const double* h,
+                                     double a, double f)
+    : DataSet<true,false>(N)
+{
+	for (size_t i=0; i<N; ++i){
+		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);
+	}
+	for (size_t i=0; i<N; ++i){
+		data[i].phi = deg2rad(lat[i]);
+	}
+	for (size_t i=0; i<N; ++i){
+		data[i].hrel = compute_hrel(h[i], a, f, data[i].phi);
 	}
 }
 
-size_t DataSet::size() const
+WeightedDataSet::WeightedDataSet(const size_t N, const double* lon,
+                                 const double* lat, const double* w)
+    : DataSet<false,true>(N)
 {
-	return data.size();
+	for (size_t i=0; i<N; ++i){
+		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);
+	}
+	for (size_t i=0; i<N; ++i){
+		data[i].phi = deg2rad(lat[i]);
+	}
+	for (size_t i=0; i<N; ++i){
+		data[i].w = w[i];
+	}
 }
 
-double DataSet::lambda(size_t i) const
+WeightedDataSetWithHeight::WeightedDataSetWithHeight(const size_t N,
+                                 const double* lon, const double* lat,
+                                 const double* h, const double* w,
+                                 double a, double f)
+    : DataSet<true,true>(N)
 {
-	if (i >= data.size())
-		throw std::runtime_error("Out-of-bounds in DataSet weight access.");
-
-	return data[i].lambda;
+	for (size_t i=0; i<N; ++i){
+		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);
+	}
+	for (size_t i=0; i<N; ++i){
+		data[i].phi = deg2rad(lat[i]);
+	}
+	for (size_t i=0; i<N; ++i){
+		data[i].hrel = compute_hrel(h[i], a, f, data[i].phi);
+	}
+	for (size_t i=0; i<N; ++i){
+		data[i].w = w[i];
+	}
 }
 
-double DataSet::phi(size_t i) const
+double WeightedDataSet::w(size_t i) const
 {
-	if (i >= data.size())
-		throw std::runtime_error("Out-of-bounds in DataSet weight access.");
-
-	return data[i].phi;
-}
-
-double DataSet::w(size_t i) const
-{
-	if (i >= data.size())
-		throw std::runtime_error("Out-of-bounds in DataSet weight access.");
-
 	return data[i].w;
+}
+
+double DataSetWithHeight::hrel(size_t i) const
+{
+	return data[i].hrel;
+}
+
+double WeightedDataSetWithHeight::w(size_t i) const
+{
+	return data[i].w;
+}
+
+double WeightedDataSetWithHeight::hrel(size_t i) const
+{
+	return data[i].hrel;
 }
