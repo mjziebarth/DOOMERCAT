@@ -49,22 +49,3 @@ def test_chile_places():
     assert abs(HOM.lonc()  - (-70.55450760)) < 1e-6
     assert abs(HOM.alpha() - (4.52169941)) < 1e-6
     assert abs(HOM.k0()    - (0.99997618)) < 1e-6
-
-
-def test_australia_small_circle():
-    """
-    Example of an artificial small circle generated around Australia.
-
-    Test here the impact of the starting point.
-    """
-    lon, lat = read_geojson('data/small-circle-australia.geojson')
-
-    HOM = HotineObliqueMercator(lon=lon, lat=lat, k0_ap=0.0,
-                                lonc0=170.0, lat_00=-10.0, alpha0=-45.0,
-                                k00=0.5)
-
-    # Test agains reference values:
-    assert abs(HOM.lat_0() - (44.70375631)) < 1e-6
-    assert abs(HOM.lonc()  - (164.90948924)) < 1e-6
-    assert abs(HOM.alpha() - (164.90948924)) < 1e-6
-    assert abs(HOM.k0()    - (0.75295376)) < 1e-6
