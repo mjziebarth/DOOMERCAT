@@ -109,7 +109,7 @@ def _ks(A,B,u,e,phi,lmbd,lmbd0):
 
 
 
-def f_d_k_cse(lmbd,phi,phi0,lmbdc,alphac,k0,e,noJ=False):
+def f_d_k_cse(lmbd,phi,hrel,phi0,lmbdc,alphac,k0,e,noJ=False):
 
     if np.abs(alphac) >= np.deg2rad((90-1/3600)):
         alphac = np.deg2rad((90-1/3600))*np.sign(alphac)
@@ -131,6 +131,9 @@ def f_d_k_cse(lmbd,phi,phi0,lmbdc,alphac,k0,e,noJ=False):
     u = _u(A,S,gamma0,V,B,lmbd,lmbd0)
 
     ks = _ks(A,B,u,e,phi,lmbd,lmbd0)
+
+    # Correct by the local scale:
+    ks -= hrel
 
     if noJ:
         return ks
@@ -239,11 +242,14 @@ def confine(p):
     return p
 
 
-def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
+def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
          diagnostics=False, k0_ap=None, k0_ap_std=None):
 
     # normalize data weights to sum(wdata) = number of data points
     wdata /= wdata.sum()
+
+    # Compute the relative height:
+    hrel = h / a
 
     e = np.sqrt(2*f-f**2)
 
@@ -299,7 +305,7 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
     for i in range(Niter):
 
         if pnorm != 0 or not is_p2opt:
-            fk,J = f_d_k_cse(lon,lat,p[0],p[1],p[2],p[3],e)
+            fk,J = f_d_k_cse(lon,lat,hrel,p[0],p[1],p[2],p[3],e)
         else:
             X0 = (_Rz(p[1]) @ _Ry(p[0]) @ _Rx(p[2]-np.pi/2)).T @ X
             Z0 = np.abs(X0[2])
@@ -315,14 +321,16 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
             else:
                 I_batch = np.arange(Z0.size)
 
-            fk = f_d_k_cse(lon[I_batch],lat[I_batch],p[0],p[1],p[2],p[3],e,noJ = True)
+            fk = f_d_k_cse(lon[I_batch],lat[I_batch],hrel[I_batch],p[0],p[1],
+                           p[2],p[3],e,noJ = True)
 
 
 
         if pnorm == 0. and is_p2opt:
             res = np.abs(fk-1)
             iresmax = np.argmax(res)
-            fk,J = f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],p[0],p[1],p[2],p[3],e)
+            fk,J = f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
+                             hrel[I_batch][iresmax],p[0],p[1],p[2],p[3],e)
             J.shape = (1,4)
 
 
@@ -407,7 +415,8 @@ def grad(lon,lat,wdata,phi0,lmbdc,alphac,k0,f,pnorm=2,Niter = 100,
                 for k in range(x.size):
                     neop[j,k] = confine(p-x[k]*al*neodp[j])
 
-                    neofk = f_d_k_cse(lon,lat,neop[j,k,0],neop[j,k,1],neop[j,k,2],neop[j,k,3],e,noJ=True)
+                    neofk = f_d_k_cse(lon,lat,hrel,neop[j,k,0],neop[j,k,1],
+                                      neop[j,k,2],neop[j,k,3],e,noJ=True)
 
                     if pnorm == 0:
                         S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm_p0) \

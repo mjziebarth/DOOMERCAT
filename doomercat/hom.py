@@ -232,11 +232,13 @@ class HotineObliqueMercator:
                                    "optimization.")
                 if weight is None:
                     weight = np.ones_like(lon)
+                if h is None:
+                    h = np.zeros_like(lon)
                 if isinf(pnorm):
                     k00 = initial_parameters(lon, lat, w_initial, 2, f)[3]
-                result = grad(np.deg2rad(lon), np.deg2rad(lat),
+                result = grad(np.deg2rad(lon), np.deg2rad(lat), h,
                               weight, np.deg2rad(lat_00), np.deg2rad(lonc0),
-                              np.deg2rad(alpha0), k00, f,
+                              np.deg2rad(alpha0), k00, a, f,
                               0 if isinf(pnorm) else pnorm, Nmax,
                               False, k0_ap, sigma_k0)
             else:
