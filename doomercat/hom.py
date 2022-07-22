@@ -388,7 +388,7 @@ class HotineObliqueMercator:
         return projstr
 
 
-    def project(self, lon, lat):
+    def project(self, lon, lat, gamma=None):
         """
         Project a geographical coordinate set.
 
@@ -401,8 +401,10 @@ class HotineObliqueMercator:
         doi: 10.3133/pp1396
         """
         self._load_backend()
+        if gamma is None:
+            gamma = self._alpha
         return self._project_hotine(lon, lat, self._lonc, self._lat_0,
-                                    self._alpha, self._k0, self._f)
+                                    self._alpha, self._k0, gamma, self._f)
 
 
     def north_azimuth(self, lon: float, lat: float,

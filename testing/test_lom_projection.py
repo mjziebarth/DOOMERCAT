@@ -37,15 +37,15 @@ def test_project_uv():
     HOM1 = HotineObliqueMercator(lonc=73.0, lat_0 = 23.3, alpha=28.,
                                  k0=0.9988)
     proj1 = Proj("+proj=omerc +lonc=73.0 +lat_0=23.3 +alpha=28.0 "
-                 "+k_0=0.9988 +a=1.0 +b=0.9966471893352525 +no_off +no_rot")
+                 "+k_0=0.9988 +a=1.0 +b=0.9966471893352525")
     HOM3 = HotineObliqueMercator(lonc=-5.7, lat_0 = -73.3, alpha=89.0,
                                  k0=0.8)
     proj3 = Proj("+proj=omerc +lonc=-5.7 +lat_0=-73.3 +alpha=89.0 "
-                 "+k_0=0.8 +a=1.0 +b=0.9966471893352525 +no_off +no_rot")
+                 "+k_0=0.8 +a=1.0 +b=0.9966471893352525")
     HOM2 = HotineObliqueMercator(lonc=180., lat_0 = 1.0, alpha=1.0,
                                  k0=0.98)
     proj2 = Proj("+proj=omerc +lonc=180.0 +lat_0=1.0 +alpha=1.0 "
-                 "+k_0=0.98 +a=1.0 +b=0.9966471893352525 +no_off +no_rot")
+                 "+k_0=0.98 +a=1.0 +b=0.9966471893352525")
 
     # Now for each of the test projections, project the
     # data points and compare against the proj result:
