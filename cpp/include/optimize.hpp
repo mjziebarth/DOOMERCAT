@@ -102,7 +102,7 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 
 	auto in_boundary = [&](const std::array<double,P>& x) -> bool {
 		return (x[1] >= -0.5*PI && x[1] <= 0.5*PI
-		        && x[3] > 0.0 && x[3] < 1.01);
+		        && x[3] > 0.0 && x[3] < 2.0);
 	};
 
 	auto propose_jump = [&](const std::array<double,P>& x,
