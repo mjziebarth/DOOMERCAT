@@ -35,7 +35,7 @@ static double compute_uc(double A, double B, double alpha, double phi0,
 			                         "of range (too close to +/- pi/2).");
 		const double D = hom::compute_D(std::cos(phi0), std::sin(phi0), B, e2);
 		return A/B * std::atan2(std::sqrt(D*D - 1.0), std::cos(alpha))
-		       * (phi0 >= 0.0) ? 1.0 : -1.0;
+		       * ((phi0 >= 0.0) ? 1.0 : -1.0);
 	}
 }
 
