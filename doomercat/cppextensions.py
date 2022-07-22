@@ -199,7 +199,7 @@ def bfgs_hotine(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
 def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
                         alpha: np.ndarray, k_0: np.ndarray,
                         lon: np.ndarray, lat: np.ndarray,
-                        w: np.ndarray,
+                        h: np.ndarray, w: np.ndarray,
                         a: float, f: float, pnorm: float, k0_ap: float,
                         sigma_k0: float, proot: bool,
                         logarithmic: bool):
