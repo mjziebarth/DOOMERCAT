@@ -64,7 +64,7 @@ HotineObliqueMercatorProjection::project(double lambda, double phi) const
 
 	/* Rotate: */
 	xy_t xy({uv.v * cosg + uv.u * sing,
-	         uv.u * cosg + uv.v * sing});
+	         uv.u * cosg - uv.v * sing});
 
 	return xy;
 }
