@@ -111,6 +111,7 @@ class DOOMERCATPlugin:
         self.cbAlgorithm.addItem(_ALGORITHM_PY)
         if HAS_CPPEXTENSIONS:
             self.cbAlgorithm.addItem(_ALGORITHM_CPP)
+        self.cbUseHeight = QCheckBox(self.dialog)
         self.cbEllipsoid = QComboBox(self.dialog)
         self.cbEllipsoid.addItem('WGS84')
         self.cbEllipsoid.addItem('GRS80')
@@ -277,6 +278,11 @@ class DOOMERCATPlugin:
 
 
         dialog_layout.addWidget(self.tabLayout, row, 0, 1, 4)
+
+        # Whether to use the z-information:
+        row += 1
+        dialog_layout.addWidget(QLabel("Use data height:"), row, 0, 1, 1)
+        dialog_layout.addWidget(self.cbUseHeight, row, 1, 1, 1)
 
         # A widget that eats additional space:
         row += 1
@@ -606,6 +612,10 @@ class DOOMERCATPlugin:
         """
         Optimize for numpy arrays of lon and lat:
         """
+        # Use height only if wanted:
+        if self.cbUseHeight.checkState() != Qt.Checked:
+            h = None
+
         # Set waiting cursor:
         self._cursor = self.dialog.cursor()
         self.dialog.setCursor(Qt.WaitCursor)
