@@ -112,6 +112,7 @@ class DOOMERCATPlugin:
         if HAS_CPPEXTENSIONS:
             self.cbAlgorithm.addItem(_ALGORITHM_CPP)
         self.cbUseHeight = QCheckBox(self.dialog)
+        self.cbUseHeight.setCheckState(Qt.Checked)
         self.cbEllipsoid = QComboBox(self.dialog)
         self.cbEllipsoid.addItem('WGS84')
         self.cbEllipsoid.addItem('GRS80')
