@@ -397,6 +397,7 @@ class DOOMERCATPlugin:
         # Adapted from "Using Vector Layers" example.
         lon = []
         lat = []
+        h = []
         canvas = self.iface.mapCanvas()
         if canvas is None:
             self.leResult.setText("")
@@ -433,7 +434,7 @@ class DOOMERCATPlugin:
 
                 coordinates = np.stack(np.meshgrid(X, Y), axis=2)\
                                 .reshape((-1,2))
-
+                h.append(np.zeros(coordinates.shape[0] * coordinates.shape[1]))
 
             elif isinstance(layer, QgsVectorLayer):
                 features = layer.selectedFeatures()
@@ -452,6 +453,7 @@ class DOOMERCATPlugin:
                     while vertices.hasNext():
                         p = vertices.next()
                         coordinates.append((p.x(), p.y()))
+                        h.append([p.z()])
 
             # Obtain geographic coordinates using WGS84 CRS:
             transform = QgsCoordinateTransform(crs, self._crs_geo,
@@ -471,6 +473,7 @@ class DOOMERCATPlugin:
         # layers:
         lon = np.concatenate(lon)
         lat = np.concatenate(lat)
+        h = np.concatenate(h)
 
         # Now check if there are any coordinates.
         # Otherwise, reset:
@@ -480,7 +483,7 @@ class DOOMERCATPlugin:
             return
 
         # Optimize:
-        self.optimizeLonLat(lon, lat, None, a, f, ellps)
+        self.optimizeLonLat(lon, lat, h, None, a, f, ellps)
 
 
     def optimizeForShapefile(self, a, f, ellps):
@@ -504,7 +507,7 @@ class DOOMERCATPlugin:
             return
 
         # Optimize:
-        self.optimizeLonLat(lon, lat, None, a, f, ellps)
+        self.optimizeLonLat(lon, lat, None, None, a, f, ellps)
 
 
     def optimizeWeightedRaster(self, a, f, ellps):
@@ -551,7 +554,7 @@ class DOOMERCATPlugin:
         lon, lat = project(xf, yf, crs, dest_crs)
 
         # Call the optimization routine:
-        self.optimizeLonLat(lon, lat, array, a, f, ellps)
+        self.optimizeLonLat(lon, lat, np.zeros_like(lon), array, a, f, ellps)
 
 
     def optimizeWeightedVectorLayer(self, a, f, ellps):
@@ -570,7 +573,7 @@ class DOOMERCATPlugin:
             self.leResult.setEnabled(False)
             return
 
-        xy = []
+        xyz = []
         weight = []
         for feat in layer.getFeatures():
             if not feat.isValid():
@@ -586,20 +589,20 @@ class DOOMERCATPlugin:
             vertices = geom.vertices()
             while vertices.hasNext():
                 p = vertices.next()
-                xy.append((p.x(), p.y()))
+                xy.append((p.x(), p.y(), p.z()))
                 weight.append(w)
 
-        xy = np.array(xy)
+        xyz = np.array(xyz)
         weight = np.array(weight)
 
         # Project to geographic coordinate system:
         lon, lat = project(xy[:,0], xy[:,1], layer.crs(), self._crs_geo)
 
         # Call the optimization routine:
-        self.optimizeLonLat(lon, lat, weight, a, f, ellps)
+        self.optimizeLonLat(lon, lat, xyz[:,2], weight, a, f, ellps)
 
 
-    def optimizeLonLat(self, lon, lat, weight, a_km, f, ellps):
+    def optimizeLonLat(self, lon, lat, h, weight, a_km, f, ellps):
         """
         Optimize for numpy arrays of lon and lat:
         """
@@ -618,7 +621,7 @@ class DOOMERCATPlugin:
         backend = 'Python' if self.cbAlgorithm.currentText() == _ALGORITHM_PY \
                   else 'C++'
         threadpool = QThreadPool.globalInstance()
-        worker = OptimizationWorker(lon, lat, weight=weight, pnorm=pnorm,
+        worker = OptimizationWorker(lon, lat, h=h, weight=weight, pnorm=pnorm,
                                     k0_ap=k0_ap,
                                     sigma_k0=self.sb_k0_std.value(),
                                     ellipsoid= None if ellps == 'custom'
