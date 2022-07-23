@@ -38,18 +38,6 @@ augmented by a half-sided quadratic potential
 for k0 < k0min **with bandwidth** as
 given.
 
-If **select homogeneous** is checked, a point
-selection algorithm is performed before the
-optimization starts. The selection algorithm
-successively removes one point of the closest
-point pair until only the provided number of
-data points remains. This should lead to a
-fairly homogeneous data set, a considerable
-speedup for large data sets (such as large
-raster layers), and can have beneficial
-effects on the cost function if large point
-clouds lead to undesirable results.
-
 The **ellipsoid** row specifies the ellipsoid
 according to which geographic coordinates
 will internally be projected to 3D Euclidean
