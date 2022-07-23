@@ -137,7 +137,7 @@ public:
 	double w(size_t i) const;
 
 	constexpr double hrel(size_t i) const {
-		return 1.0;
+		return 0.0;
 	};
 };
 
@@ -150,7 +150,7 @@ public:
 	};
 
 	constexpr double hrel(size_t i) const {
-		return 1.0;
+		return 0.0;
 	};
 };
 
