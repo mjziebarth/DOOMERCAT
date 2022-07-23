@@ -32,17 +32,10 @@ from .worker import OptimizationWorker
 from .qgisproject import project
 from .help import help_html
 from .messages import info
-from .moduleloader import HAS_CPPEXTENSIONS, _ellipsoids, points_from_shapefile
+from .moduleloader import HAS_CPPEXTENSIONS, _ellipsoids
 
 import numpy as np
 import os.path
-
-# See if the shapefile module is loaded:
-try:
-	import shapefile
-	_has_shapefile = True
-except:
-	_has_shapefile = False
 
 
 # Some GUI strings:
@@ -203,46 +196,8 @@ class DOOMERCATPlugin:
         tab0_layout = QGridLayout(tab0)
         tab0_layout.addWidget(self.lblSelection, 0, 0)
         self.tabLayout.addTab(tab0, "Selection")
-        tab1 = QWidget(self.dialog)
-        tab1_layout = QVBoxLayout(tab1)
-        tab1_layout.setSpacing(0)
-        tab1_widget1 = QWidget(tab1)
-        tab1_widget1.setContentsMargins(0,0,0,0)
-        tab1_layout1 = QHBoxLayout(tab1_widget1)
-        tab1_layout.addWidget(tab1_widget1)
-        tab1_layout1.addWidget(QLabel("File:"))
-        self.leShapefilePath = QLineEdit(tab1)
-        tab1_layout1.addWidget(self.leShapefilePath)
-        self.btnShapefileFinder = QPushButton("...", tab1)
-        self.btnShapefileFinder.setMaximumWidth(20)
-        self.btnShapefileFinder.clicked.connect(self.shapefileOpenClicked)
-        tab1_layout1.addWidget(self.btnShapefileFinder)
-        tab1_widget2 = QWidget(tab1)
-        tab1_widget2.setContentsMargins(0,0,0,0)
-        tab1_layout2 = QHBoxLayout(tab1_widget2)
-        tab1_layout.addWidget(tab1_widget2)
-        # Radio buttons to switch between all points selection and reduction to
-        # centroids.
-        self.bgShapefilePoints = QButtonGroup(self.dialog)
-        allPts = QRadioButton("All points", tab1_widget2)
-        allPts.setChecked(True)
-        tab1_layout2.addWidget(allPts)
-        self.bgShapefilePoints.addButton(allPts)
-        centroids = QRadioButton("Centroids of geometries", tab1_widget2)
-        tab1_layout2.addWidget(centroids)
-        self.bgShapefilePoints.addButton(centroids)
-
-        self.tabLayout.addTab(tab1, "Shapefile")
         self.tabLayout.setTabToolTip(0, "Optimize for selected points from "
                                         "this project.")
-        self.tabLayout.setTabToolTip(1, "Optimize for points from a shapefile.")
-        if not _has_shapefile:
-            # If shapefile library cannot be imported, disable the shapefile
-            # tab:
-            self.tabLayout.setTabEnabled(1, False)
-            self.tabLayout.setTabToolTip(1, "Reading points from shapefiles "
-                                            "requires the PyShp library. "
-                                            "It can be installed using pip.")
 
         #
         # The "Weighted Raster" tab
@@ -319,7 +274,6 @@ class DOOMERCATPlugin:
         self.btnApply.setEnabled(False)
 
         self.tabLayout.currentChanged.connect(self.checkOptimizeEnable)
-        self.leShapefilePath.textChanged.connect(self.checkOptimizeEnable)
         self.iface.mapCanvas().layersChanged.connect(self.checkOptimizeEnable)
 
         dialog_layout.addWidget(self.btnOptimize, row, 0, 1, 1)
@@ -347,16 +301,6 @@ class DOOMERCATPlugin:
     def run(self):
         # create and show a configuration dialog or something similar
         self.dialog.show()
-
-    def shapefileOpenClicked(self):
-        """
-        This slot is called when the three-dot push button to open
-        a shapefile is clicked.
-        """
-        filename = QFileDialog.getOpenFileName(self.dialog,
-                                               "QFileDialog.getOpenFileName()",
-                                               "", "Shapefiles (*.shp)")[0]
-        self.leShapefilePath.setText(filename)
 
 
     def optimizeClicked(self):
@@ -387,10 +331,8 @@ class DOOMERCATPlugin:
             # Optimize for selection:
             self.optimizeForSelection(a,f,ellps)
         elif ci == 1:
-            self.optimizeForShapefile(a,f,ellps)
-        elif ci == 2:
             self.optimizeWeightedRaster(a,f,ellps)
-        elif ci == 3:
+        elif ci == 2:
             self.optimizeWeightedVectorLayer(a,f,ellps)
 
 
@@ -491,30 +433,6 @@ class DOOMERCATPlugin:
 
         # Optimize:
         self.optimizeLonLat(lon, lat, h, None, a, f, ellps)
-
-
-    def optimizeForShapefile(self, a, f, ellps):
-        """
-        Optimize for data from a shapefile.
-        """
-        # First obtain the method:
-        method = 'points' if self.bgShapefilePoints.checkedId() == 0 \
-                          else 'centroids'
-
-        # Get the points from the shapefile:
-        try:
-            lon, lat = points_from_shapefile(self.leShapefilePath.text(),
-                                             method=method)
-        except Exception as e:
-            # Error message:
-            self.errorDialog.showMessage("Reading the coordinates from the "
-                                         "shapefile did not succeed. The error "
-                                         "message given is: '"
-                                         + str(e) + "'")
-            return
-
-        # Optimize:
-        self.optimizeLonLat(lon, lat, None, None, a, f, ellps)
 
 
     def optimizeWeightedRaster(self, a, f, ellps):
@@ -785,10 +703,6 @@ class DOOMERCATPlugin:
             self.btnOptimize.setEnabled(True)
 
         elif tab == 1:
-            path = self.leShapefilePath.text()
-            self.btnOptimize.setEnabled(len(path) > 0 and os.path.isfile(path))
-
-        elif tab == 2:
             # Obtain all raster bands:
             layers = []
             layer_names = []
@@ -833,7 +747,7 @@ class DOOMERCATPlugin:
             self.btnOptimize.setEnabled(True)
             self.cbWeightedRasterLayer.blockSignals(False)
 
-        elif tab == 3:
+        elif tab == 2:
             # Obtain all vector layers:
             layers = []
             layer_names = []

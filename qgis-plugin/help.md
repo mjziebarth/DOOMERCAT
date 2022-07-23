@@ -47,10 +47,7 @@ Next, the tabs switch between mechanisms
 to input the point set used in the
 optimization. **Selection** collects the
 points currently selected and allows for a
-simple manual selection. **Shapefile** allows
-loading from those. Either *all points* or
-only the *centroids of geometries* can be fed
-to the optimization. **Weighted raster**
+simple manual selection. **Weighted raster**
 allows using all points of a raster layer
 weighted by the absolute value a selectable
 raster band. **Weighted points** provides the

@@ -31,5 +31,5 @@ except:
     HAS_CPPEXTENSIONS = False
 
 # Load doomercat imports:
-from doomercat import points_from_shapefile, HotineObliqueMercator
+from doomercat import HotineObliqueMercator
 from doomercat.defs import _ellipsoids
