@@ -451,15 +451,15 @@ class DOOMERCATPlugin:
                     vertices = geom.vertices()
                     while vertices.hasNext():
                         p = vertices.next()
-                        coordinates += [(p.x(), p.y())]
+                        coordinates.append((p.x(), p.y()))
 
             # Obtain geographic coordinates using WGS84 CRS:
             transform = QgsCoordinateTransform(crs, self._crs_geo,
                                                QgsProject.instance())
             lonlat = [transform.transform(QgsPointXY(c[0],c[1]))
                       for c in coordinates]
-            lon += [np.array([l.x() for l in lonlat])]
-            lat += [np.array([l.y() for l in lonlat])]
+            lon.append(np.array([l.x() for l in lonlat]))
+            lat.append(np.array([l.y() for l in lonlat]))
 
         # Early exit if no selection:
         if len(lon) == 0:
