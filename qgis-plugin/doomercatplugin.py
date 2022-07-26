@@ -629,13 +629,6 @@ class DOOMERCATPlugin:
                         gamma = self._hom.north_gamma(lon, lat)
                         proj_str += " +gamma=%.8f" % (gamma,)
                     else:
-                        palette = QPalette()
-                        palette.setColor(QPalette.Background,
-                                         QColor(240, 128, 128))
-                        palette.setColor(QPalette.Base,
-                                         QColor(240, 128, 128))
-                        palette.setColor(QPalette.Text,
-                                         QColor(0, 0, 255))
                         self.leCentralPoint.setStyleSheet(
                             "QLineEdit { background : rgb(240,128,128) };"
                         )
@@ -644,7 +637,6 @@ class DOOMERCATPlugin:
                 proj_str += " +no_rot +no_off"
 
             if reset_palette:
-                self.leCentralPoint.setPalette(QPalette())
                 self.leCentralPoint.setStyleSheet("")
 
             self.leResult.setText(proj_str)
