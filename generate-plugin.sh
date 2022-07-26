@@ -90,7 +90,7 @@ cp qgis-plugin/__init__.py qgis-plugin/doomercatplugin.py \
    qgis-plugin/metadata.txt qgis-plugin/dialogs.py qgis-plugin/worker.py \
    qgis-plugin/graph.py qgis-plugin/qgisproject.py qgis-plugin/LICENSE \
    qgis-plugin/README.md qgis-plugin/process.py qgis-plugin/messages.py \
-   qgis-plugin/moduleloader.py \
+   qgis-plugin/moduleloader.py qgis-plugin/pointvalidator.py\
    build/doomercat_plugin
 
 # Generate the resources.py:

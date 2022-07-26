@@ -33,6 +33,7 @@ from .qgisproject import project
 from .help import help_html
 from .messages import info
 from .moduleloader import HAS_CPPEXTENSIONS, _ellipsoids
+from .pointvalidator import CoordinateValidator
 
 import numpy as np
 import os.path
@@ -96,6 +97,9 @@ class DOOMERCATPlugin:
         self.leResult = QLineEdit(self.dialog)
         self.leResult.setReadOnly(True)
         self.leResult.setEnabled(False)
+        self.leCentralPoint = QLineEdit(self.dialog)
+        self.leCentralPoint.setEnabled(False)
+        self.leCentralPoint.setValidator(CoordinateValidator())
         self.sbExponent= QDoubleSpinBox(self.dialog)
         self.sbExponent.setMinimum(2.0)
         self.cb_k0 = QCheckBox(self.dialog)
@@ -245,13 +249,18 @@ class DOOMERCATPlugin:
         dialog_layout.addWidget(QWidget(self.dialog), row, 0, 4, 1)
         dialog_layout.setRowStretch(row, 1)
 
-        # Output of projection strings:
         row += 1
         dialog_layout.addWidget(QLabel("Orient North"), row, 0, 1, 1)
         dialog_layout.addWidget(self.cbOrientCenter, row, 1, 1, 1)
         dialog_layout.addWidget(self.cbOrientNorth, row, 2, 1, 1)
         self.cbOrientNorth.stateChanged \
                           .connect(self.orientNorthCheckboxClicked)
+        row += 1
+        label_at_point = QLabel("at point (lon,lat)")
+        label_at_point.setAlignment(Qt.AlignRight)
+        dialog_layout.addWidget(label_at_point, row, 0, 1, 1)
+        dialog_layout.addWidget(self.leCentralPoint, row, 1, 1, 2)
+        # Output of projection strings:
         row += 1
         dialog_layout.addWidget(QLabel("Projection string:", self.dialog),
                                 row, 0, 1, 3)
@@ -275,6 +284,8 @@ class DOOMERCATPlugin:
 
         self.tabLayout.currentChanged.connect(self.checkOptimizeEnable)
         self.iface.mapCanvas().layersChanged.connect(self.checkOptimizeEnable)
+        self.cbOrientCenter.currentIndexChanged.connect(self.orientNorthChanged)
+        self.leCentralPoint.textEdited.connect(self.centralPointEdited)
 
         dialog_layout.addWidget(self.btnOptimize, row, 0, 1, 1)
         dialog_layout.addWidget(self.btnApply, row, 3, 1, 1)
@@ -578,13 +589,13 @@ class DOOMERCATPlugin:
         # Save the result:
         self._hom = hom
 
-        self.adjustProjStr()
+        self.adjustProjStr(warn_user_error=True)
 
         # Enable the save button:
         self.btnSave.setEnabled(True)
 
 
-    def adjustProjStr(self):
+    def adjustProjStr(self, warn_user_error=False):
         """
         Computes the Proj string according to all selected options
         and the result of an optimization.
@@ -596,6 +607,7 @@ class DOOMERCATPlugin:
             # Compose the proj str:
             proj_str = self._hom.proj4_string()
 
+            reset_palette = True
             if self.cbOrientNorth.checkState() == Qt.Checked:
                 # Choose a point where to orient North=Up:
                 current = self.cbOrientCenter.currentText()
@@ -608,9 +620,32 @@ class DOOMERCATPlugin:
                                            enclosing_sphere_center())
                     proj_str += " +gamma=%.8f" % (gamma,)
                 elif current == _ORIENT_NORTH_CUSTOM:
-                    proj_str += " +gamma=TODO"
+                    # Use the center given by the user:
+                    text = self.leCentralPoint.text()
+                    validator = self.leCentralPoint.validator()
+                    if validator.validate(text, 0)[0] == QValidator.Acceptable:
+                        lon,lat = [float(x) for x in
+                                   text.split(',')]
+                        gamma = self._hom.north_gamma(lon, lat)
+                        proj_str += " +gamma=%.8f" % (gamma,)
+                    else:
+                        palette = QPalette()
+                        palette.setColor(QPalette.Background,
+                                         QColor(240, 128, 128))
+                        palette.setColor(QPalette.Base,
+                                         QColor(240, 128, 128))
+                        palette.setColor(QPalette.Text,
+                                         QColor(0, 0, 255))
+                        self.leCentralPoint.setStyleSheet(
+                            "QLineEdit { background : rgb(240,128,128) };"
+                        )
+                        reset_palette = False
             else:
                 proj_str += " +no_rot +no_off"
+
+            if reset_palette:
+                self.leCentralPoint.setPalette(QPalette())
+                self.leCentralPoint.setStyleSheet("")
 
             self.leResult.setText(proj_str)
             self.leResult.setEnabled(True)
@@ -826,6 +861,30 @@ class DOOMERCATPlugin:
         """
         Clicked when the '+no_rot +no_off' argument should be added (or
         removed).
+        """
+        if self._hom is not None:
+            self.adjustProjStr()
+
+    def orientNorthChanged(self, idx):
+        """
+        Called when the combo box defining the point of true northing
+        changes selection.
+        """
+        if idx == 2:
+            # The point picker line edit should be shown:
+            self.leCentralPoint.setEnabled(True)
+        else:
+            # The point picker line edit should not be shown.
+            self.leCentralPoint.setEnabled(False)
+
+        if self._hom is not None:
+            self.adjustProjStr()
+
+
+    def centralPointEdited(self, text):
+        """
+        This slot is called when the text of the self.leCentralPoint
+        line edit is edited by the user.
         """
         if self._hom is not None:
             self.adjustProjStr()
