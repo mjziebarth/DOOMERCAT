@@ -109,7 +109,7 @@ def _ks(A,B,u,e,phi,lmbd,lmbd0):
 
 
 
-def f_d_k_cse(lmbd,phi,hrel,phi0,lmbdc,alphac,k0,e,noJ=False):
+def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
 
     if np.abs(alphac) >= np.deg2rad((90-1/3600)):
         alphac = np.deg2rad((90-1/3600))*np.sign(alphac)
@@ -133,7 +133,7 @@ def f_d_k_cse(lmbd,phi,hrel,phi0,lmbdc,alphac,k0,e,noJ=False):
     ks = _ks(A,B,u,e,phi,lmbd,lmbd0)
 
     # Correct by the local scale:
-    ks -= hrel
+    ks /= a_h_rel
 
     if noJ:
         return ks
@@ -249,9 +249,16 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
     wdata /= wdata.sum()
 
     # Compute the relative height:
-    hrel = h / a
+    e2 = 2*f - f**2
+    N = 1.0 / np.sqrt(1.0 - e2*np.sin(lat)**2)
+    x = (N+h)*np.cos(lat)
+    z = ((1.0-e2)*N + h) * np.sin(lat)
+    A = z / (x*(1.0-f))
+    r = np.sqrt(x**2 + z**2)
+    re = np.sqrt(1.0 - e2 * A**2 / (1.0 + A**2))
+    a_h_rel = r / re
 
-    e = np.sqrt(2*f-f**2)
+    e = np.sqrt(e2)
 
     p = np.array([phi0,lmbdc,alphac,k0])
 
@@ -305,7 +312,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
     for i in range(Niter):
 
         if pnorm != 0 or not is_p2opt:
-            fk,J = f_d_k_cse(lon,lat,hrel,p[0],p[1],p[2],p[3],e)
+            fk,J = f_d_k_cse(lon,lat,a_h_rel,p[0],p[1],p[2],p[3],e)
         else:
             X0 = (_Rz(p[1]) @ _Ry(p[0]) @ _Rx(p[2]-np.pi/2)).T @ X
             Z0 = np.abs(X0[2])
@@ -321,7 +328,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
             else:
                 I_batch = np.arange(Z0.size)
 
-            fk = f_d_k_cse(lon[I_batch],lat[I_batch],hrel[I_batch],p[0],p[1],
+            fk = f_d_k_cse(lon[I_batch],lat[I_batch],a_h_rel[I_batch],p[0],p[1],
                            p[2],p[3],e,noJ = True)
 
 
@@ -330,7 +337,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
             res = np.abs(fk-1)
             iresmax = np.argmax(res)
             fk,J = f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
-                             hrel[I_batch][iresmax],p[0],p[1],p[2],p[3],e)
+                             a_h_rel[I_batch][iresmax],p[0],p[1],p[2],p[3],e)
             J.shape = (1,4)
 
 
@@ -415,7 +422,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
                 for k in range(x.size):
                     neop[j,k] = confine(p-x[k]*al*neodp[j])
 
-                    neofk = f_d_k_cse(lon,lat,hrel,neop[j,k,0],neop[j,k,1],
+                    neofk = f_d_k_cse(lon,lat,a_h_rel,neop[j,k,0],neop[j,k,1],
                                       neop[j,k,2],neop[j,k,3],e,noJ=True)
 
                     if pnorm == 0:

@@ -41,7 +41,7 @@ template<>
 struct data_entry_t<true,true> {
 	double lambda;
 	double phi;
-	double hrel;
+	double kdest;
 	double w;
 };
 
@@ -49,7 +49,7 @@ template<>
 struct data_entry_t<true,false> {
 	double lambda;
 	double phi;
-	double hrel;
+	double kdest;
 };
 
 template<>
@@ -110,11 +110,11 @@ protected:
 class WeightedDataSetWithHeight : public DataSet<true,true> {
 public:
 	WeightedDataSetWithHeight(const size_t N, const double* lon,
-	                          const double* lat, const double* hrel,
+	                          const double* lat, const double* kdest,
 	                          const double* w, double a, double f);
 
 	double w(size_t i) const;
-	double hrel(size_t i) const;
+	double kdest(size_t i) const;
 };
 
 class DataSetWithHeight : public DataSet<true,false> {
@@ -126,7 +126,7 @@ public:
 		return 1.0;
 	};
 
-	double hrel(size_t i) const;
+	double kdest(size_t i) const;
 };
 
 class WeightedDataSet : public DataSet<false,true> {
@@ -136,8 +136,8 @@ public:
 
 	double w(size_t i) const;
 
-	constexpr double hrel(size_t i) const {
-		return 0.0;
+	constexpr double kdest(size_t i) const {
+		return 1.0;
 	};
 };
 
@@ -149,8 +149,8 @@ public:
 		return 1.0;
 	};
 
-	constexpr double hrel(size_t i) const {
-		return 0.0;
+	constexpr double kdest(size_t i) const {
+		return 1.0;
 	};
 };
 
