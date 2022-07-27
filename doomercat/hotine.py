@@ -220,7 +220,10 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         f_dk0 = x24*x30*x44*(A*x55*x7 - x28 - x29)
 
 
-        J = np.stack([f_dphi0,f_dlmbdc,f_dalphac,f_dk0]).T
+        J = np.stack([f_dphi0/a_h_rel,
+                      f_dlmbdc/a_h_rel,
+                      f_dalphac/a_h_rel,
+                      f_dk0/a_h_rel]).T
 
         return (ks,J)
 
