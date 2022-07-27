@@ -400,8 +400,12 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
             JTJ = (J.T*w)@J
             D = np.diag(np.diag(JTJ))
             L = np.tril(JTJ)
-            M = 1/(2-o)*(D/o+L)@np.linalg.inv(D/o)@(D/o+L).T
-            PJi = np.linalg.inv(M)
+            try:
+                M = 1/(2-o)*(D/o+L)@np.linalg.solve(D/o, (D/o+L).T)
+                PJi = np.linalg.inv(M)
+            except np.linalg.LinAlgError:
+                error_flag = "LinAlgError"
+                break
 
             S33 = np.zeros((x.size,x.size))
             neop = np.zeros((x.size,x.size,4))
