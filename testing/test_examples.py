@@ -1,4 +1,4 @@
-# Test code for general imports of the DOOMERCAT package.
+# Test code for some optimization examples.
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
@@ -19,20 +19,33 @@
 
 from doomercat import HotineObliqueMercator
 import numpy as np
+import json
 
 
-def test_basic_setup():
+def read_geojson(filename):
     """
-    Dummy method to test the functionality of DOOMERCAT when not all
-    optional packages are installed (e.g. pyproj).
+    Reads places from a geojson.
     """
-    lon = np.array([15, 29, 31,  18, 23])
-    lat = np.array([7, 13, 13.5, 9, 10])
+    with open(filename,'r') as f:
+        geojson = json.load(f)
+
+    lola = np.array([f["geometry"]['coordinates'] for f in geojson["features"]])
+
+    return lola[:,0], lola[:,1]
+
+
+def test_chile_places():
+    """
+    Example of populated places in Chile with more then 10000 inhabitants.
+    Data taken from OSM export (HOT Export Tool), see data/chile/README.txt,
+    and subselected in QGIS.
+    """
+    lon, lat = read_geojson('data/chile/Chile-cities-select.geojson')
 
     HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - 11.73733039) < 1e-6
-    assert abs(HOM.lonc()  - 26.70254348) < 1e-6
-    assert abs(HOM.alpha() - 70.67908827) < 1e-6
-    assert abs(HOM.k0()    - 0.99997646) < 1e-6
+    assert abs(HOM.lat_0() - (-22.74393664)) < 1e-6
+    assert abs(HOM.lonc()  - (-70.55450760)) < 1e-6
+    assert abs(HOM.alpha() - (4.52169941)) < 1e-6
+    assert abs(HOM.k0()    - (0.99997618)) < 1e-6

@@ -17,7 +17,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-from doomercat import LabordeObliqueMercator
+from doomercat import HotineObliqueMercator
 import pytest
 
 def test_laborde_oblique_mercator_ellipsoid_signature():
@@ -28,27 +28,28 @@ def test_laborde_oblique_mercator_ellipsoid_signature():
 
     # Test the predefined ellipsoids:
     for ellipsoid in ('WGS84','IERS2003','GRS80'):
-        LOM = LabordeObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
-                                     ellipsoid='WGS84')
+        HOM = HotineObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
+                                    ellipsoid='WGS84')
 
     # Test a custom ellipsoid:
-    LOM = LabordeObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
-                                     a=6400.0, f=1.0/300.)
+    HOM = HotineObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
+                                a=6400.0, f=1.0/300.)
 
     # Things that should fail:
     with pytest.raises(RuntimeError):
-        LOM = LabordeObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
-                                     ellipsoid='WGS84',
-                                     a=6400.0, f=1.0/300.)
+        HOM = HotineObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
+                                    ellipsoid='WGS84',
+                                    a=6400.0, f=1.0/300.)
 
     with pytest.raises(RuntimeError):
-        LOM = LabordeObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
-                                     a=6400.0)
+        HOM = HotineObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
+                                    a=6400.0)
 
     with pytest.raises(RuntimeError):
-        LOM = LabordeObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
-                                     f=1.0/300.)
+        HOM = HotineObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
+                                    f=1.0/300.)
 
     with pytest.raises(AssertionError):
-        LOM = LabordeObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
-                                     ellipsoid='garbage')
+        HOM = HotineObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
+                                    ellipsoid='garbage')
+

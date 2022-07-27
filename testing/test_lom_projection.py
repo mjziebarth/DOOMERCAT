@@ -21,39 +21,36 @@
 import numpy as np
 import pytest
 
-from doomercat import LabordeObliqueMercator
+from doomercat import HotineObliqueMercator
 from pyproj import Proj
 
-def test_project_uvk():
-	"""
-	Test the LOMBase._project_to_uvk() method.
-	"""
-	# Create some test data:
-	np.random.seed(1793)
-	lon = 360.0 * np.random.random(100)
-	lat = 180.0 * np.random.random(100) - 90.0
+def test_project_uv():
+    """
+    Test the LOMBase._project_to_uvk() method.
+    """
+    # Create some test data:
+    np.random.seed(1793)
+    lon = 360.0 * np.random.random(100)
+    lat = 180.0 * np.random.random(100) - 90.0
 
-	# Create test projections:
-	LOM1 = LabordeObliqueMercator(lonc=73.0, lat_0 = 23.3, alpha=28.,
-	                              k0=0.9988)
-	proj1 = Proj("+proj=omerc +lonc=73.0 +lat_0=23.3 +alpha=28.0 "
-	             "+k_0=0.9988 +ellps=WGS84 +no_off +no_rot +datum=WGS84")
-	LOM3 = LabordeObliqueMercator(lonc=-5.7, lat_0 = -73.3, alpha=89.0,
-	                              k0=0.8)
-	proj3 = Proj("+proj=omerc +lonc=-5.7 +lat_0=-73.3 +alpha=89.0 "
-	             "+k_0=0.8 +ellps=WGS84 +no_off +no_rot +datum=WGS84")
-	LOM2 = LabordeObliqueMercator(lonc=180., lat_0 = 1.0, alpha=1.0,
-	                              k0=0.98)
-	proj2 = Proj("+proj=omerc +lonc=180.0 +lat_0=1.0 +alpha=1.0 "
-	             "+k_0=0.98 +ellps=WGS84 +no_off +no_rot +datum=WGS84")
+    # Create test projections:
+    HOM1 = HotineObliqueMercator(lonc=73.0, lat_0 = 23.3, alpha=28.,
+                                 k0=0.9988)
+    proj1 = Proj("+proj=omerc +lonc=73.0 +lat_0=23.3 +alpha=28.0 "
+                 "+k_0=0.9988 +a=1.0 +b=0.9966471893352525")
+    HOM3 = HotineObliqueMercator(lonc=-5.7, lat_0 = -73.3, alpha=89.0,
+                                 k0=0.8)
+    proj3 = Proj("+proj=omerc +lonc=-5.7 +lat_0=-73.3 +alpha=89.0 "
+                 "+k_0=0.8 +a=1.0 +b=0.9966471893352525")
+    HOM2 = HotineObliqueMercator(lonc=180., lat_0 = 1.0, alpha=1.0,
+                                 k0=0.98)
+    proj2 = Proj("+proj=omerc +lonc=180.0 +lat_0=1.0 +alpha=1.0 "
+                 "+k_0=0.98 +a=1.0 +b=0.9966471893352525")
 
-	# Now for each of the test projections, project the
-	# data points and compare against the proj result:
-	i = 0
-	for LOM,proj in zip([LOM1, LOM2, LOM3],[proj1, proj2, proj3]):
-		uc = LOM._constants[-1]
-		i += 1
-		ul,vl = LOM._project_to_uvk(lon,lat)
-		up,vp = proj(lon, lat)
-		np.testing.assert_allclose(ul+uc,up)
-		np.testing.assert_allclose(vl,vp)
+    # Now for each of the test projections, project the
+    # data points and compare against the proj result:
+    for HOM,proj in zip([HOM1, HOM2, HOM3],[proj1, proj2, proj3]):
+        ul,vl = HOM.project(lon,lat)
+        up,vp = proj(lon, lat)
+        np.testing.assert_allclose(ul,up)
+        np.testing.assert_allclose(vl,vp)

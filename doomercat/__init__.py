@@ -17,7 +17,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-from .lom import LabordeObliqueMercator
+from .hom import HotineObliqueMercator
 from .shapefile import points_from_shapefile
-from .optimize import levenberg_marquardt
+from .cppextensions import bfgs_hotine
 from .lomerror import OptimizeError
