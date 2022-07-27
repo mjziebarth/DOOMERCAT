@@ -155,11 +155,10 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 	/* Preconditioning for gradient descent: */
 	int angle_steps = 20;
 	int k0_steps = 0;
+	static_assert(P==4, "Adjust preconditioner.");
 	auto preconditioner = [&](std::array<double,P>& grad)
 	   -> bool
 	{
-		static_assert(P==4, "Adjust preconditioner.");
-
 		if (angle_steps > 0){
 			grad[3] = 0.0;
 			--angle_steps;
@@ -379,10 +378,10 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
 	/* Preconditioning for gradient descent: */
 	int angle_steps = 20;
 	int k0_steps = 0;
+	static_assert(P==4, "Adjust preconditioner.");
 	auto preconditioner = [&](std::array<double,P>& grad)
 	   -> bool
 	{
-		static_assert(P==4, "Adjust preconditioner.");
 		if (angle_steps > 0){
 			grad[3] = 0.0;
 			--angle_steps;
