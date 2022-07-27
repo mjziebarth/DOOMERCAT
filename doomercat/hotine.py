@@ -220,7 +220,10 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         f_dk0 = x24*x30*x44*(A*x55*x7 - x28 - x29)
 
 
-        J = np.stack([f_dphi0,f_dlmbdc,f_dalphac,f_dk0]).T
+        J = np.stack([f_dphi0/a_h_rel,
+                      f_dlmbdc/a_h_rel,
+                      f_dalphac/a_h_rel,
+                      f_dk0/a_h_rel]).T
 
         return (ks,J)
 
@@ -248,15 +251,15 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
     # normalize data weights to sum(wdata) = number of data points
     wdata /= wdata.sum()
 
-    # Compute the relative height:
+    # Compute the local destination scale factor:
     e2 = 2*f - f**2
-    N = 1.0 / np.sqrt(1.0 - e2*np.sin(lat)**2)
+    N = a / np.sqrt(1.0 - e2*np.sin(lat)**2)
     x = (N+h)*np.cos(lat)
     z = ((1.0-e2)*N + h) * np.sin(lat)
     A = z / (x*(1.0-f))
     r = np.sqrt(x**2 + z**2)
     re = np.sqrt(1.0 - e2 * A**2 / (1.0 + A**2))
-    a_h_rel = r / re
+    a_h_rel = r / (a*re)
 
     e = np.sqrt(e2)
 
