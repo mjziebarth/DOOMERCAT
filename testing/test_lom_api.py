@@ -52,3 +52,4 @@ def test_laborde_oblique_mercator_ellipsoid_signature():
     with pytest.raises(AssertionError):
         HOM = HotineObliqueMercator(lonc=20, lat_0=20, alpha=20, k0=1.0,
                                     ellipsoid='garbage')
+

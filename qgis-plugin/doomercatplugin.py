@@ -928,3 +928,4 @@ class DOOMERCATPlugin:
         self.action.setIcon(QIcon(self._icon_path+".png"))
         self.svg_widget.load(self._icon_path+".svg")
         self.svg_widget.renderer().setAspectRatioMode(Qt.KeepAspectRatio)
+
