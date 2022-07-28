@@ -27,8 +27,10 @@ jobs:
     - name: Build plugin
       run: |
         bash generate-plugin.sh --portable
+        mkdir plugin_extract
+        unzip build/DOOMERCAT.zip -d plugin_extract
     - name: Upload plugin
       uses: actions/upload-artifact@v3
       with:
-        name: doomercat-plugin
-        path: build/DOOMERCAT.zip
+        name: doomercat-plugin-${{ github.ref }}
+        path: plugin_extract
