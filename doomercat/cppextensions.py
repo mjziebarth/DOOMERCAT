@@ -287,7 +287,7 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
             c_double(k_0), c_double(f),
             k.ctypes.data_as(POINTER(c_double)))
 
-    return k
+    return k.reshape(lon.shape)
 
 
 def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
