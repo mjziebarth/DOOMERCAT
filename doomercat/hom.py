@@ -78,7 +78,6 @@ class HotineObliqueMercator:
     ellipsoid : str, optional
        Name of the reference ellipsoid. Must be one of 'WGS84' and
        'GRS80'. Can be overriden by using the **a** and **f** parameters.
-                        Default: 'WGS84'
     f : float, optional
        Flattening of the reference rotational ellipsoid.
     a : float, optional
