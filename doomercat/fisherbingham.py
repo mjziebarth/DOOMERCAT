@@ -21,7 +21,7 @@
 # limitations under the Licence.
 
 import numpy as np
-from .euclid import _Ry, _Rz
+from .geometry import _Ry, _Rz
 
 #
 # Main code to compute the Fisher-Bingham central axes
