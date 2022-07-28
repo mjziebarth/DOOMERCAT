@@ -22,7 +22,7 @@ import numpy as np
 from math import atan2, degrees, isinf
 from .defs import _ellipsoids
 from .initial import initial_parameters
-from .enclosingsphere import BoundingSphere
+from .enclosingsphere import bounding_sphere
 from .hotineproject import hotine_project_uv
 from .hotine import grad
 from .geometry import desired_scale_factor
@@ -254,7 +254,7 @@ class HotineObliqueMercator:
             # Save the central point in terms of the enclosing
             # sphere:
             if compute_enclosing_sphere:
-                bscenter = BoundingSphere(lon, lat, a, f)
+                bscenter = bounding_sphere(lon, lat, a, f)
             else:
                 bscenter = None
 
