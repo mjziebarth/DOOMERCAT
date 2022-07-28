@@ -23,7 +23,7 @@
 import numpy as np
 from math import asin, degrees, sqrt, isinf, isnan
 from .fisherbingham import fisher_bingham_mom, fisher_bingham_angles
-from .euclid import _lola2xyz, _Rx, _Ry, _Rz
+from .geometry import _lola2xyz, _Rx, _Ry, _Rz
 
 
 

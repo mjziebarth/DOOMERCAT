@@ -21,3 +21,4 @@ from .hom import HotineObliqueMercator
 from .shapefile import points_from_shapefile
 from .cppextensions import bfgs_hotine
 from .lomerror import OptimizeError
+from .geometry import desired_scale_factor

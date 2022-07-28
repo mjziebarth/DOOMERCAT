@@ -23,7 +23,7 @@
 import numpy as np
 import sys
 from math import degrees
-from .euclid import _lola2xyz, _Rx, _Ry, _Rz
+from .geometry import _lola2xyz, _Rx, _Ry, _Rz
 from .initial import initial_k0
 
 

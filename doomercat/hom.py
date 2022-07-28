@@ -25,6 +25,7 @@ from .initial import initial_parameters
 from .enclosingsphere import BoundingSphere
 from .hotineproject import hotine_project_uv
 from .hotine import grad
+from .geometry import desired_scale_factor
 
 
 class HotineObliqueMercator:
@@ -454,7 +455,7 @@ class HotineObliqueMercator:
         return angle - 90.0
 
 
-    def distortion(self, lon, lat):
+    def distortion(self, lon, lat, h=None):
         """
         Calculate distortion of the oblique Mercator projection
         at given geographical coordinates.
@@ -465,8 +466,13 @@ class HotineObliqueMercator:
         doi: 10.3133/pp1396
         """
         self._load_backend()
-        return self._compute_k_hotine(lon, lat, self.lonc, self._lat_0,
-                                      self._alpha, self._k0, self._f)
+        # The Hotine k, a citizen of the ellipsoid:
+        k = self._compute_k_hotine(lon, lat, self.lonc, self._lat_0,
+                                   self._alpha, self._k0, self._f)
+        # Advancing it to height:
+        if h is not None:
+            k /= desired_scale_factor(h, lat, self._a, self._f)
+        return k - 1.0
 
 
     def enclosing_sphere_center(self):
