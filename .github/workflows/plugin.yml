@@ -32,5 +32,5 @@ jobs:
     - name: Upload plugin
       uses: actions/upload-artifact@v3
       with:
-        name: doomercat-plugin-${{ github.ref }}
+        name: doomercat-plugin-${{ github.ref_name }}
         path: plugin_extract
