@@ -21,7 +21,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo apt-get install g++-mingw-w64-x86-64
+        sudo apt-get install g++-mingw-w64-x86-64 pyqt5-dev-tools
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     - name: Build plugin
