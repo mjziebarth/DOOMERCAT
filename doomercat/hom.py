@@ -20,6 +20,7 @@
 
 import numpy as np
 from math import atan2, degrees, isinf
+from typing import Optional
 from .defs import _ellipsoids
 from .initial import initial_parameters
 from .enclosingsphere import bounding_sphere
@@ -29,72 +30,74 @@ from .geometry import desired_scale_factor
 
 
 class HotineObliqueMercator:
-    """
-    A Hotine oblique Mercator projection (HOM) optimized for a
+    """A Hotine oblique Mercator projection (HOM) optimized for a
     geographical data set. The projection's definition follows
     Snyder (1987).
 
-    Call signatures:
+    The typical call signature to optimize the HOM for a set of points:
 
-    (1) Optimize the HOM for a set of points:
+    Parameters
+    ----------
+    lon : array_like
+        Longitudes of the data set.
+    lat : array_like
+        Latitudes of the data set.
+    h : array_like, optional
+        Elevations of the data points.
+    weight : array_like, optional
+       Multiplicative weights assigned to the data points in the cost
+       function. Need to be positive real weights.
+    pnorm : float, optional
+       Power by which scale factors are weighted in the cost function.
+       Let :math:`k_i` be the local scale factor, corrected for height,
+       at the i'th residual between projected and ellipsoidal space.
+       Then the sum
 
-    HotineObliqueMercator(lon, lat, h=None, weight=None, pnorm=2, k0_ap=0.98,
-                          sigma_k0=0.02, ellipsoid='WGS84', f=None, a=None,
-                          Nmax=200)
+       .. math:: \sum_i |k_i - 1|^p
 
-       lon, lat       : Iterable sets of longitude and latitude coordinates
-                        of the data set.
-       h              : Optional iterable set of heights of the data points.
-       weight         : Optional iterable set of multiplicative weights assigned
-                        to the data points in the cost function. Need to be
-                        positive real weights.
-                        Default: None
-       pnorm          : Power by which residuals are weighted in the cost
-                        function that is minimized. Let dx_i be the i'th
-                        residual between projected and ellipsoidal space.
-                        Then the sum
-                           sum(dx_i ** pnorm)
-                        is minimized to obtain an optimal projection.
-                        Default: 2
-       k0_ap          : The k_0 threshold beyond which smaller k_0
-                        are constrained using a quadratic potential.
-                        This constraint helps preventing the solver
-                        from approaching small-circle solutions.
-                        Setting k0_ap to zero removes the constraint.
-                        Default: 0.95
-       sigma_k0       : The scale of the quadratic constrains for
-                        small k_0, i.e. the standard deviation of
-                        the quadratic branch of the k_0 potential.
-                        Default: 0.02
-       ellipsoid      : Name of the reference ellipsoid. Must be one of
-                        'WGS84' and 'GRS80'. Can be overriden by using the
-                        a and f parameters.
+       is minimized to obtain an optimal projection. Can be :math:`\infty`
+       to use the infinity (sup) norm.
+    k0_ap : float,optional
+       The threshold beyond which smaller global scale factors
+       :math:`k_0` are constrained using a quadratic potential.
+       This constraint helps preventing the solver from approaching
+       small-circle solutions. Setting **k0_ap** to zero removes
+       the constraint.
+    sigma_k0 : float, optional
+       The scale of the quadratic constrains for small :math:`k_0`,
+       that is, the standard deviation of the quadratic branch of the
+       :math:`k_0` potential.
+    ellipsoid : str, optional
+       Name of the reference ellipsoid. Must be one of 'WGS84' and
+       'GRS80'. Can be overriden by using the **a** and **f** parameters.
                         Default: 'WGS84'
-       f              : If not None, the flattening of the reference rotational
-                        ellipsoid.
-                        Default: None
-       a              : If not None, the large axis of of the reference
-                        rotational ellipsoid. Only used for projection,
-                        irrelevant for the optimization.
-                        Default: None
-       Nmax           : Maximum number of iterations of the BFGS algorithm.
-                        Default: 200
-       cyl_lon0       : Initial longitude of the cylinder axis when starting
-                        the optimization.
-                        Default: 0.0
-       cyl_lat0       : Initial latitude of the cylinder axis.
-                        Default: 10.0
+    f : float, optional
+       Flattening of the reference rotational ellipsoid.
+    a : float, optional
+       The large half-axis of of the reference rotational
+       ellipsoid.
+    Nmax : int, optional
+       Maximum number of iterations of the optimization algorithms.
+    backend : str, optional
+       The optimization backend. Either ``'Python'``, a pure Python and
+       NumPy implementation using the Levenberg-Marquard algorithm (or
+       Adam in case that :math:`p=\infty`), or ``'C++'``, a compiled backend
+       using the BFGS algorithm.
+    fisher_bingham_use_weight : bool, optional
+       If `True`, use data weights when computing the starting value of
+       the optimization using the Fisher-Bingham distribution.
+    compute_enclosing_sphere : bool, optional
+       If `True`, compute the geographic center of the enclosing sphere,
+       which can be used to set north at its center.
+    bfgs_epsilon : float, optional
+       Tolerance parameter for the BFGS exit condition.
 
 
-    (2) Give the parameters of the LOM to allow projecting:
+    The other parameters can be used to use the functionality of the class
+    for given projection parameters:
 
-    HotineObliqueMercator(lonc=lonc, lat_0=lat0, alpha=alpha, k0=k0,
-                          ellipsoid='WGS84', a=None, f=None)
-        lonc   : Longitude of the central point.
-        lat_0  : Latitude of the central point.
-        alpha  : Azimuth of the central line at the central point.
-        k0     : Scale factor at the central point.
-
+    Parameters
+    ----------
 
 
     Methods:
@@ -107,28 +110,33 @@ class HotineObliqueMercator:
        inverse()
        distortion()
 
-    Note: This computation follows the equations given by
-    Snyder (1987) which are derived for the Hotine oblique
-    Mercator projection. For practical purposes, this can
-    often be equivalent to the Laborde oblique Mercator
-    (EPSG Guidance Notes 7-2, 2019; Laborde, 1928; Roggero, 2009).
+    Notes
+    -----
+    This computation follows the equations given by Snyder [1]_
+    which are derived for the Hotine oblique Mercator projection.
+    For practical purposes, this can often be equivalent to the
+    Laborde oblique Mercator [2]_ [3]_ [4]_.
     In any case, the relevant implementation of the oblique
     Mercator projection in PROJ follows the Hotine oblique
     Mercator equations by Snyder (1987). Hence, the distortion
     as returned by this method represents most practical
     use cases.
 
-    References:
-    Snyder, J. P. (1987). Map projections: A working manual.
-    U.S. Geological Survey Professional Paper (1395).
-    doi: 10.3133/pp1396
+    References
+    ----------
+    .. [1] Snyder, J. P. (1987). Map projections: A working manual.
+       U.S. Geological Survey Professional Paper (1395).
+       doi: 10.3133/pp1396
 
-    Laborde, J. (1928). La nouvelle projection du Service Geographique
-    de Madagascar. Madagascar, Cahiers du Service geographique de Madagascar,
-    Tananarive 1:70
+    .. [2] Laborde, J. (1928). La nouvelle projection du Service
+       Geographique de Madagascar. Madagascar, Cahiers du Service
+       geographique de Madagascar, Tananarive 1:70
 
-    Roggero, M. (2009). Laborde projection in Madagascar cartography and its
-    recovery in WGS84 datum. Appl Geomat 1, 131. doi:10.1007/s12518-009-0010-4
+    .. [3] Roggero, M. (2009). Laborde projection in Madagascar
+       cartography and its recovery in WGS84 datum. Appl Geomat 1,
+       131. doi:10.1007/s12518-009-0010-4
+
+    .. [4] EPSG Guidance Notes 7-2.
     """
     def __init__(self, lon=None, lat=None, h=None, weight=None, pnorm=2,
                  k0_ap=0.98, sigma_k0=0.002, ellipsoid=None, f=None, a=None,
@@ -292,7 +300,7 @@ class HotineObliqueMercator:
         self._backend_loaded = False
 
 
-    def lonc(self):
+    def lonc(self) -> float:
         """
         Longitude of the projection's central point.
 
@@ -302,7 +310,7 @@ class HotineObliqueMercator:
         return self._lonc
 
 
-    def lat_0(self):
+    def lat_0(self) -> float:
         """
         Latitude of the projection's central point.
 
@@ -312,7 +320,7 @@ class HotineObliqueMercator:
         return self._lat_0
 
 
-    def alpha(self):
+    def alpha(self) -> float:
         """
         Azimuth of projection's equator at central point (lonc,lat_0).
 
@@ -321,7 +329,7 @@ class HotineObliqueMercator:
         """
         return self._alpha
 
-    def k0(self):
+    def k0(self) -> float:
         """
         Scaling of the central line great circle compare to the ellipsoid.
 
@@ -331,7 +339,7 @@ class HotineObliqueMercator:
         return self._k0
 
 
-    def ellipsoid(self):
+    def ellipsoid(self) -> Optional[str]:
         """
         Name of the reference ellipsoid for this projection.
 
@@ -341,7 +349,7 @@ class HotineObliqueMercator:
         return self._ellipsoid
 
 
-    def a(self):
+    def a(self) -> float:
         """
         Length of the large half axis of the reference ellipsoid.
 
@@ -351,7 +359,7 @@ class HotineObliqueMercator:
         return self._a
 
 
-    def f(self):
+    def f(self) -> float:
         """
         Flattening of the reference ellipsoid.
 
@@ -361,7 +369,7 @@ class HotineObliqueMercator:
         return self._f
 
 
-    def proj4_string(self, orient_north=None):
+    def proj4_string(self, orient_north=None) -> str:
         """
         Return a projection string for use with PROJ/GDAL.
 
