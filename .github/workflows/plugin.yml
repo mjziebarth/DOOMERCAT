@@ -1,0 +1,36 @@
+name: DOOMERCAT QGIS Plugin
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        python-version: [3.9]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        sudo apt-get install g++-mingw-w64-x86-64 pyqt5-dev-tools
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Build plugin
+      run: |
+        bash generate-plugin.sh --portable
+        mkdir plugin_extract
+        unzip build/DOOMERCAT.zip -d plugin_extract
+    - name: Upload plugin
+      uses: actions/upload-artifact@v3
+      with:
+        name: doomercat-plugin-${{ github.ref_name }}
+        path: plugin_extract
