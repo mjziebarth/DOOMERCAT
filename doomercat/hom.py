@@ -17,6 +17,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
+"""The main class of DOOMERCAT, HotineObliqueMercator.
+
+This class bundles all the functionality of optimizing the
+Hotine oblique Mercator projection, setting north at a desired
+position, generating the PROJ string, projecting, and computing
+the distortion of the projection.
+"""
+
 
 import numpy as np
 from math import atan2, degrees, isinf
