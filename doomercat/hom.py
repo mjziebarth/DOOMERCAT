@@ -40,7 +40,7 @@ from .geometry import desired_scale_factor
 class HotineObliqueMercator:
     """A Hotine oblique Mercator projection (HOM) optimized for a
     geographical data set. The projection's definition follows
-    Snyder (1987).
+    Snyder (1987), variant B.
 
     The typical call signature to optimize the HOM for a set of points:
 
@@ -83,6 +83,18 @@ class HotineObliqueMercator:
     a : float, optional
        The large half-axis of of the reference rotational
        ellipsoid.
+    lonc0 : float, optional
+       Starting value for **lonc** parameter. If not given, will be
+       determined by Fisher-Bingham estimator.
+    lat_00 : float, optional
+       Starting value for **lat_0** parameter. If not given, will be
+       determined by Fisher-Bingham estimator.
+    alpha0 : float, optional
+       Starting value for **alpha** parameter. If not given, will be
+       determined by Fisher-Bingham estimator.
+    k00 : float, optional
+       Starting value for **k0** parameter. If not given, will be
+       determined by Fisher-Bingham estimator.
     Nmax : int, optional
        Maximum number of iterations of the optimization algorithms.
     backend : str, optional
@@ -101,28 +113,27 @@ class HotineObliqueMercator:
 
 
     The other parameters can be used to use the functionality of the class
-    for given projection parameters:
+    for given projection parameters. These two sets of parameters should be
+    used exclusively:
 
     Parameters
     ----------
+    lonc : float, optional
+       Longitude of central point.
+    lat_0 : float, optional
+       Latitude of the central point.
+    alpha : float, optional
+       Azimuth of the oblique equator at the central point.
+    k0 : float, optional
+       Global scale factor of the projection.
 
-
-    Methods:
-       lonc()
-       lat0()
-       azimuth()
-       k0()
-       ellipsoid()
-       project()
-       inverse()
-       distortion()
 
     Notes
     -----
-    This computation follows the equations given by Snyder [1]_
-    which are derived for the Hotine oblique Mercator projection.
-    For practical purposes, this can often be equivalent to the
-    Laborde oblique Mercator [2]_ [3]_ [4]_.
+    This computation follows the equations given by Snyder [1]_,
+    variant B, which are derived for the Hotine oblique Mercator
+    projection. For practical purposes, this can often be equivalent
+    to the Laborde oblique Mercator [2]_ [3]_ [4]_.
     In any case, the relevant implementation of the oblique
     Mercator projection in PROJ follows the Hotine oblique
     Mercator equations by Snyder (1987). Hence, the distortion
