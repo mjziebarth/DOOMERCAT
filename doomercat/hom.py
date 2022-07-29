@@ -28,7 +28,7 @@ the distortion of the projection.
 
 import numpy as np
 from math import atan2, degrees, isinf
-from typing import Optional
+from typing import Optional, Iterable
 from .defs import _ellipsoids
 from .initial import initial_parameters
 from .enclosingsphere import bounding_sphere
@@ -40,9 +40,12 @@ from .geometry import desired_scale_factor
 class HotineObliqueMercator:
     """A Hotine oblique Mercator projection (HOM) optimized for a
     geographical data set. The projection's definition follows
-    Snyder (1987), variant B.
+    Snyder [1]_, variant B.
 
-    The typical call signature to optimize the HOM for a set of points:
+    **Typical Call Signature**
+
+    The following parameters are used to optimize the HOM for
+    a set of points.
 
     Parameters
     ----------
@@ -51,7 +54,9 @@ class HotineObliqueMercator:
     lat : array_like
         Latitudes of the data set.
     h : array_like, optional
-        Elevations of the data points.
+        Elevations of the data points with respect to the reference
+        ellipsoid. If not given, zero elevation will be assumed for
+        each data point.
     weight : array_like, optional
        Multiplicative weights assigned to the data points in the cost
        function. Need to be positive real weights.
@@ -112,6 +117,8 @@ class HotineObliqueMercator:
        Tolerance parameter for the BFGS exit condition.
 
 
+    **Calling Without Optimization**
+
     The other parameters can be used to use the functionality of the class
     for given projection parameters. These two sets of parameters should be
     used exclusively:
@@ -156,13 +163,24 @@ class HotineObliqueMercator:
 
     .. [4] EPSG Guidance Notes 7-2.
     """
-    def __init__(self, lon=None, lat=None, h=None, weight=None, pnorm=2,
-                 k0_ap=0.98, sigma_k0=0.002, ellipsoid=None, f=None, a=None,
-                 lonc0=None, lat_00=None, alpha0=None, k00=None, lonc=None,
-                 lat_0=None, alpha=None, k0=None, Nmax=1000,
-                 proot=False, logger=None,
-                 backend='C++', fisher_bingham_use_weight=False,
-                 compute_enclosing_sphere=False, bfgs_epsilon=1e-3):
+    def __init__(self,
+                 lon: Optional[Iterable[float]] = None,
+                 lat: Optional[Iterable[float]] = None,
+                 h: Optional[Iterable[float]] = None,
+                 weight: Optional[Iterable[float]] = None,
+                 pnorm: int = 2, k0_ap: float = 0.98, sigma_k0: float =0.002,
+                 ellipsoid: Optional[str] = None, f: Optional[float] = None,
+                 a: Optional[float] = None, lonc0: Optional[float] = None,
+                 lat_00: Optional[float] = None,
+                 alpha0: Optional[float] = None,
+                 k00: Optional[float] = None, lonc: Optional[float] = None,
+                 lat_0: Optional[float] = None, alpha: Optional[float] = None,
+                 k0: Optional[float] = None, Nmax: int = 1000,
+                 proot: bool = False, logger: object = None,
+                 backend: str = 'C++',
+                 fisher_bingham_use_weight: bool = False,
+                 compute_enclosing_sphere: bool = False,
+                 bfgs_epsilon: float = 1e-3):
         # Initialization.
         # 1) Sanity checks:
         assert ellipsoid in _ellipsoids or ellipsoid is None
@@ -322,8 +340,9 @@ class HotineObliqueMercator:
         """
         Longitude of the projection's central point.
 
-        Returns:
-           Float
+        Returns
+        -------
+        float
         """
         return self._lonc
 
@@ -332,8 +351,9 @@ class HotineObliqueMercator:
         """
         Latitude of the projection's central point.
 
-        Returns:
-           Float
+        Returns
+        -------
+        float
         """
         return self._lat_0
 
@@ -342,8 +362,9 @@ class HotineObliqueMercator:
         """
         Azimuth of projection's equator at central point (lonc,lat_0).
 
-        Returns:
-           Float
+        Returns
+        -------
+        float
         """
         return self._alpha
 
@@ -351,8 +372,9 @@ class HotineObliqueMercator:
         """
         Scaling of the central line great circle compare to the ellipsoid.
 
-        Returns:
-           Float
+        Returns
+        -------
+        float
         """
         return self._k0
 
@@ -361,8 +383,9 @@ class HotineObliqueMercator:
         """
         Name of the reference ellipsoid for this projection.
 
-        Returns:
-           String
+        Returns
+        -------
+        str or ``None``
         """
         return self._ellipsoid
 
@@ -371,8 +394,9 @@ class HotineObliqueMercator:
         """
         Length of the large half axis of the reference ellipsoid.
 
-        Returns:
-           Float
+        Returns
+        -------
+        float
         """
         return self._a
 
@@ -381,8 +405,9 @@ class HotineObliqueMercator:
         """
         Flattening of the reference ellipsoid.
 
-        Returns:
-           Float
+        Returns
+        -------
+        float
         """
         return self._f
 
@@ -391,15 +416,11 @@ class HotineObliqueMercator:
         """
         Return a projection string for use with PROJ/GDAL.
 
-        Returns:
-           String
-
-        The projection string uses the 'omerc' projection.
-
-        Reference:
-        Snyder, J. P. (1987). Map projections: A working manual.
-        U.S. Geological Survey Professional Paper (1395).
-        doi: 10.3133/pp1396
+        Returns
+        -------
+        str
+            Projection string in (old-style) PROJ syntax
+            using the 'omerc' projection (see [1]_).
         """
         ellps = self.ellipsoid()
 
@@ -423,17 +444,36 @@ class HotineObliqueMercator:
         return projstr
 
 
-    def project(self, lon, lat, gamma=None):
+    def project(self, lon: Iterable[float], lat: Iterable[float],
+                gamma: Optional[float] = None) -> tuple[np.ndarray,np.ndarray]:
         """
         Project a geographical coordinate set.
 
-        Returns:
-           x, y : Coordinates in projected coordinate system.
+        Parameters
+        ----------
+        lon : array_like
+            Longitudes in degrees.
+        lat : array_like
+            Latitudes in degrees. Has to be same shape as ``lon``.
+        gamma : float, optional
+            Angle of rotation in the projected plane. If ``None``,
+            will be set to the projection's :math:`\\alpha`. The
+            method ``north_gamma`` can be used to compute a ``gamma``
+            such that at a point of choice points, the *y* direction
+            points north.
 
-        Reference:
-        Snyder, J. P. (1987). Map projections: A working manual.
-        U.S. Geological Survey Professional Paper (1395).
-        doi: 10.3133/pp1396
+        Returns
+        -------
+        x : np.ndarray
+            Projected *x* coordinates.
+        y : np.ndarray
+            Projected *y* coordinates.
+
+        Notes
+        -----
+        Uses the Hotine oblique Mercator equations as described by
+        Snyder [1]_. Can only be used if the compiled C++ backend
+        is available.
         """
         self._load_backend()
         if gamma is None:
@@ -446,10 +486,22 @@ class HotineObliqueMercator:
                       delta: float = 1e-7) -> float:
         """
         Compute, at a location, the local 'north azimuth', that is,
-        the clockwise angle from the y axis to the local north vector.
+        the clockwise angle from the *y* axis to the local north vector.
 
-        Returns:
-           azimuth : The local azimuth.
+        Parameters
+        ----------
+        lon : float
+            Longitude of the point in degrees.
+        lat : float
+            Latitude of the point in degrees.
+        delta : float, optional
+            Step width used for numerical estimation of the
+            coordinate gradient.
+
+        Returns
+        -------
+        azimuth : float
+           The local azimuth in degrees.
         """
         # Compute the local vectors in north direction:
         lon = float(lon)
@@ -469,9 +521,14 @@ class HotineObliqueMercator:
 
     def north_gamma(self, lon: float, lat: float) -> float:
         """
-        Compute the oblique Mercator rectification gamma of Snyder (1987)
-        so that the projected map points northwards in positive y direction
-        ("up") at the location specified by `lon` and `lat`.
+        Compute the oblique Mercator rectification gamma [1]_
+        so that the projected map points northwards in positive
+        *y* direction ("up") at the location specified by
+        ``lon`` and ``lat``.
+
+        Returns
+        -------
+        float
         """
         # Compute the north azimuth in u,v coordinates:
         angle: float = self.north_azimuth(lon, lat)
@@ -481,15 +538,33 @@ class HotineObliqueMercator:
         return angle - 90.0
 
 
-    def distortion(self, lon, lat, h=None):
+    def distortion(self, lon: Iterable[float], lat: Iterable[float],
+                   h: Optional[Iterable[float]] = None) -> np.ndarray:
         """
-        Calculate distortion of the oblique Mercator projection
-        at given geographical coordinates.
+        Distortion of the Hotine oblique Mercator projection [1]_.
 
-        Reference:
-        Snyder, J. P. (1987). Map projections: A working manual.
-        U.S. Geological Survey Professional Paper (1395).
-        doi: 10.3133/pp1396
+        Parameters
+        ----------
+        lon : array_like
+            Longitudes :math:`\lambda_i`, in degrees, at which the distortion
+            should be computed.
+        lat : array_like
+            Corresponding latitudes :math:`\phi_i` in degrees.
+        h : array_like, optional
+            Corresponding elevations :math:`h_i` with respect to the reference
+            ellipsoid in meters.
+
+        Returns
+        -------
+        np.ndarray
+            Distortion at the data points,
+
+            .. math:: \\frac{k(\lambda_i, \phi_i)}
+                            {k_\\mathrm{des}(h_i, \phi_i)} - 1,
+
+            where :math:`k_\\mathrm{dest}(h_i, \phi_i)` is the desired scale
+            factor at the location due to the local elevation with respect to
+            the reference ellipsoid.
         """
         self._load_backend()
         # The Hotine k, a citizen of the ellipsoid:
@@ -501,11 +576,17 @@ class HotineObliqueMercator:
         return k - 1.0
 
 
-    def enclosing_sphere_center(self):
+    def enclosing_sphere_center(self) -> Optional[tuple[float,float]]:
         """
-        Return, if computed, the center of the sphere enclosing
-        the data on the ellipsoid - projected to the ellipsoid's
-        surface.
+        The center of the sphere enclosing the data on the ellipsoid.
+
+        Returns
+        -------
+        (float,float), optional
+            Center of the enclosing sphere projected to the ellipsoid's
+            surface. If ``compute_enclosing_sphere=False`` has been
+            passed at the construction of this object, or it has not been
+            generated by optimizing for some data, ``None`` is returned.
         """
         return self._bscenter
 
