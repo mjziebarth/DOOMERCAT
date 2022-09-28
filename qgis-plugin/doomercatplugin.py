@@ -525,14 +525,14 @@ class DOOMERCATPlugin:
             vertices = geom.vertices()
             while vertices.hasNext():
                 p = vertices.next()
-                xy.append((p.x(), p.y(), p.z()))
+                xyz.append((p.x(), p.y(), p.z()))
                 weight.append(w)
 
         xyz = np.array(xyz)
         weight = np.array(weight)
 
         # Project to geographic coordinate system:
-        lon, lat = project(xy[:,0], xy[:,1], layer.crs(), self._crs_geo)
+        lon, lat = project(xyz[:,0], xyz[:,1], layer.crs(), self._crs_geo)
 
         # Call the optimization routine:
         self.optimizeLonLat(lon, lat, xyz[:,2], weight, a, f, ellps)
