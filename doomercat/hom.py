@@ -29,6 +29,7 @@ the distortion of the projection.
 import numpy as np
 from math import atan2, degrees, isinf
 from typing import Optional, Iterable
+from .config import _default
 from .defs import _ellipsoids
 from .initial import initial_parameters
 from .enclosingsphere import bounding_sphere
@@ -168,19 +169,27 @@ class HotineObliqueMercator:
                  lat: Optional[Iterable[float]] = None,
                  h: Optional[Iterable[float]] = None,
                  weight: Optional[Iterable[float]] = None,
-                 pnorm: int = 2, k0_ap: float = 0.98, sigma_k0: float =0.002,
-                 ellipsoid: Optional[str] = None, f: Optional[float] = None,
-                 a: Optional[float] = None, lonc0: Optional[float] = None,
+                 pnorm: int = _default["pnorm"],
+                 k0_ap: float = _default["k0_ap"],
+                 sigma_k0: float = _default["sigma_k0"],
+                 ellipsoid: Optional[str] = _default["ellipsoid"],
+                 f: Optional[float] = _default["f"],
+                 a: Optional[float] = _default["a"],
+                 lonc0: Optional[float] = None,
                  lat_00: Optional[float] = None,
                  alpha0: Optional[float] = None,
                  k00: Optional[float] = None, lonc: Optional[float] = None,
                  lat_0: Optional[float] = None, alpha: Optional[float] = None,
-                 k0: Optional[float] = None, Nmax: int = 1000,
-                 proot: bool = False, logger: object = None,
-                 backend: str = 'C++',
-                 fisher_bingham_use_weight: bool = False,
-                 compute_enclosing_sphere: bool = False,
-                 bfgs_epsilon: float = 1e-3):
+                 k0: Optional[float] = None,
+                 Nmax: int = _default["Nmax"],
+                 proot: bool = _default["proot"],
+                 logger: object = None,
+                 backend: str = _default["backend"],
+                 fisher_bingham_use_weight: bool
+                     = _default["fisher_bingham_use_weight"],
+                 compute_enclosing_sphere: bool
+                     = _default["compute_enclosing_sphere"],
+                 bfgs_epsilon: float = _default["bfgs_epsilon"]):
         # Initialization.
         # 1) Sanity checks:
         assert ellipsoid in _ellipsoids or ellipsoid is None

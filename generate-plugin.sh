@@ -64,6 +64,7 @@ cp doomercat/__init__.py doomercat/defs.py doomercat/hom.py \
    doomercat/cppextensions.py doomercat/initial.py doomercat/messages.py \
    doomercat/fisherbingham.py doomercat/enclosingsphere.py \
    doomercat/hotineproject.py doomercat/hotine.py doomercat/geometry.py \
+   doomercat/config.py \
    $MODULE
 #mv build/doomercat_plugin/__init__.py build/doomercat_plugin/doomercat.py
 
