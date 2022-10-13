@@ -18,6 +18,7 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
+from math import inf
 from configparser import ConfigParser
 
 def _generate_default_config():
