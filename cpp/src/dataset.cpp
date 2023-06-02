@@ -31,35 +31,14 @@ using doomercat::DataSetWithHeight;
 using doomercat::WeightedDataSet;
 using doomercat::WeightedDataSetWithHeight;
 
-static double compute_kdest(double h, double a, double f, double phi)
+static double compute_k_e(double h, double a, double f, double phi)
 {
 	/* Local half-axis derived by SvS: */
 	const double e2 = f*(2-f);
 	const double sphi = std::sin(phi);
-	const double cphi = std::cos(phi);
 	const double N = a / std::sqrt(1.0 - e2 * sphi * sphi);
-	const double x = (N+h) * cphi;
-	const double z = ((1.0-e2)*N + h) * sphi;
-	/* psi = atan(((1-e2)*N+h)/((N+h)*(1-f))*tan(phi))
-	 *     = atan(z/(x*(1-f))) */
-	const double A = z/(x*(1.0 - f));
-	/* const double psi = std::atan(A); */
-	/* const double spsi = std::sin(psi); */
-	const double r = std::sqrt(x*x + z*z);
-	/* re = sqrt(cos^2(psi) + ((1-f)^2 * sin^2(psi)))
-	 *    = sqrt(cos^2(psi) + sin^2(psi) - 2*f * sin^2(psi) + f^2*sin^2(psi))
-	 *    = sqrt(1.0 - f*(2-f)*sin^2(psi))
-	 *    = sqrt(1.0 - e2 * sin^2(psi))
-	 *
-	 * sin(psi) = sin(atan(A)) -> sin^2(psi) = A^2 / (1 + A^2)
-	 *
-	 * Thereby:
-	 * re = sqrt(1.0 - e2 * A^2/(1 + A^2))
-	 */
-	const double re = std::sqrt(1.0 - e2 * A*A / (1.0 + A*A));
-	const double a_h = r / re;
-
-	return a_h / a;
+	const double A = N*e2 - N + e2*h*sphi*sphi - h;
+	return std::sqrt((A*A)/(N*N*(e2 - 1.0)*(e2 - 1.0)));
 }
 
 SimpleDataSet::SimpleDataSet(const size_t N, const double* lon,
@@ -86,7 +65,7 @@ DataSetWithHeight::DataSetWithHeight(const size_t N, const double* lon,
 		data[i].phi = deg2rad(lat[i]);
 	}
 	for (size_t i=0; i<N; ++i){
-		data[i].kdest = compute_kdest(h[i], a, f, data[i].phi);
+		data[i].k_e = compute_k_e(h[i], a, f, data[i].phi);
 	}
 }
 
@@ -118,7 +97,7 @@ WeightedDataSetWithHeight::WeightedDataSetWithHeight(const size_t N,
 		data[i].phi = deg2rad(lat[i]);
 	}
 	for (size_t i=0; i<N; ++i){
-		data[i].kdest = compute_kdest(h[i], a, f, data[i].phi);
+		data[i].k_e = compute_k_e(h[i], a, f, data[i].phi);
 	}
 	for (size_t i=0; i<N; ++i){
 		data[i].w = w[i];
@@ -130,9 +109,9 @@ double WeightedDataSet::w(size_t i) const
 	return data[i].w;
 }
 
-double DataSetWithHeight::kdest(size_t i) const
+double DataSetWithHeight::k_e(size_t i) const
 {
-	return data[i].kdest;
+	return data[i].k_e;
 }
 
 double WeightedDataSetWithHeight::w(size_t i) const
@@ -140,7 +119,7 @@ double WeightedDataSetWithHeight::w(size_t i) const
 	return data[i].w;
 }
 
-double WeightedDataSetWithHeight::kdest(size_t i) const
+double WeightedDataSetWithHeight::k_e(size_t i) const
 {
-	return data[i].kdest;
+	return data[i].k_e;
 }
