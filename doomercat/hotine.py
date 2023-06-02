@@ -250,7 +250,6 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2, Niter = 100,
     e2 = 2*f - f**2
     N = a / np.sqrt(1.0 - e2*np.sin(lat)**2)
     k_e = np.sqrt(((N*e2 - N + e2*h*np.sin(lat)**2 - h)**2)/(N**2*(e2 - 1)**2))
-
     e = np.sqrt(e2)
 
     p = np.array([phi0,lmbdc,alphac,k0])
@@ -268,6 +267,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2, Niter = 100,
     eps = 1e-10
     ti = 1
     iswitch = None
+    X = None
 
     lminfloat = np.log10(sys.float_info.min)
 
