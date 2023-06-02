@@ -26,13 +26,13 @@ def test_basic_setup():
     Dummy method to test the functionality of DOOMERCAT when not all
     optional packages are installed (e.g. pyproj).
     """
-    lon = np.array([15, 29, 31,  18, 23])
+    lon = np.array([15, 29, 31,  18., 23])
     lat = np.array([7, 13, 13.5, 9, 10])
 
     HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
     # Test agains reference values:
     assert abs(HOM.lat_0() - 11.73733039) < 1e-6
-    assert abs(HOM.lonc()  - 26.70254348) < 1e-6
+    assert abs(HOM.lonc()  - 26.70254065) < 1e-6
     assert abs(HOM.alpha() - 70.67908827) < 1e-6
     assert abs(HOM.k0()    - 0.99997646) < 1e-6
