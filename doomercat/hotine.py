@@ -325,7 +325,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2, Niter = 100,
 
 
         if pnorm == 0. and is_p2opt:
-            res = np.abs(fk - k_e)
+            res = np.abs(fk - k_e[I_batch])
             iresmax = np.argmax(res)
             fk, J = f_d_k_cse(lon[I_batch][iresmax], lat[I_batch][iresmax],
                               p[0], p[1], p[2], p[3], e)
@@ -363,7 +363,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2, Niter = 100,
             Theta = (np.sign(v_ap[3] - p[3]) + 1)/2
             # Here we have:
             # P_ap[3,3]*(p[3]-v_ap[3]) = P_ap @ (p-v_ap)
-            dp = J*np.sign(fk - k_e[iresmax]) + P_ap @ (p-v_ap) * Theta
+            dp = J*np.sign(fk - k_e[I_batch][iresmax]) + P_ap @ (p-v_ap) * Theta
             mm = alm*mm + (1-alm)*dp
             vm = bem*vm + (1-bem)*dp**2
             mt = mm/(1.-alm**ti)
@@ -386,7 +386,7 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2, Niter = 100,
             S33 = np.zeros((1,1))
             Ij,Ik = 0,0
             Theta = (np.sign(v_ap[3] - p[3]) + 1)/2
-            S33[0,0] = np.abs(fk - k_e[iresmax]) \
+            S33[0,0] = np.abs(fk - k_e[I_batch][iresmax]) \
                        + P_ap[3,3]*(p[3] - v_ap[3])**2 * Theta
 
         else:
