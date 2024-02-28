@@ -4,8 +4,8 @@
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #         Sebastian von Specht
 #
-# Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
-#                    Sebastian von Specht
+# Copyright (C) 2022      Deutsches GeoForschungsZentrum Potsdam,
+#               2022-2024 Sebastian von Specht
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");

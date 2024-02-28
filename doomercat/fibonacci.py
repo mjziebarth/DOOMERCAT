@@ -4,7 +4,7 @@
 #         Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
 # Copyright (C) 2022-2024 Sebastian von Specht,
-#               2022 Technical University of Munich
+#               2024      Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
