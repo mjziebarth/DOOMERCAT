@@ -20,6 +20,7 @@
 # limitations under the Licence.
 import platform
 import numpy as np
+from ._typing import ndarray64
 from typing import Optional
 from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER, c_ushort
 from pathlib import Path
@@ -199,10 +200,10 @@ def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0
                         mode=int(mode), step_size=float(step_size))
 
 
-def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
-                        alpha: np.ndarray, k_0: np.ndarray,
-                        lon: np.ndarray, lat: np.ndarray,
-                        h: np.ndarray, w: np.ndarray,
+def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
+                        alpha: ndarray64, k_0: ndarray64,
+                        lon: ndarray64, lat: ndarray64,
+                        h: ndarray64, w: ndarray64,
                         a: float, f: float, pnorm: float, k0_ap: float,
                         sigma_k0: float, proot: bool,
                         logarithmic: bool):
@@ -262,9 +263,9 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
 
     return cost
 
-def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
+def compute_k_hotine(lon: ndarray64, lat: ndarray64,
                      lonc: float, lat_0: float, alpha: float, k_0: float,
-                     f: float):
+                     f: float) -> ndarray64:
     # Input sanitization.
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -295,9 +296,9 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
     return k.reshape(lon.shape)
 
 
-def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
+def project_hotine_uv(lon: ndarray64, lat: ndarray64,
                       lonc: float, lat_0: float, alpha: float, k_0: float,
-                      f: float):
+                      f: float) -> tuple[ndarray64, ndarray64]:
     # Input sanitization.
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -328,9 +329,9 @@ def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
     return uv[0,:], uv[1,:]
 
 
-def project_hotine(lon: np.ndarray, lat: np.ndarray,
+def project_hotine(lon: ndarray64, lat: ndarray64,
                    lonc: float, lat_0: float, alpha: float, k_0: float,
-                   gamma: float, f: float):
+                   gamma: float, f: float) -> tuple[ndarray64,ndarray64]:
     # Input sanitization.
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -362,8 +363,9 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
     return xy[0,:], xy[1,:]
 
 
-def hotine_inverse(x: np.ndarray, y: np.ndarray, lonc: float, lat_0: float,
-                   alpha: float, k_0: float, gamma: float, f: float):
+def hotine_inverse(x: ndarray64, y: ndarray64, lonc: float, lat_0: float,
+                   alpha: float, k_0: float, gamma: float,
+                   f: float) -> tuple[ndarray64,ndarray64]:
     # Input sanitization.
     x = np.ascontiguousarray(x, dtype=np.double)
     y = np.ascontiguousarray(y, dtype=np.double)

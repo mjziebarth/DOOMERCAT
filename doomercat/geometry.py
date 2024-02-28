@@ -22,16 +22,13 @@
 # limitations under the Licence.
 
 import numpy as np
-from numpy.typing import NDArray
-
+from ._typing import ndarray64
 #
 # Converting between geographic and Euclidean coordinates:
 #
 
 
-def _xyz2lola(
-        xyz: NDArray[np.float64]
-    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+def _xyz2lola(xyz: ndarray64) -> tuple[ndarray64, ndarray64]:
     """
     Takes a vector (3,N) and computes the spherical coordinates.
     """
@@ -39,8 +36,7 @@ def _xyz2lola(
     return np.rad2deg(np.arctan2(xyz[1], xyz[0])), np.rad2deg(np.arcsin(xyz[2]))
 
 
-def _lola2xyz(lo: NDArray[np.float64], la: NDArray[np.float64],
-              f: float) -> NDArray[np.float64]:
+def _lola2xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
     """
     Convert geographic coordinates to 3D Euclidean space.
 
@@ -70,7 +66,7 @@ def _lola2xyz(lo: NDArray[np.float64], la: NDArray[np.float64],
 #
 
 
-def _Rx(a: float):
+def _Rx(a: float) -> ndarray64:
     R = np.array([
         [1,0,0.],
         [0.,np.cos(a),np.sin(a)],
@@ -79,7 +75,7 @@ def _Rx(a: float):
     return R
 
 
-def _Ry(a: float):
+def _Ry(a: float) -> ndarray64:
     R = np.array([
         [np.cos(a),0.,-np.sin(a)],
         [0,1,0.],
@@ -88,7 +84,7 @@ def _Ry(a: float):
     return R
 
 
-def _Rz(a: float):
+def _Rz(a: float) -> ndarray64:
     R = np.array([
         [np.cos(a),-np.sin(a),0.],
         [np.sin(a),np.cos(a),0.],
@@ -101,11 +97,11 @@ def _Rz(a: float):
 # Ellipsoid scale factor:
 #
 def desired_scale_factor(
-        h: NDArray[np.float64],
-        lat: NDArray[np.float64],
+        h: ndarray64,
+        lat: ndarray64,
         a: float,
         f: float,
-        batch: int = 1000000) -> NDArray[np.float64]:
+        batch: int = 1000000) -> ndarray64:
     """
     Computes the desired scale factor at a given height and latitude.
     """

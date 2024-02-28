@@ -30,7 +30,7 @@ the distortion of the projection.
 import numpy as np
 from math import atan2, degrees, isinf
 from typing import Optional, Iterable
-from numpy.typing import NDArray
+from ._typing import ndarray64
 from .config import _default
 from .defs import _ellipsoids
 from .initial import initial_parameters
@@ -223,8 +223,8 @@ class HotineObliqueMercator:
         self._backend_loaded = False
 
         # For type checking purposes:
-        lon_array: NDArray[np.float64]
-        lat_array: NDArray[np.float64]
+        lon_array: ndarray64
+        lat_array: ndarray64
 
         # Check whether lon/lat given:
         if lon is not None:
@@ -519,7 +519,7 @@ class HotineObliqueMercator:
 
     def project(self, lon: Iterable[float], lat: Iterable[float],
                 gamma: Optional[float] = None
-        ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+        ) -> tuple[ndarray64, ndarray64]:
         """
         Project a geographical coordinate set.
 
@@ -613,7 +613,7 @@ class HotineObliqueMercator:
 
 
     def distortion(self, lon: Iterable[float], lat: Iterable[float],
-                   h: Optional[Iterable[float]] = None) -> NDArray[np.float64]:
+                   h: Optional[Iterable[float]] = None) -> ndarray64:
         """
         Distortion of the Hotine oblique Mercator projection [1]_.
 
