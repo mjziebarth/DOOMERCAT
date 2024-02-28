@@ -49,7 +49,10 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
             if is_p2opt:
                 w = np.zeros_like(k0v)
                 I = [np.argmax(k0_init-k0v), np.argmin(k0_init-k0v)]
+                # I = np.argmax(np.abs(k0_init-k0v))
                 w[I] = 1.
+                # k0_init = k0v[I]
+                # continue
             else:
                 w = np.abs(k0_init-k0v)**(pnorm_p0-2)
         elif pnorm > 0. and pnorm <= 1:
@@ -59,7 +62,10 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
         else:
             w = np.abs(k0_init-k0v)**(pnorm-2)
 
-        k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
+        if isinf(pnorm) and is_p2opt:
+            k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
+        else:
+            k0_init -= .1* np.sum(w*wdata * (k0_init-k0v)**2)/np.sum(w*wdata)
 
     if isnan(k0_init):
         return np.mean(k0v)
