@@ -115,7 +115,7 @@ def _ks(A,B,u,e,phi,lmbd,lmbd0):
 
 
 
-def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
+def _f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
 
     if np.abs(alphac) >= np.deg2rad((90-1/3600)):
         alphac = np.deg2rad((90-1/3600))*np.sign(alphac)
@@ -243,7 +243,7 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         return (ks,J)
 
 
-def confine(p):
+def _confine(p):
 
     # winding number for phi (p[0])
     wn = np.floor((p[0]+np.pi/2) / np.pi).astype(int)
@@ -259,7 +259,7 @@ def confine(p):
 
     return p
 
-def subbatch(X,p,xper=.025,nper=50):
+def _subbatch(X,p,xper=.025,nper=50):
     X0 = (_Rz(p[1]) @ _Ry(p[0]) @ _Rx(p[2]-np.pi/2)).T @ X
     Z0 = np.abs(X0[2])
 
@@ -275,7 +275,7 @@ def subbatch(X,p,xper=.025,nper=50):
 
     return I_batch
 
-def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
+def lm_adamax_optimize(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
          diagnostics=False, k0_ap=None, k0_ap_std=None):
 
     # normalize data weights to sum(wdata) = number of data points
@@ -346,18 +346,18 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
     for i in range(Niter):
 
         if not isinf(pnorm) or not is_p2opt:
-            fk,J = f_d_k_cse(lon,lat,a_h_rel,p[0],p[1],p[2],p[3],e)
+            fk,J = _f_d_k_cse(lon,lat,a_h_rel,p[0],p[1],p[2],p[3],e)
         else:
-            I_batch = subbatch(X,p)
+            I_batch = _subbatch(X,p)
 
-            fk = f_d_k_cse(lon[I_batch],lat[I_batch],a_h_rel[I_batch],p[0],p[1],
+            fk = _f_d_k_cse(lon[I_batch],lat[I_batch],a_h_rel[I_batch],p[0],p[1],
                            p[2],p[3],e,noJ = True)
 
 
         if isinf(pnorm) and is_p2opt:
             res = np.abs(fk-1)
             iresmax = np.argmax(res)
-            fk,J = f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
+            fk,J = _f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
                              a_h_rel[I_batch][iresmax],p[0],p[1],p[2],p[3],e)
             J.shape = (1,4)
 
@@ -394,10 +394,10 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
             S33 = np.zeros((x0.size,1))+np.inf
 
             for k in range(x0.size):
-                neop[k] = confine(p - x0[k]*al*neodp[0])
+                neop[k] = _confine(p - x0[k]*al*neodp[0])
 
-                I_batch = subbatch(X,neop[k])
-                neofk = f_d_k_cse(lon[I_batch], lat[I_batch], a_h_rel[I_batch],
+                I_batch = _subbatch(X,neop[k])
+                neofk = _f_d_k_cse(lon[I_batch], lat[I_batch], a_h_rel[I_batch],
                                   neop[k,0], neop[k,1], neop[k,2],neop[k,3],
                                   e, noJ=True)
 
@@ -454,9 +454,9 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
                 neodp[j] = PJi@neodp[j]
 
                 for k in range(x.size):
-                    neop[j,k] = confine(p-x[k]*al*neodp[j])
+                    neop[j,k] = _confine(p-x[k]*al*neodp[j])
 
-                    neofk = f_d_k_cse(lon,lat,a_h_rel,neop[j,k,0],neop[j,k,1],
+                    neofk = _f_d_k_cse(lon,lat,a_h_rel,neop[j,k,0],neop[j,k,1],
                                       neop[j,k,2],neop[j,k,3],e,noJ=True)
 
                     Theta =  (np.sign(v_ap[3]-neop[j,k,3])+1)/2
@@ -545,4 +545,3 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
         return HotineResultPy(cost=S33[Ij,Ik], lonc=degrees(p[1]),
                               lat_0=degrees(p[0]), alpha=degrees(p[2]),
                               k0=p[3], steps=i, f=f, error_flag=error_flag)
-

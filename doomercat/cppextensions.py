@@ -110,7 +110,7 @@ class HotineResult:
                             step_size=self.step_size[-1])
 
 
-def bfgs_hotine(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
+def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
                 lat_0_0, alpha_0, k_0_0, Nmax, proot,
                 return_full_history=False, epsilon=1e-7):
     """

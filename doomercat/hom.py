@@ -35,7 +35,7 @@ from .defs import _ellipsoids
 from .initial import initial_parameters
 from .enclosingsphere import bounding_sphere
 from .hotineproject import hotine_project_uv
-from .hotine import grad
+from .hotine import lm_adamax_optimize
 from .geometry import desired_scale_factor
 
 
@@ -265,7 +265,7 @@ class HotineObliqueMercator:
                 # If p=inf, pre-optimize with p=80 norm:
                 if isinf(pnorm):
                     pre_res = \
-                        self._bfgs_hotine(lon, lat, h, weight, 80, k0_ap,
+                        self._bfgs_optimize(lon, lat, h, weight, 80, k0_ap,
                                           sigma_k0, a, f, lonc0, lat_00, alpha0,
                                           k00, Nmax, proot,
                                           epsilon=bfgs_epsilon)
@@ -276,7 +276,7 @@ class HotineObliqueMercator:
 
                 # Optimize the Hotine oblique Mercator:
                 result = \
-                    self._bfgs_hotine(lon, lat, h, weight, pnorm, k0_ap,
+                    self._bfgs_optimize(lon, lat, h, weight, pnorm, k0_ap,
                                       sigma_k0, a, f, lonc0, lat_00, alpha0,
                                       k00, Nmax, proot, epsilon=bfgs_epsilon)
 
@@ -291,7 +291,7 @@ class HotineObliqueMercator:
                     h = np.zeros_like(lon)
                 if isinf(pnorm):
                     k00 = initial_parameters(lon, lat, w_initial, 2, f)[3]
-                result = grad(np.deg2rad(lon), np.deg2rad(lat), h,
+                result = lm_adamax_optimize(np.deg2rad(lon), np.deg2rad(lat), h,
                               weight, np.deg2rad(lat_00), np.deg2rad(lonc0),
                               np.deg2rad(alpha0), k00, a, f,
                               0 if isinf(pnorm) else pnorm, Nmax,
@@ -607,9 +607,9 @@ class HotineObliqueMercator:
         Import functions from the C++ backend.
         """
         if not self._backend_loaded:
-            from .cppextensions import (bfgs_hotine, project_hotine,
+            from .cppextensions import (bfgs_optimize, project_hotine,
                                         compute_k_hotine)
-            self._bfgs_hotine = bfgs_hotine
+            self._bfgs_optimize = bfgs_optimize
             self._project_hotine = project_hotine
             self._compute_k_hotine = compute_k_hotine
 

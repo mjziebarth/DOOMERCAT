@@ -20,10 +20,10 @@
 
 from .hom import HotineObliqueMercator as HotineObliqueMercator
 from .shapefile import points_from_shapefile as points_from_shapefile
-from .cppextensions import bfgs_hotine as bfgs_hotine
-from .hotine import grad as grad
+from .cppextensions import bfgs_optimize as bfgs_optimize
+from .hotine import lm_adamax_optimize as lm_adamax_optimize
 from .lomerror import OptimizeError as OptimizeError
 from .geometry import desired_scale_factor as desired_scale_factor
-from .config import change_default as change_default,
+from .config import change_default as change_default, \
                     save_defaults as save_defaults
 from .fibonacci import fibonacci_lattice as fibonacci_lattice
