@@ -29,7 +29,7 @@ from .messages import info
 # Python file.
 # The extension's name differs depending on the operating system:
 
-_cppextensions_so = None
+_cppextensions_so: CDLL | None = None
 
 def find_cppextensions_file():
     """
@@ -144,6 +144,7 @@ def bfgs_hotine(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     result = np.zeros((Nmax,11))
     M = np.zeros(1,dtype=np.uint)
@@ -235,6 +236,7 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     cost = np.empty(M)
@@ -275,6 +277,7 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     k = np.empty(N)
@@ -307,6 +310,7 @@ def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     uv = np.empty((N,2))
@@ -340,6 +344,7 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     xy = np.empty((N,2))
@@ -372,6 +377,7 @@ def hotine_inverse(x: np.ndarray, y: np.ndarray, lonc: float, lat_0: float,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     lola = np.empty((N,2))
@@ -398,6 +404,7 @@ def _hotine_constants(lonc: float, lat_0: float, alpha: float, k_0: float,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     constants = np.empty(3)
