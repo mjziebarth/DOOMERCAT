@@ -23,3 +23,4 @@ from .cppextensions import bfgs_hotine
 from .lomerror import OptimizeError
 from .geometry import desired_scale_factor
 from .config import change_default, save_defaults
+from .fibonacci import fibonacci_lattice
