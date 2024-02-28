@@ -2,7 +2,8 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam,
+#               2024      Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -20,6 +21,7 @@
 from doomercat import HotineObliqueMercator
 import numpy as np
 import json
+from pathlib import Path
 
 
 def read_geojson(filename):
@@ -40,7 +42,9 @@ def test_chile_places():
     Data taken from OSM export (HOT Export Tool), see data/chile/README.txt,
     and subselected in QGIS.
     """
-    lon, lat = read_geojson('data/chile/Chile-cities-select.geojson')
+    geojson_path = str((Path(__file__).parent / 'data' / 'chile'
+                        / 'Chile-cities-select.geojson').absolute())
+    lon, lat = read_geojson(geojson_path)
 
     HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
