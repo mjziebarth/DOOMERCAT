@@ -22,4 +22,11 @@
 # as a backup for older Python versions:
 import numpy as np
 from typing import Any
-ndarray64 = np.ndarray[Any, np.dtype[np.float64]]
+
+def _get_dtype64():
+    try:
+        return np.ndarray[Any, np.dtype[np.float64]]
+    except TypeError:
+        return np.ndarray
+
+ndarray64 = _get_dtype64()
