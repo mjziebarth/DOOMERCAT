@@ -20,6 +20,7 @@
 # limitations under the Licence.
 import platform
 import numpy as np
+from typing import Optional
 from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER, c_ushort
 from pathlib import Path
 from .messages import info
@@ -30,7 +31,7 @@ from .messages import info
 # Python file.
 # The extension's name differs depending on the operating system:
 
-_cppextensions_so: CDLL | None = None
+_cppextensions_so: Optional[CDLL] = None
 
 def find_cppextensions_file():
     """
