@@ -22,9 +22,9 @@
 
 import numpy as np
 import sys
-from math import degrees
-# from .geometry import _lola2xyz, _Rx, _Ry, _Rz
-# from .initial import initial_k0
+from math import degrees, isinf
+from .geometry import _lola2xyz, _Rx, _Ry, _Rz
+from .initial import initial_k0
 
 
 class HotineResultPy:
