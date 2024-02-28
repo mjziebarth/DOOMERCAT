@@ -51,7 +51,8 @@ def _A(B,k0,e,phi0):
     return B*k0*np.sqrt(1-e**2) / (1-e**2*np.sin(phi0)**2)
 
 def _t0(phi0,e):
-    return np.tan(np.pi/4-phi0/2) / ((1-e*np.sin(phi0))/(1+e*np.sin(phi0)))**(e/2)
+    return np.tan(np.pi/4-phi0/2) \
+           / ((1-e*np.sin(phi0))/(1+e*np.sin(phi0)))**(e/2)
 
 def _t(phi,e):
     return np.tan(np.pi/4-phi/2) / ((1-e*np.sin(phi))/(1+e*np.sin(phi)))**(e/2)
@@ -72,7 +73,8 @@ def _gamma0(alphac,D):
     return np.arcsin(np.sin(alphac)/D)
 
 def _lmbd0(lmbdc,G,gamma0,B,alphac=0,phi0=0):
-    # the limit of G*tan(gamma0) as alphac-> +/- pi/2 is +/- 1. However, for large G and/or tan(gamma0) round-off errors may render the expression >|1|
+    # the limit of G*tan(gamma0) as alphac-> +/- pi/2 is +/- 1. However, for
+    # large G and/or tan(gamma0) round-off errors may render the expression >|1|
     X = G*np.tan(gamma0)
     X = 1. if X > 1. else X
     X = -1. if X < -1. else X
@@ -95,16 +97,19 @@ def _U(V,gamma0,S,T):
     return (-V*np.cos(gamma0)+S*np.sin(gamma0))/T
 
 def _u(A,S,gamma0,V,B,lmbd,lmbd0):
-    return A*np.arctan2((S*np.cos(gamma0)+V*np.sin(gamma0)),np.cos(B*(lmbd-lmbd0)))/B
+    return A*np.arctan2((S*np.cos(gamma0)+V*np.sin(gamma0)),
+                         np.cos(B*(lmbd-lmbd0)))/B
 
 def _h(dudp,dvdp,e,phi,k0):
     return np.sqrt(dudp**2 + dvdp**2) * (1-e**2*np.sin(phi)**2)**1.5 / (1-e**2)
 
 def _k(dudl,dvdl,e,phi,k0):
-    return np.sqrt(dudl**2 + dvdl**2) * (1-e**2*np.sin(phi)**2)**0.5 / np.cos(phi)
+    return np.sqrt(dudl**2 + dvdl**2) * (1-e**2*np.sin(phi)**2)**0.5 \
+           / np.cos(phi)
 
 def _ks(A,B,u,e,phi,lmbd,lmbd0):
-    return A*np.cos(B*u/A)*np.sqrt(1-e**2*np.sin(phi)**2)/(np.cos(phi)*np.cos(B*(lmbd-lmbd0)))
+    return A*np.cos(B*u/A)*np.sqrt(1-e**2*np.sin(phi)**2)\
+           /(np.cos(phi)*np.cos(B*(lmbd-lmbd0)))
 
 
 
@@ -188,7 +193,8 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         x47 = np.sqrt(x36 - 1)
         x48 = x45*((1) if (phi0 == 0) else (D*phi0/(x47*abs(phi0)) + 1))
         x49 = F**2
-        x50 = G*x35*x42*x46 - 1/2*x31*x35*x48*(x49 + 1)/x49 + x19*np.arcsin(G*x31)/B**2
+        x50 = G*x35*x42*x46 - 1/2*x31*x35*x48*(x49 + 1)/x49 \
+              + x19*np.arcsin(G*x31)/B**2
         x51 = B*x50
         x52 = ks*np.tan(x2)
         x53 = np.sin(gamma0)
@@ -213,9 +219,18 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         x72 = A*x10
 
 
-        f_dphi0 = -x10*x69*(x19*x61*(-u*x59 + x1*x57) + x27*x32*x55 + x39*x46*x62*x63 + (1/2)*x40*x68*(x64 + 1)*(-Q*x19*np.log(t) + t**(-B)*(B*E*x66*(-t0*x14*x67*x8 + (1/2)*x22/(x16 + 1))/(t0*x67*(x65 - 1)) + E*x19*np.log(t0) + t0**B*x48))/x64 - x50*x57*x60 + x53*x68*(x1*x11*x19 - x11*x51)) + x13*x19*(ks*x0*x1*x3 - u*x10) + x27*x30*(x28 + x29) - x51*x52
+        f_dphi0 = -x10*x69*(
+                x19*x61*(-u*x59 + x1*x57) + x27*x32*x55
+                + x39*x46*x62*x63 + (1/2)*x40*x68*(x64 + 1)*(-Q*x19*np.log(t)
+                    + t**(-B)*(B*E*x66*(-t0*x14*x67*x8 + (1/2)*x22/(x16 + 1))
+                        /(t0*x67*(x65 - 1))
+                    + E*x19*np.log(t0) + t0**B*x48))/x64
+                - x50*x57*x60 + x53*x68*(x1*x11*x19 - x11*x51)
+            ) + x13*x19*(ks*x0*x1*x3 - u*x10) + x27*x30*(x28 + x29) - x51*x52
         f_dlmbdc = x60*x69*(-x70 + x71*x72)
-        f_dalphac = x13*x34*x42*x60*(G*x70 - x72*(G*x71 - x33*x41*x62))*np.cos(alphac)/D
+        f_dalphac = x13*x34*x42*x60*(
+                G*x70 - x72*(G*x71 - x33*x41*x62)
+            )*np.cos(alphac)/D
         f_dk0 = x24*x30*x44*(A*x55*x7 - x28 - x29)
 
 
@@ -381,17 +396,18 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
                 neop[k] = confine(p - x0[k]*al*neodp[0])
 
                 I_batch = subbatch(X,neop[k])
-                neofk = f_d_k_cse(lon[I_batch],lat[I_batch],a_h_rel[I_batch],neop[k,0],neop[k,1],
-                                      neop[k,2],neop[k,3],e,noJ=True)
+                neofk = f_d_k_cse(lon[I_batch], lat[I_batch], a_h_rel[I_batch],
+                                  neop[k,0], neop[k,1], neop[k,2],neop[k,3],
+                                  e, noJ=True)
 
                 Theta =  (np.sign(v_ap[3]-neop[k,3])+1)/2
-                S33[k,0] = (np.abs(neofk-1).max()) + P_ap[3,3]*(neop[k,3]-v_ap[3])**2 * Theta
+                S33[k,0] = (np.abs(neofk-1).max()) \
+                           + P_ap[3,3]*(neop[k,3]-v_ap[3])**2 * Theta
 
             I = np.argmin(S33)
             al *= x0[I]
 
             p1 = neop[I]
-
 
 
             Ij,Ik = I,0 # for diagnostics format
@@ -445,10 +461,10 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
                     Theta =  (np.sign(v_ap[3]-neop[j,k,3])+1)/2
                     if isinf(pnorm):
                         S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm_p0) \
-                                            + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
+                                    + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
                     else:
                         S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm) \
-                                            + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
+                                    + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
 
                     if np.isnan(S33[j,k]):
                         S33[j,k] = np.inf
@@ -488,9 +504,9 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
             Ssd = np.std(np.log(Sv[-Nsd:]),ddof=1)
             # print('var',np.log(Sv[-Nsd:]),Ssd)
 
-            # Especially for high pnorm, it might happen that the cost evaluation
-            # of S33 gives 0.0 for all data points if the distortions are already
-            # fairly small.
+            # Especially for high pnorm, it might happen that the cost
+            # evaluation of S33 gives 0.0 for all data points if the distortions
+            # are already fairly small.
             # Catch this case here:
             #if min(Sv[-Nsd:]) == 0.0:
             if np.isnan(Ssd):
