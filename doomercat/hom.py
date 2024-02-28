@@ -30,6 +30,7 @@ the distortion of the projection.
 import numpy as np
 from math import atan2, degrees, isinf
 from typing import Optional, Iterable
+from numpy.typing import NDArray
 from .config import _default
 from .defs import _ellipsoids
 from .initial import initial_parameters
@@ -221,25 +222,28 @@ class HotineObliqueMercator:
 
         self._backend_loaded = False
 
+        # For type checking purposes:
+        lon_array: NDArray[np.float64]
+        lat_array: NDArray[np.float64]
+
         # Check whether lon/lat given:
         if lon is not None:
             # Case 1: Data is given as lon/lat, so we optimize the projection.
             assert lat is not None
-            if not isinstance(lon,np.ndarray):
-                lon = np.array(lon)
-            if not isinstance(lat,np.ndarray):
-                lat = np.array(lat)
+            lon_array = np.array(lon, copy=False)
+            lat_array = np.array(lat, copy=False)
             if weight is not None:
                 if not isinstance(weight,np.ndarray):
                     weight = np.array(weight)
                 weight /= weight.sum()
-                assert weight.shape == lon.shape
+                assert isinstance(weight, np.ndarray)
+                assert weight.shape == lon_array.shape
             if h is not None:
                 if not isinstance(h,np.ndarray):
                     h = np.array(h)
-                assert h.shape == lon.shape
+                assert h.shape == lon_array.shape
 
-            assert lon.shape == lat.shape
+            assert lon_array.shape == lat_array.shape
 
             # Initial guess for the parameters:
             if any(p is None for p in (lonc0, lat_00, alpha0, k00)):
@@ -247,9 +251,13 @@ class HotineObliqueMercator:
                     w_initial = weight
                 else:
                     w_initial = None
-                lonc0, lat_00, alpha0, k00 = initial_parameters(lon, lat,
-                                                                w_initial,
-                                                                pnorm, f)
+                lonc0, lat_00, alpha0, k00 \
+                    = initial_parameters(
+                        lon_array,
+                        lat_array,
+                        w_initial,
+                        pnorm,
+                        f)
             else:
                 # Could be required in Python backend:
                 w_initial = None
@@ -265,10 +273,24 @@ class HotineObliqueMercator:
                 # If p=inf, pre-optimize with p=80 norm:
                 if isinf(pnorm):
                     pre_res = \
-                        self._bfgs_optimize(lon, lat, h, weight, 80, k0_ap,
-                                          sigma_k0, a, f, lonc0, lat_00, alpha0,
-                                          k00, Nmax, proot,
-                                          epsilon=bfgs_epsilon)
+                        self._bfgs_optimize(
+                            lon_array,
+                            lat_array,
+                            h,
+                            weight,
+                            80,
+                            k0_ap,
+                            sigma_k0,
+                            a,
+                            f,
+                            lonc0,
+                            lat_00,
+                            alpha0,
+                            k00,
+                            Nmax,
+                            proot,
+                            epsilon=bfgs_epsilon
+                        )
                     lonc0  = pre_res.lonc
                     lat_00 = pre_res.lat_0
                     alpha0 = pre_res.alpha
@@ -276,9 +298,24 @@ class HotineObliqueMercator:
 
                 # Optimize the Hotine oblique Mercator:
                 result = \
-                    self._bfgs_optimize(lon, lat, h, weight, pnorm, k0_ap,
-                                      sigma_k0, a, f, lonc0, lat_00, alpha0,
-                                      k00, Nmax, proot, epsilon=bfgs_epsilon)
+                    self._bfgs_optimize(
+                        lon_array,
+                        lat_array,
+                        h,
+                        weight,
+                        pnorm,
+                        k0_ap,
+                        sigma_k0,
+                        a,
+                        f,
+                        lonc0,
+                        lat_00,
+                        alpha0,
+                        k00,
+                        Nmax,
+                        proot,
+                        epsilon=bfgs_epsilon
+                    )
 
             elif backend in ('python','Python'):
                 # Call the Python Levenberg-Marquardt backend.
@@ -286,16 +323,35 @@ class HotineObliqueMercator:
                     logger.log(20, "Starting Levenberg-Marquardt "
                                    "optimization.")
                 if weight is None:
-                    weight = np.ones_like(lon)
+                    weight = np.ones_like(lon_array)
                 if h is None:
-                    h = np.zeros_like(lon)
+                    h = np.zeros_like(lon_array)
                 if isinf(pnorm):
-                    k00 = initial_parameters(lon, lat, w_initial, 2, f)[3]
-                result = lm_adamax_optimize(np.deg2rad(lon), np.deg2rad(lat), h,
-                              weight, np.deg2rad(lat_00), np.deg2rad(lonc0),
-                              np.deg2rad(alpha0), k00, a, f,
-                              0 if isinf(pnorm) else pnorm, Nmax,
-                              False, k0_ap, sigma_k0)
+                    k00 = initial_parameters(
+                            lon_array,
+                            lat_array,
+                            w_initial,
+                            2,
+                            f
+                        )[3]
+                result \
+                    = lm_adamax_optimize(
+                        np.deg2rad(lon_array),
+                        np.deg2rad(lat_array),
+                        h,
+                        weight,
+                        np.deg2rad(lat_00),
+                        np.deg2rad(lonc0),
+                        np.deg2rad(alpha0),
+                        k00,
+                        a,
+                        f,
+                        0 if isinf(pnorm) else pnorm,
+                        Nmax,
+                        False,
+                        k0_ap,
+                        sigma_k0
+                    )
             else:
                 raise ValueError("Backend unkown!")
 
@@ -323,7 +379,14 @@ class HotineObliqueMercator:
             self.optimization_result = None
 
 
-        # Save all attributes:
+        # Save all attributes, with some type checking
+        # beforehand:
+        assert alpha is not None
+        assert lonc is not None
+        assert lat_0 is not None
+        assert k0 is not None
+        assert f is not None
+        assert a is not None
         self._alpha = alpha
         self._lonc = lonc
         self._lat_0 = lat_0
@@ -455,7 +518,8 @@ class HotineObliqueMercator:
 
 
     def project(self, lon: Iterable[float], lat: Iterable[float],
-                gamma: Optional[float] = None) -> tuple[np.ndarray,np.ndarray]:
+                gamma: Optional[float] = None
+        ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Project a geographical coordinate set.
 
@@ -549,7 +613,7 @@ class HotineObliqueMercator:
 
 
     def distortion(self, lon: Iterable[float], lat: Iterable[float],
-                   h: Optional[Iterable[float]] = None) -> np.ndarray:
+                   h: Optional[Iterable[float]] = None) -> NDArray[np.float64]:
         """
         Distortion of the Hotine oblique Mercator projection [1]_.
 

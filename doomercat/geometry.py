@@ -22,21 +22,33 @@
 # limitations under the Licence.
 
 import numpy as np
+from numpy.typing import NDArray
 
 #
 # Converting between geographic and Euclidean coordinates:
 #
 
 
-def _xyz2lola(xyz):
+def _xyz2lola(
+        xyz: NDArray[np.float64]
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """
-    Takes a vector (N,3) and computes the spherical coordinates.
+    Takes a vector (3,N) and computes the spherical coordinates.
     """
     xyz /= np.linalg.norm(xyz, axis=0)
     return np.rad2deg(np.arctan2(xyz[1], xyz[0])), np.rad2deg(np.arcsin(xyz[2]))
 
 
-def _lola2xyz(lo,la,f):
+def _lola2xyz(lo: NDArray[np.float64], la: NDArray[np.float64],
+              f: float) -> NDArray[np.float64]:
+    """
+    Convert geographic coordinates to 3D Euclidean space.
+
+    Returns
+    -------
+    ndarray
+       Array of the Euclidean coordinates in shape (3,N).
+    """
     e2 = 2*f-f**2
 
     lo = np.deg2rad(lo)
@@ -58,7 +70,7 @@ def _lola2xyz(lo,la,f):
 #
 
 
-def _Rx(a):
+def _Rx(a: float):
     R = np.array([
         [1,0,0.],
         [0.,np.cos(a),np.sin(a)],
@@ -67,7 +79,7 @@ def _Rx(a):
     return R
 
 
-def _Ry(a):
+def _Ry(a: float):
     R = np.array([
         [np.cos(a),0.,-np.sin(a)],
         [0,1,0.],
@@ -76,7 +88,7 @@ def _Ry(a):
     return R
 
 
-def _Rz(a):
+def _Rz(a: float):
     R = np.array([
         [np.cos(a),-np.sin(a),0.],
         [np.sin(a),np.cos(a),0.],
@@ -88,8 +100,12 @@ def _Rz(a):
 #
 # Ellipsoid scale factor:
 #
-def desired_scale_factor(h: np.ndarray, lat: np.ndarray, a: float,
-                         f: float, batch: int = 1000000) -> np.ndarray:
+def desired_scale_factor(
+        h: NDArray[np.float64],
+        lat: NDArray[np.float64],
+        a: float,
+        f: float,
+        batch: int = 1000000) -> NDArray[np.float64]:
     """
     Computes the desired scale factor at a given height and latitude.
     """
@@ -152,4 +168,3 @@ def desired_scale_factor(h: np.ndarray, lat: np.ndarray, a: float,
         k_des /= re
         k_des /= a
         return k_des
-    k_des = r / (a*re)
