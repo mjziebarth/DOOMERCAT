@@ -51,16 +51,16 @@ def fisher_bingham_mom(X, w):
 
     mv_ = mv/np.linalg.norm(mv)
 
-    ct = mv_[0]
-    st = np.sqrt(1-ct**2)
+#     ct = mv_[0]
+#     st = np.sqrt(1-mv_[0]**2)
 
-    cp = mv_[1]/st
-    sp = mv_[2]/st
+#     cp = mv_[1]/st
+#     sp = mv_[2]/st
 
     H = np.array([
-        [ct,    -st,    0.],
-        [st*cp, ct*cp, -sp],
-        [st*sp, ct*sp,  cp]
+        [mv_[0],    -np.sqrt(1-mv_[0]**2),    0.],
+        [mv_[1], mv_[0]*mv_[1]/np.sqrt(1-mv_[0]**2), -mv_[2]/np.sqrt(1-mv_[0]**2)],
+        [mv_[2], mv_[0]*mv_[2]/np.sqrt(1-mv_[0]**2),  mv_[1]/np.sqrt(1-mv_[0]**2)]
     ])
 
     B = H.T @ Sv @ H
@@ -73,8 +73,8 @@ def fisher_bingham_mom(X, w):
 
     G = H @ K
 
-    V = G.T @ mv
-    T = G.T @ Sv @ G
+    # V = G.T @ mv
+    # T = G.T @ Sv @ G
 
     g1 = G[:,0] # central axis
     g2 = G[:,1] # equator axis
