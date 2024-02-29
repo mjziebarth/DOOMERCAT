@@ -108,7 +108,7 @@ class HotineObliqueMercator:
     backend : str, optional
        The optimization backend. Either ``'Python'``, a pure Python and
        NumPy implementation using the Levenberg-Marquard algorithm (or
-       Adam in case that :math:`p=\infty`), or ``'C++'``, a compiled backend
+       AdaMax in case that :math:`p=\infty`), or ``'C++'``, a compiled backend
        using the BFGS algorithm.
     fisher_bingham_use_weight : bool, optional
        If `True`, use data weights when computing the starting value of
@@ -257,7 +257,8 @@ class HotineObliqueMercator:
                         lat_array,
                         w_initial,
                         pnorm,
-                        f)
+                        f
+                        )
             else:
                 # Could be required in Python backend:
                 w_initial = None
@@ -326,14 +327,16 @@ class HotineObliqueMercator:
                     weight = np.ones_like(lon_array)
                 if h is None:
                     h = np.zeros_like(lon_array)
-                if isinf(pnorm):
-                    k00 = initial_parameters(
-                            lon_array,
-                            lat_array,
-                            w_initial,
-                            2,
-                            f
-                        )[3]
+                # if isinf(pnorm):
+                    # k00 = initial_parameters(
+                    #         lon_array,
+                    #         lat_array,
+                    #         w_initial,
+                    #         2,
+                    #         f
+                    #     )[3]
+                print(a,1/f,pnorm,Nmax,k0_ap)
+                print(lat_00,lonc0,alpha0,k00,lon_array.size)
                 result \
                     = lm_adamax_optimize(
                         np.deg2rad(lon_array),
@@ -346,12 +349,13 @@ class HotineObliqueMercator:
                         k00,
                         a,
                         f,
-                        0 if isinf(pnorm) else pnorm,
+                        pnorm, #0 if isinf(pnorm) else pnorm,
                         Nmax,
                         False,
                         k0_ap,
                         sigma_k0
                     )
+                print(result.lat_0,result.lonc,result.alpha,result.k0)
             else:
                 raise ValueError("Backend unkown!")
 
