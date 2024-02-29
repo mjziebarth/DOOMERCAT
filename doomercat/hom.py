@@ -327,16 +327,6 @@ class HotineObliqueMercator:
                     weight = np.ones_like(lon_array)
                 if h is None:
                     h = np.zeros_like(lon_array)
-                # if isinf(pnorm):
-                    # k00 = initial_parameters(
-                    #         lon_array,
-                    #         lat_array,
-                    #         w_initial,
-                    #         2,
-                    #         f
-                    #     )[3]
-                print(a,1/f,pnorm,Nmax,k0_ap)
-                print(lat_00,lonc0,alpha0,k00,lon_array.size)
                 result \
                     = lm_adamax_optimize(
                         np.deg2rad(lon_array),
@@ -349,13 +339,12 @@ class HotineObliqueMercator:
                         k00,
                         a,
                         f,
-                        pnorm, #0 if isinf(pnorm) else pnorm,
+                        pnorm,
                         Nmax,
                         False,
                         k0_ap,
                         sigma_k0
                     )
-                print(result.lat_0,result.lonc,result.alpha,result.k0)
             else:
                 raise ValueError("Backend unkown!")
 
