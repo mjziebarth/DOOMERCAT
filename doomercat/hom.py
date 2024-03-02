@@ -33,7 +33,7 @@ from typing import Optional, Iterable
 from ._typing import ndarray64
 from .config import _default
 from .defs import _ellipsoids
-from .initial import initial_parameters
+from .initial import initial_parameters_fisher_bingham
 from .enclosingsphere import bounding_sphere
 from .hotineproject import hotine_project_uv
 from .hotine import lm_adamax_optimize
@@ -252,7 +252,7 @@ class HotineObliqueMercator:
                 else:
                     w_initial = None
                 lonc0, lat_00, alpha0, k00 \
-                    = initial_parameters(
+                    = initial_parameters_fisher_bingham(
                         lon_array,
                         lat_array,
                         w_initial,
