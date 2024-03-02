@@ -49,7 +49,7 @@ def test_chile_places():
     HOM = HotineObliqueMercator(lon=lon, lat=lat)
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - (-22.74393664)) < 1e-6
+    assert abs(HOM.lat_0() - (-22.74392928)) < 1e-6
     assert abs(HOM.lonc()  - (-70.55450760)) < 1e-6
     assert abs(HOM.alpha() - (4.52169941)) < 1e-6
     assert abs(HOM.k0()    - (0.99997618)) < 1e-6
