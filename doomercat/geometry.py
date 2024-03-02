@@ -61,14 +61,23 @@ def _lola2xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
     return X
 
 
-def _lola_aux_2_xyz(lo,la,f):
-    '''
-    Convert N ellipsoidal coordinates (lo,la) to coordinates
-    on an auxiliary sphere (lo,la_parametric) and then
-    to cartesian coordinates X (3xN).
+def _lola_aux_2_xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
+    """
+    Convert ellipsoidal coordinates (lo,la)
+    to coordinates on an auxiliary sphere (lo,la_parametric)
+    and then to cartesian coordinates X (3xN).
+
+    Returns
+    -------
+    ndarray
+       Array of the Euclidean coordinates on the auxiliary sphere,
+       in the shape (3,N).
+
+    Notes
+    -----
     Used for computations involving the Fisher-Bingham distribution,
     as this distribution is defined on the sphere rather than an ellipsoid.
-    '''
+    """
 
     lo = np.deg2rad(lo)
     la = np.deg2rad(la)
