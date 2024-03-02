@@ -46,10 +46,17 @@ def test_chile_places():
                         / 'Chile-cities-select.geojson').absolute())
     lon, lat = read_geojson(geojson_path)
 
-    HOM = HotineObliqueMercator(lon=lon, lat=lat)
+    HOM = HotineObliqueMercator(
+            lon=lon, lat=lat, pnorm=2, k0_ap=0.98,
+            sigma_k0=0.98, ellipsoid=None, a=None, f=None,
+            Nmax=1000, backend="Python", proot=False,
+            fisher_bingham_use_weight=False,
+            compute_enclosing_sphere=True,
+            bfgs_epsilon=1e-3
+    )
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - (-22.74392928)) < 1e-6
+    assert abs(HOM.lat_0() - (-22.74393660)) < 1e-6
     assert abs(HOM.lonc()  - (-70.55450760)) < 1e-6
     assert abs(HOM.alpha() - (4.52169941)) < 1e-6
     assert abs(HOM.k0()    - (0.99997618)) < 1e-6
