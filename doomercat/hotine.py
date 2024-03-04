@@ -24,7 +24,7 @@
 import numpy as np
 import sys
 from math import degrees, isinf
-from .geometry import _lola2xyz, _Rx, _Ry, _Rz
+from .geometry import _lola_aux_2_xyz, _Rx, _Ry, _Rz
 from .initial import initial_k0
 
 
@@ -519,7 +519,7 @@ def lm_adamax_optimize(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 
                 is_p2opt = True
 
                 if switch_to_p0:
-                    X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
+                    X = _lola_aux_2_xyz(np.rad2deg(lon),np.rad2deg(lat),f)
                     p[3] = initial_k0(p[0], p[1], p[2], X, wdata, np.inf,
                                       is_p2opt, pnorm_p0)
 
