@@ -317,8 +317,6 @@ def lm_adamax_optimize(
     al = 1e-4
     la = 1e-1
 
-    o = 1.
-
     x0 = np.concatenate((np.array([-1.]), 2.**np.arange(-1,2.)))
     alm = .9
     bem = .999
@@ -448,14 +446,23 @@ def lm_adamax_optimize(
         else:
 
             JTJ = (J.T*w)@J
-            D = np.diag(np.diag(JTJ))
+
+            # Preconditioner
+            Dd = np.diag(JTJ) + 1e-6
+            D = np.diag(Dd)
+            Di = np.diag(1/Dd)
             L = np.tril(JTJ)
-            try:
-                M = 1/(2-o)*(D/o+L)@np.linalg.solve(D/o, (D/o+L).T)
-                PJi = np.linalg.inv(M)
-            except np.linalg.LinAlgError:
-                error_flag = "LinAlgError"
-                break
+
+            kappa = np.zeros(3)
+            o = np.array([.5,1.,1.5])
+            M3 = np.zeros((3,4,4))
+            PJi3 = np.zeros((3,4,4))
+            for j in range(3):
+                M3[j] = o[j]/(2-o[j])*(D/o[j]+L)@Di@(D/o[j]+L).T
+                PJi3[j] = np.linalg.inv(M3[j])
+                kappa[j] = np.linalg.cond(PJi3[j]@JTJ)
+            jmin = np.argmin(kappa)
+            PJi = PJi3[jmin]
 
             S33 = np.zeros((x.size,x.size))
             neop = np.zeros((x.size,x.size,4))
@@ -464,15 +471,15 @@ def lm_adamax_optimize(
             for j in range(x.size):
                 Theta =  (np.sign(v_ap[3]-p[3])+1)/2
                 try:
-                    neodp[j] = np.linalg.solve(JTJ @ PJi + x[j] * la * np.eye(4)
+                    neodp[j] = np.linalg.solve(PJi@JTJ + x[j] * la * np.eye(4)
                                                  + P_ap * Theta,
-                                              (J.T*w)@(fk-1)
+                                              (PJi@J.T*w)@(fk-1)
                                                  + P_ap @ (p-v_ap) * Theta)
 
                 except np.linalg.LinAlgError:
                     error_flag = "LinAlgError"
                     break
-                neodp[j] = PJi@neodp[j]
+                neodp[j] = neodp[j]
 
                 for k in range(x.size):
                     neop[j,k] = _confine(p-x[k]*al*neodp[j])
