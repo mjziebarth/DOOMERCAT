@@ -120,3 +120,13 @@ def change_default(key, value):
     """
     global _default
     _default[key] = value
+
+
+def reset_defaults():
+    """
+    Reset the default keyword argument configuration for the
+    HotineObliqueMercator class.
+    """
+    global _default
+    _default = _generate_default_config()
+    save_defaults()
