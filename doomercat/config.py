@@ -75,7 +75,7 @@ try:
            = bool(defaults["fisher_bingham_use_weight"])
         defaults["compute_enclosing_sphere"] \
            = bool(defaults["compute_enclosing_sphere"])
-        defaults["bfgs_epsilon"] = defaults["bfgs_epsilon"]
+        defaults["bfgs_epsilon"] = float(defaults["bfgs_epsilon"])
         return defaults
 
     def save_defaults():
