@@ -38,6 +38,7 @@ def _generate_default_config():
     _default["fisher_bingham_use_weight"] = False
     _default["compute_enclosing_sphere"] = True
     _default["bfgs_epsilon"] = 1e-3
+    _default["Nmax_pre_adamax"] = 50
     return _default
 
 
@@ -76,6 +77,7 @@ try:
         defaults["compute_enclosing_sphere"] \
            = bool(defaults["compute_enclosing_sphere"])
         defaults["bfgs_epsilon"] = float(defaults["bfgs_epsilon"])
+        defaults["Nmax_pre_adamax"] = int(defaults["Nmax_pre_adamax"])
         return defaults
 
     def save_defaults():

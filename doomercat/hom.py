@@ -191,7 +191,8 @@ class HotineObliqueMercator:
                      = _default["fisher_bingham_use_weight"],
                  compute_enclosing_sphere: bool
                      = _default["compute_enclosing_sphere"],
-                 bfgs_epsilon: float = _default["bfgs_epsilon"]):
+                 bfgs_epsilon: float = _default["bfgs_epsilon"],
+                 Nmax_pre_adamax: int = _default["Nmax_pre_adamax"]):
         # Initialization.
         # 1) Sanity checks:
         assert ellipsoid in _ellipsoids or ellipsoid is None
@@ -351,6 +352,7 @@ class HotineObliqueMercator:
                         f,
                         pnorm,
                         Nmax,
+                        Nmax_pre_adamax,
                         False,
                         k0_ap,
                         sigma_k0

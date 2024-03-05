@@ -276,7 +276,7 @@ def _subbatch(X,p,xper=.025,nper=50):
     return I_batch
 
 def lm_adamax_optimize(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
-         diagnostics=False, k0_ap=None, k0_ap_std=None):
+                       Nmax_pre_adamax = 50, diagnostics=False, k0_ap=None, k0_ap_std=None):
 
     # normalize data weights to sum(wdata) = number of data points
     wdata /= wdata.sum()
@@ -321,6 +321,9 @@ def lm_adamax_optimize(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 
     Ssd = 1.
     Ssd_th = 1e-9
     Nsd = 10
+    # If Nmax_pre_adamax < Nsd, the exit equality check further
+    # below never triggers.
+    Nmax_pre_adamax = max(Nmax_pre_adamax, Nsd)
     Sv = []
     S33 = np.zeros((1,1)) + np.NaN
     Ij = Ik = 0
@@ -515,7 +518,7 @@ def lm_adamax_optimize(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 
 
             if not isinf(pnorm) and Ssd<Ssd_th:
                 break
-            elif isinf(pnorm) and Ssd<Ssd_th:
+            elif isinf(pnorm) and (Ssd<Ssd_th or i == Nmax_pre_adamax):
                 is_p2opt = True
 
                 if switch_to_p0:
