@@ -26,6 +26,8 @@ import sys
 from math import degrees, isinf
 from .geometry import _lola_aux_2_xyz, _Rx, _Ry, _Rz
 from .initial import initial_k0
+from ._typing import ndarray64
+from typing import Optional
 
 
 class HotineResultPy:
@@ -275,8 +277,24 @@ def _subbatch(X,p,xper=.025,nper=50):
 
     return I_batch
 
-def lm_adamax_optimize(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
-                       Nmax_pre_adamax = 50, diagnostics=False, k0_ap=None, k0_ap_std=None):
+def lm_adamax_optimize(
+        lon: ndarray64,
+        lat: ndarray64,
+        h: ndarray64,
+        wdata: ndarray64,
+        phi0: float,
+        lmbdc: float,
+        alphac: float,
+        k0: float,
+        a: float,
+        f: float,
+        pnorm: int = 2,
+        Niter: int = 100,
+        Nmax_pre_adamax: int = 50,
+        diagnostics: bool = False,
+        k0_ap: Optional[float] = None,
+        k0_ap_std: Optional[float] = None
+    ):
 
     # normalize data weights to sum(wdata) = number of data points
     wdata /= wdata.sum()
