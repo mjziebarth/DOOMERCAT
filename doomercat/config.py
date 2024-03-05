@@ -28,8 +28,8 @@ def _generate_default_config():
     _default = {}
     _default["backend"] = "Python"
     _default["pnorm"] = 2
-    _default["k0_ap"] = 0.98
-    _default["sigma_k0"] = 0.002
+    _default["k0_ap"] = 0.0
+    _default["sigma_k0"] = inf
     _default["ellipsoid"] = None
     _default["a"] = None
     _default["f"] = None
