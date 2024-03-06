@@ -3,7 +3,8 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2022 Malte J. Ziebarth
+# Copyright (C) 2022 Malte J. Ziebarth,
+#               2024 Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -77,7 +78,8 @@ try:
         defaults["compute_enclosing_sphere"] \
            = bool(defaults["compute_enclosing_sphere"])
         defaults["bfgs_epsilon"] = float(defaults["bfgs_epsilon"])
-        defaults["Nmax_pre_adamax"] = int(defaults["Nmax_pre_adamax"])
+        defaults["Nmax_pre_adamax"] = int(defaults["nmax_pre_adamax"])
+        del defaults["nmax_pre_adamax"]
         return defaults
 
     def save_defaults():
