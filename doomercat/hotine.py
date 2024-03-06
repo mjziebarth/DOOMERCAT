@@ -457,10 +457,14 @@ def lm_adamax_optimize(
             o = np.array([.5,1.,1.5])
             M3 = np.zeros((3,4,4))
             PJi3 = np.zeros((3,4,4))
-            for j in range(3):
-                M3[j] = o[j]/(2-o[j])*(D/o[j]+L)@Di@(D/o[j]+L).T
-                PJi3[j] = np.linalg.inv(M3[j])
-                kappa[j] = np.linalg.cond(PJi3[j]@JTJ)
+            try:
+                for j in range(3):
+                    M3[j] = o[j]/(2-o[j])*(D/o[j]+L)@Di@(D/o[j]+L).T
+                    PJi3[j] = np.linalg.inv(M3[j])
+                    kappa[j] = np.linalg.cond(PJi3[j]@JTJ)
+            except np.linalg.LinAlgError:
+                error_flag = "LinAlgError"
+                break
             jmin = np.argmin(kappa)
             PJi = PJi3[jmin]
 
