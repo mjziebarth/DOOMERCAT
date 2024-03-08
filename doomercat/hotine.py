@@ -117,7 +117,7 @@ def _ks(A,B,u,e,phi,lmbd,lmbd0):
 
 
 
-def _f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
+def _f_d_k_cse(lmbd,phi,phi0,lmbdc,alphac,k0,e,noJ=False):
 
     if np.abs(alphac) >= np.deg2rad((90-1/3600)):
         alphac = np.deg2rad((90-1/3600))*np.sign(alphac)
@@ -139,8 +139,6 @@ def _f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
     u = _u(A,S,gamma0,V,B,lmbd,lmbd0)
 
     ks = _ks(A,B,u,e,phi,lmbd,lmbd0)
-    # Correct by the local scale:
-    ks /= a_h_rel
 
     if noJ:
         return ks
@@ -237,10 +235,10 @@ def _f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         f_dk0 = x24*x30*x44*(A*x55*x7 - x28 - x29)
 
 
-        J = np.stack([f_dphi0/a_h_rel,
-                      f_dlmbdc/a_h_rel,
-                      f_dalphac/a_h_rel,
-                      f_dk0/a_h_rel]).T
+        J = np.stack([f_dphi0,
+                      f_dlmbdc,
+                      f_dalphac,
+                      f_dk0]).T
 
         return (ks,J)
 
@@ -339,7 +337,7 @@ def lm_adamax_optimize(
     Nsd = 10
     # If Nmax_pre_adamax < Nsd, the exit equality check further
     # below never triggers.
-    Nmax_pre_adamax = max(Nmax_pre_adamax, Nsd)
+    Nmax_pre_adamax = max(Nmax_pre_adamax, 4*Nsd)
     Sv = []
     S33 = np.zeros((1,1)) + np.NaN
     Ij = Ik = 0
@@ -365,34 +363,37 @@ def lm_adamax_optimize(
     for i in range(Niter):
 
         if not isinf(pnorm) or not is_p2opt:
-            fk,J = _f_d_k_cse(lon,lat,a_h_rel,p[0],p[1],p[2],p[3],e)
+            fk,J = _f_d_k_cse(lon,lat,p[0],p[1],p[2],p[3],e)
+            yk = a_h_rel[:]
         else:
             I_batch = _subbatch(X,p)
 
-            fk = _f_d_k_cse(lon[I_batch],lat[I_batch],a_h_rel[I_batch],p[0],p[1],
+            fk = _f_d_k_cse(lon[I_batch],lat[I_batch],p[0],p[1],
                            p[2],p[3],e,noJ = True)
+            yk = a_h_rel[I_batch]
 
 
         if isinf(pnorm) and is_p2opt:
-            res = np.abs(fk-1)
+            res = np.abs(fk-yk)
             iresmax = np.argmax(res)
             fk,J = _f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
-                             a_h_rel[I_batch][iresmax],p[0],p[1],p[2],p[3],e)
+                             p[0],p[1],p[2],p[3],e)
             J.shape = (1,4)
+            yk = a_h_rel[I_batch][iresmax]
 
         if isinf(pnorm):
             if is_p2opt:
                 w = np.array([1.])
             else:
-                w = np.abs(fk-1)**(pnorm_p0-2)
+                w = np.abs(fk-yk)**(pnorm_p0-2)
                 w *= wdata
         elif pnorm > 0. and pnorm <= 1:
-            w = (np.abs(fk-1)+1e-15)**(pnorm-2)
+            w = (np.abs(fk-yk)+1e-15)**(pnorm-2)
             w *= wdata
         elif pnorm == 2:
             w = wdata*1.
         else:
-            w = np.abs(fk-1)**(pnorm-2)
+            w = np.abs(fk-yk)**(pnorm-2)
             w *= wdata
 
         w /= w.sum()
@@ -400,7 +401,7 @@ def lm_adamax_optimize(
         if isinf(pnorm) and is_p2opt:
 
             Theta =  (np.sign(v_ap[3]-p[3])+1)/2
-            dp = J*np.sign(fk-1) + 2 * P_ap @ (p-v_ap) * Theta
+            dp = J*np.sign(fk-yk) + 2 * P_ap @ (p-v_ap) * Theta
 
             mm = alm*mm+(1-alm)*dp
             um = np.maximum(bem*um,np.abs(dp))
@@ -416,12 +417,13 @@ def lm_adamax_optimize(
                 neop[k] = _confine(p - x0[k]*al*neodp[0])
 
                 I_batch = _subbatch(X,neop[k])
-                neofk = _f_d_k_cse(lon[I_batch], lat[I_batch], a_h_rel[I_batch],
+                neofk = _f_d_k_cse(lon[I_batch], lat[I_batch],
                                   neop[k,0], neop[k,1], neop[k,2],neop[k,3],
                                   e, noJ=True)
+                yk = a_h_rel[I_batch]
 
                 Theta =  (np.sign(v_ap[3]-neop[k,3])+1)/2
-                S33[k,0] = (np.abs(neofk-1).max()) \
+                S33[k,0] = (np.abs(neofk-yk).max()) \
                            + P_ap[3,3]*(neop[k,3]-v_ap[3])**2 * Theta
 
             I = np.argmin(S33)
@@ -477,7 +479,7 @@ def lm_adamax_optimize(
                 try:
                     neodp[j] = np.linalg.solve(PJi@JTJ + x[j] * la * np.eye(4)
                                                  + P_ap * Theta,
-                                              (PJi@J.T*w)@(fk-1)
+                                              (PJi@J.T*w)@(fk-yk)
                                                  + P_ap @ (p-v_ap) * Theta)
 
                 except np.linalg.LinAlgError:
@@ -488,15 +490,16 @@ def lm_adamax_optimize(
                 for k in range(x.size):
                     neop[j,k] = _confine(p-x[k]*al*neodp[j])
 
-                    neofk = _f_d_k_cse(lon,lat,a_h_rel,neop[j,k,0],neop[j,k,1],
+                    neofk = _f_d_k_cse(lon,lat,neop[j,k,0],neop[j,k,1],
                                       neop[j,k,2],neop[j,k,3],e,noJ=True)
+                    yk = a_h_rel[:]
 
                     Theta =  (np.sign(v_ap[3]-neop[j,k,3])+1)/2
                     if isinf(pnorm):
-                        S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm_p0) \
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm_p0) \
                                     + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
                     else:
-                        S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm) \
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm) \
                                     + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
 
                     if np.isnan(S33[j,k]):
