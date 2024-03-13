@@ -401,7 +401,7 @@ def lm_adamax_optimize(
         if isinf(pnorm) and is_p2opt:
 
             Theta =  (np.sign(v_ap[3]-p[3])+1)/2
-            dp = J*np.sign(fk-yk) + 2 * P_ap @ (p-v_ap) * Theta
+            dp = J*np.sign(fk-yk) + 2 * P_ap @ (p-v_ap) * -Theta
 
             mm = alm*mm+(1-alm)*dp
             um = np.maximum(bem*um,np.abs(dp))
@@ -425,6 +425,7 @@ def lm_adamax_optimize(
                 Theta =  (np.sign(v_ap[3]-neop[k,3])+1)/2
                 S33[k,0] = (np.abs(neofk-yk).max()) \
                            + P_ap[3,3]*(neop[k,3]-v_ap[3])**2 * Theta
+                # S33[k,0] = np.maximum(np.abs(neofk-yk).max(), (np.sqrt(P_ap[3,3])*np.abs(neop[k,3]-v_ap[3]) * Theta).max())
 
             I = np.argmin(S33)
             al *= x0[I]
@@ -444,47 +445,34 @@ def lm_adamax_optimize(
                 break
             p = p1*1
 
-
         else:
 
-            JTJ = (J.T*w)@J
-
             # Preconditioner
-            Dd = np.diag(JTJ) + 1e-6
+            JTJ = (J.T*w)@J
+            Dd = np.diag(JTJ)
+            Dd = Dd + 1e-10*np.max(np.abs(Dd))
             D = np.diag(Dd)
             Di = np.diag(1/Dd)
             L = np.tril(JTJ)
-
-            kappa = np.zeros(3)
-            o = np.array([.5,1.,1.5])
-            M3 = np.zeros((3,4,4))
-            PJi3 = np.zeros((3,4,4))
-            try:
-                for j in range(3):
-                    M3[j] = o[j]/(2-o[j])*(D/o[j]+L)@Di@(D/o[j]+L).T
-                    PJi3[j] = np.linalg.inv(M3[j])
-                    kappa[j] = np.linalg.cond(PJi3[j]@JTJ)
-            except np.linalg.LinAlgError:
-                error_flag = "LinAlgError"
-                break
-            jmin = np.argmin(kappa)
-            PJi = PJi3[jmin]
+            M = (D+L)@Di@(D+L).T
 
             S33 = np.zeros((x.size,x.size))
             neop = np.zeros((x.size,x.size,4))
             neodp = np.zeros((x.size,4))
 
-            for j in range(x.size):
-                Theta =  (np.sign(v_ap[3]-p[3])+1)/2
-                try:
-                    neodp[j] = np.linalg.solve(PJi@JTJ + x[j] * la * np.eye(4)
-                                                 + P_ap * Theta,
-                                              (PJi@J.T*w)@(fk-yk)
-                                                 + P_ap @ (p-v_ap) * Theta)
+            Theta =  (np.sign(v_ap[3]-p[3])+1)/2
 
+            for j in range(x.size):
+
+                try:
+                    neodp[j] = np.linalg.solve(JTJ + x[j] * la * M
+                                                 + P_ap * -Theta,
+                                              (J.T*w)@(fk-yk)
+                                                 + P_ap @ (p-v_ap) * -Theta)
                 except np.linalg.LinAlgError:
                     error_flag = "LinAlgError"
                     break
+
                 neodp[j] = neodp[j]
 
                 for k in range(x.size):
@@ -494,7 +482,7 @@ def lm_adamax_optimize(
                                       neop[j,k,2],neop[j,k,3],e,noJ=True)
                     yk = a_h_rel[:]
 
-                    Theta =  (np.sign(v_ap[3]-neop[j,k,3])+1)/2
+                    Theta = (np.sign(v_ap[3]-neop[j,k,3])+1)/2
                     if isinf(pnorm):
                         S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm_p0) \
                                     + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
@@ -524,9 +512,8 @@ def lm_adamax_optimize(
                 break
             p = p1
 
-
-
         Sv.append(S33[Ij,Ik])
+        print(Sv[-1],p)
         if diagnostics:
             alv.append(al)
             lav.append(la)
@@ -550,7 +537,7 @@ def lm_adamax_optimize(
 
             if not isinf(pnorm) and Ssd<Ssd_th:
                 break
-            elif isinf(pnorm) and (Ssd<Ssd_th or i == Nmax_pre_adamax):
+            elif isinf(pnorm) and (Ssd<Ssd_th):# or i == Nmax_pre_adamax):
                 is_p2opt = True
 
                 if switch_to_p0:
