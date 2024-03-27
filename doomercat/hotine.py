@@ -447,14 +447,8 @@ def lm_adamax_optimize(
 
         else:
 
-            # Preconditioner
             JTJ = (J.T*w)@J
-            Dd = np.diag(JTJ)
-            Dd = Dd + 1e-10*np.max(np.abs(Dd))
-            D = np.diag(Dd)
-            Di = np.diag(1/Dd)
-            L = np.tril(JTJ)
-            M = (D+L)@Di@(D+L).T
+            D = np.diag(np.diag(JTJ)) # Preconditioner
 
             S33 = np.zeros((x.size,x.size))
             neop = np.zeros((x.size,x.size,4))
@@ -465,7 +459,7 @@ def lm_adamax_optimize(
             for j in range(x.size):
 
                 try:
-                    neodp[j] = np.linalg.solve(JTJ + x[j] * la * M
+                    neodp[j] = np.linalg.solve(JTJ + x[j] * la * D
                                                  + P_ap * -Theta,
                                               (J.T*w)@(fk-yk)
                                                  + P_ap @ (p-v_ap) * -Theta)
