@@ -22,6 +22,7 @@
  */
 
 #include <../include/linalg.hpp>
+#include <../include/exitcode.hpp>
 
 #ifndef DOOMERCAT_TRUONG2020_H
 #define DOOMERCAT_TRUONG2020_H
@@ -32,9 +33,6 @@
  * Return types and history bookkeeping:
  *
  */
-enum GD_exit_code_t {
-	MAX_ITERATIONS, CONVERGED, RHO_DIVERGENCE, LINESEARCH_FAIL, COST_DIVERGENCE
-};
 
 template<typename lina>
 struct GD_step_t {
@@ -67,7 +65,7 @@ struct GD_step_t {
 
 template<typename lina>
 struct GD_result_t {
-	GD_exit_code_t exit_code;
+	exit_code_t exit_code;
 	std::vector<GD_step_t<lina>> history;
 };
 
@@ -77,28 +75,29 @@ struct GD_result_t {
 
 template<typename parameters_t,
          typename costfun_t, typename gradfun_t,
-		 typename boundsfun_t>
+         typename boundsfun_t>
 GD_result_t<
-	linalg_t<
-		parameters_t::d,
+    linalg_t<
+        parameters_t::ndim,
         typename parameters_t::real_t
 	>
 >
 two_way_backtracking_gradient_descent(
     const parameters_t& x0,
     costfun_t costfun, gradfun_t gradient,
-	const double delta0,
-	const double alpha, const double beta,
+    const double delta0,
+    const double alpha, const double beta,
     const size_t Nmax, const size_t Nmax_linesearch,
 	const double epsilon, boundsfun_t in_bounds
 )
 {
     /* Typedefs for brevity: */
-	constexpr size_t d = parameters_t::d;
+	constexpr size_t d = parameters_t::ndim;
 	typedef typename parameters_t::real_t real_t;
-	typedef typename linalg_t<d, real_t> lina;
-	typedef typename lina::matrix_dxd_t Mdxd_t;
+	typedef linalg_t<d, real_t> lina;
 	typedef typename lina::column_vectord_t vd_t;
+	typedef typename lina::point_t point_t;
+	typedef typename lina::grad_t grad_t;
 
 	/*
 	 * This function implements the algorithm described in
@@ -130,7 +129,6 @@ two_way_backtracking_gradient_descent(
 	if (!in_bounds(x0))
 		throw std::runtime_error("Start point out of bounds.");
 	real_t cost0 = costfun(x0);
-	double step = INITIAL_STEP;
 	double last_delta = delta0;
 	vd_t xkp1;
 	for (size_t i=0; i<Nmax-1; ++i){
@@ -161,7 +159,7 @@ two_way_backtracking_gradient_descent(
 		);
 
 		/* Line search: */
-		double cost = cost0;
+		real_t cost = cost0;
 		bool armijo = false;
 		double sigma = last_delta;
 		const real_t grad_nrm_2 = lina::dot(grad_fk, grad_fk);
@@ -176,8 +174,8 @@ two_way_backtracking_gradient_descent(
 
 			/* Compute the cost: */
 			point_t Pp1;
-			lina::fill_point(Pp1, xkp1);
-			if !in_bounds(Pp1){
+			lina::fill_array(Pp1, xkp1);
+			if (in_bounds(Pp1)){
 				cost = costfun(Pp1);
 			} else {
 				cost = std::numeric_limits<real_t>::infinity();
@@ -231,6 +229,8 @@ two_way_backtracking_gradient_descent(
 	result.history.emplace_back(
 		cost0, P, G, last_delta
 	);
+
+	return result;
 }
 
 

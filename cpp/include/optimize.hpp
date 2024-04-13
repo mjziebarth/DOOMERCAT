@@ -28,6 +28,7 @@
 #include <../include/linalg.hpp>
 #include <../include/bfgs.hpp>
 #include <../include/truong2020.hpp>
+#include <../include/parameters.hpp>
 
 #ifndef DOOMERCAT_OPTIMIZE_H
 #define DOOMERCAT_OPTIMIZE_H
@@ -509,9 +510,10 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
 template<typename DS>
 std::vector<hotine_result_t>
 backtrack_GD_optimize_hotine(
-	const DS& data, const double lonc0,
+    const DS& data, const double lonc0,
     const double lat_00, const double alpha0,
     const double k00, const double f,
+    const double pnorm,
     const double k0_ap, const double sigma_k0,
     const size_t Nmax, const double epsilon
 )
@@ -534,19 +536,20 @@ backtrack_GD_optimize_hotine(
 	 */
 	typedef std::variant<CostFunctionHotine<real4v>,
 	                     CostFunctionHotineInf<real4v>>
-		costfun_t;
-	costfun_t cost_function;
-	if (std::isinf(pnorm)){
-		cost_function
-			.emplace<CostFunctionHotineInf<real4v>>(
-				k0_ap, sigma_k0, true, true
-		);
-	} else {
-		cost_function
-			.emplace<CostFunctionHotine<real4v>>(
-				pnorm, k0_ap, sigma_k0, true, true
-		);
-	}
+	    costfun_t;
+	auto generate_cost_function = [=]() -> costfun_t
+	{
+		if (std::isinf(pnorm)){
+		    return CostFunctionHotineInf<real4v>(
+		            k0_ap, sigma_k0, true, true
+		    );
+		} else {
+		    return CostFunctionHotine<real4v>(
+		            pnorm, k0_ap, sigma_k0, true, true
+		    );
+		}
+	};
+	costfun_t cost_function = generate_cost_function();
 
 	/* Initial cost: */
 	CostHotine<real4v> cost(
@@ -554,11 +557,11 @@ backtrack_GD_optimize_hotine(
 			[lonc0, lat_00, alpha0, k00, f, &data]
 			(auto&& cfun) -> CostHotine<real4v>
 			{
-				return cfun(data,
-	                 hom_t(variable4<0>(deg2rad(lonc0)),
-	                       variable4<1>(deg2rad(lat_00)),
-	                       variable4<2>(deg2rad(alpha0)),
-	                       variable4<3>(k00), f)
+			return cfun(data,
+			         hom_t(variable4<0>(deg2rad(lonc0)),
+			               variable4<1>(deg2rad(lat_00)),
+			               variable4<2>(deg2rad(alpha0)),
+			               variable4<3>(k00), f)
 				);
 			},
 			cost_function
@@ -568,10 +571,10 @@ backtrack_GD_optimize_hotine(
 
 	/*  A lambda function that checks whether the currently cached version
 	 * of 'cost' is equal to a given one: */
-	HotineParameters<real_t> last_x;
+	HotineParameters<real_t> last_x = HotineParameters<real_t>::invalid();
 	auto check_cached_cost
-		= [&last_x, &cost_function, &cost]
-		  (const HotineParameters<real_t>& x)
+	    = [&last_x, &cost_function, &cost, &data, f]
+	    (const HotineParameters<real_t>& x)
 	{
 		bool x_new = false;
 		for (p_iter_t i=0; i<P; ++i){
@@ -584,14 +587,14 @@ backtrack_GD_optimize_hotine(
 		if (x_new){
 			/* Recalculate. */
 			cost = std::visit(
-				[&x](auto&& cfun) -> CostHotine<real4v>
+				[x,f,&data](auto&& cfun) -> CostHotine<real4v>
 				{
 					return cfun(data,
-						hom_t(variable4<0>(x[0]),
-							  variable4<1>(x[1]),
-							  variable4<2>(x[2]),
-							  variable4<3>(x[3]),
-							  f)
+					    hom_t(variable4<0>(x[0]),
+					          variable4<1>(x[1]),
+					          variable4<2>(x[2]),
+					          variable4<3>(x[3]),
+					          f)
 					);
 				},
 				cost_function
@@ -630,20 +633,20 @@ backtrack_GD_optimize_hotine(
 
 	/* Initial config and optimization: */
 	HotineParameters<real_t>
-		x0(deg2rad(lonc0), deg2rad(lat_00),
+	    x0(deg2rad(lonc0), deg2rad(lat_00),
 	       deg2rad(alpha0), k00);
 
 	/* Parameters: */
-	constexpr double delta0 = 1.0;
-	constexpr double alpha = 0.5;
+	constexpr double delta0 = 10.0;
+	constexpr double alpha = 0.02;
 	constexpr double beta = 0.5;
 	constexpr size_t Nmax_linesearch = 65;
 
 	GD_result_t<lina_t> y, y2;
 	y = two_way_backtracking_gradient_descent(
-			x0, cost_lambda,
+	        x0, cost_lambda,
 	        gradient_lambda_redux,
-			delta0, alpha, beta,
+	        delta0, alpha, beta,
 	        Nmax, Nmax_linesearch, epsilon,
 	        in_boundary
 	);
@@ -716,7 +719,7 @@ backtrack_GD_optimize_hotine(
 				           deg2rad(z.grad[2]),
 				           z.grad[3],
 				           state,
-				           static_cast<unsigned int>(z.mode),
+				           static_cast<unsigned int>(-1),
 				           z.step});
 		}
 	};

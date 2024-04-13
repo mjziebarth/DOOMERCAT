@@ -291,7 +291,8 @@ def lm_adamax_optimize(
         Nmax_pre_adamax: int = 50,
         diagnostics: bool = False,
         k0_ap: Optional[float] = None,
-        k0_ap_std: Optional[float] = None
+        k0_ap_std: Optional[float] = None,
+        debug_prints: bool = False
     ):
 
     # normalize data weights to sum(wdata) = number of data points
@@ -513,7 +514,8 @@ def lm_adamax_optimize(
             p = p1
 
         Sv.append(S33[Ij,Ik])
-        print(Sv[-1],p)
+        if debug_prints:
+            print(Sv[-1],p)
         if diagnostics:
             alv.append(al)
             lav.append(la)

@@ -319,7 +319,7 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 
 
 int hotine_backtrack_GD(
-	const size_t N, const double* lon, const double* lat,
+    const size_t N, const double* lon, const double* lat,
     const double* h, const double* w, double a, double f,
     double pnorm, double k0_ap, double sigma_k0, double lonc_0,
     double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
@@ -370,7 +370,7 @@ int hotine_backtrack_GD(
 			return backtrack_GD_optimize_hotine(
 				data_, lonc_0, lat_0_0, alpha_0,
 				k_0_0, f, pnorm, k0_ap, sigma_k0,
-				Nmax, proot > 0u, epsilon);
+				Nmax, epsilon);
 		},
 		data
 	);

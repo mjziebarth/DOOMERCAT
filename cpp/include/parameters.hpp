@@ -47,11 +47,11 @@ template<typename real>
 struct HotineParameters
 {
 public:
-    constexpr size_t d = 4;
+    constexpr static size_t ndim = 4;
     typedef real real_t;
 
-	HotineParameters(real lambda_c, real phi_0, real alpha, real k0)
-	{
+    HotineParameters(real lambda_c, real phi_0, real alpha, real k0)
+    {
 
         /* Latitude flip: */
         if (phi_0 < -PI/2 || phi_0 > PI/2){
@@ -67,16 +67,16 @@ public:
             long abs_wind = std::abs(winding);
 
             /* Shift to the range [0,180]: */
-            lat_0 -= PI * winding;
+            phi_0 -= PI * winding;
 
             /* Now handle the odd flip: */
             if ((abs_wind % 2) == 1){
                 /* Need to turn around the rotation axis
                  * by 180°: */
-                lonc += PI;
+                lambda_c += PI;
 
                 /* Flip orientation of north and south: */
-                lat_0 = PI - lat_0;
+                phi_0 = PI - phi_0;
             }
             /* Examples:
              * -1 -> 179 -> 180 - 179 = 1
@@ -84,19 +84,19 @@ public:
              */
 
             /* Shift back: */
-            params[1] = lat_0 - PI/2;
+            params[1] = phi_0 - PI/2;
         } else {
-            params[1] = lat_0;
+            params[1] = phi_0;
         }
 
-		/* Longitude in range [-180, 180]: */
-		params[0] = fmod(lonc + PI, 2*PI) - PI;
+        /* Longitude in range [-180, 180]: */
+        params[0] = fmod(lambda_c + PI, 2*PI) - PI;
 
         /* Central angle in range [-90, 90] */
-        params[2] = fmod(alpha_c + PI/2, PI) - PI/2;
+        params[2] = fmod(alpha + PI/2, PI) - PI/2;
 
         params[3] = k0;
-	}
+    }
 
 
     HotineParameters(const std::array<real,4>& p)
@@ -108,18 +108,32 @@ public:
     HotineParameters(const HotineParameters&) = default;
 
 
-	operator std::array<real,4>() const
-	{
-		return params;
-	};
+    operator std::array<real,4>() const
+    {
+        return params;
+    };
+
+    constexpr HotineParameters& operator=(const HotineParameters& other)
+    {
+        params = other.params;
+        return *this;
+    }
 
     constexpr const real& operator[](uint_fast8_t i) const
     {
         return params[i];
     }
 
+    static HotineParameters invalid()
+    {
+        return HotineParameters();
+    }
+
 private:
 	std::array<real,4> params;
+
+    HotineParameters() : params({0.0, 0.0, 0.0, -1.0})
+    {}
 };
 
 

@@ -529,7 +529,7 @@ ColVector<d,real> operator*(double c, const ColVector<d,real>& v)
 
 template<size_t d, typename real>
 struct linalg_t {
-	constexpr size_t d = d;
+	constexpr static size_t ndim = d;
 	typedef real real_t;
 	typedef SqMatrix<d,real> matrix_dxd_t;
 	typedef ColVector<d,real> column_vectord_t;
