@@ -35,13 +35,10 @@
 #endif
 
 #include <../include/linalg.hpp>
+#include <../include/exitcode.hpp>
 
 #ifndef DOOMERCAT_BFGS_H
 #define DOOMERCAT_BFGS_H
-
-enum BFGS_exit_code_t {
-	MAX_ITERATIONS, CONVERGED, RHO_DIVERGENCE, LINESEARCH_FAIL, COST_DIVERGENCE
-};
 
 enum class BFGS_mode_t {
 	BFGS=1, FALLBACK_GRADIENT=2, FINISHED=0
@@ -79,7 +76,7 @@ struct BFGS_step_t {
 
 template<typename lina>
 struct BFGS_result_t {
-	BFGS_exit_code_t exit_code;
+	exit_code_t exit_code;
 	std::vector<BFGS_step_t<lina>> history;
 };
 
