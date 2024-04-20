@@ -23,7 +23,7 @@
 import numpy as np
 from math import asin, degrees, sqrt, isinf, isnan
 from .fisherbingham import fisher_bingham_mom, fisher_bingham_angles
-from .geometry import _lola_aux_2_xyz, _Rx, _Ry, _Rz
+from .geometry import latitude2parametric,_lola_aux_2_xyz, _Rx, _Ry, _Rz
 
 
 
@@ -84,12 +84,18 @@ def initial_parameters_fisher_bingham(lon, lat, w, pnorm, f):
     # Sanity:
     if w is None:
         w = 1.0
+
+    # Convert geographic coordinates to parametric Cartesian coordinates
+    X = _lola_aux_2_xyz(lon, lat, f)
+      
     # Use Fisher-Bingham distribution to compute the central
     # latitude, longitude, and azimuth:
-    X = _lola_aux_2_xyz(lon, lat, f)
     phi0, lmbdc, alphac = fisher_bingham_angles(X, w)
 
     # Compute k0:
     k0 = initial_k0(phi0, lmbdc, alphac, X, w, pnorm)
 
+    # Convert parametric latitude phi0 to geographic latitude
+    phi0 = latitude2parametric(phi0, f, 'backward')
+  
     return np.rad2deg(lmbdc), np.rad2deg(phi0), np.rad2deg(alphac), k0
