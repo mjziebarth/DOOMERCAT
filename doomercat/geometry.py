@@ -60,6 +60,22 @@ def _lola2xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
 
     return X
 
+def latitude2parametric(la,f,transform='forward'):
+    '''
+    Conversion between geographic latitude and parametric latitude to
+    solve problems for geodesics on the ellipsoid by transforming them 
+    to an equivalent problem for spherical geodesics.
+    
+    'forward'  : from geographic to parametric latitude (in rad)
+    'backward' : from parametric to geographic latitude (in rad)
+    '''
+
+    if transform == 'forward':
+        return np.arctan((1-f)*np.tan(la))
+    elif transform == 'backward':
+        return np.arctan(np.tan(la)/(1-f))
+    else:
+        print('Invalid input. Please enter a valid transform ("forward" or "backward").')
 
 def _lola_aux_2_xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
     """
@@ -81,7 +97,7 @@ def _lola_aux_2_xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
 
     lo = np.deg2rad(lo)
     la = np.deg2rad(la)
-    la_parametric = np.arctan((1-f)*np.tan(la))
+    la_parametric = latitude2parametric(la,f)
 
     X = np.zeros((3,lo.size))
 
