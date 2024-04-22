@@ -21,8 +21,7 @@
 # limitations under the Licence.
 
 import numpy as np
-from math import asin, degrees, sqrt, isinf, isnan
-from .fisherbingham import fisher_bingham_mom, fisher_bingham_angles
+# from math import asin, degrees, sqrt, isinf, isnan
 from .geometry import latitude2parametric,_lola_aux_2_xyz, _Rx, _Ry, _Rz
 
 
@@ -45,7 +44,7 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
     k0_init = np.mean(k0v)
 
     for i in range(100):
-        if isinf(pnorm):
+        if np.isinf(pnorm):
             if is_p2opt:
                 w = np.zeros_like(k0v)
                 I = [np.argmax(k0_init-k0v), np.argmin(k0_init-k0v)]
@@ -62,15 +61,80 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
         else:
             w = np.abs(k0_init-k0v)**(pnorm-2)
 
-        if isinf(pnorm) and is_p2opt:
+        if np.isinf(pnorm) and is_p2opt:
             k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
         else:
             k0_init -= .1* np.sum(w*wdata * (k0_init-k0v)**2)/np.sum(w*wdata)
 
-    if isnan(k0_init):
+    if np.isnan(k0_init):
         return np.mean(k0v)
 
     return k0_init
+
+def fisher_bingham_angles(X, w):
+    """
+    Based on the three axes of the Fisher-Bingham moment estimator 
+    (Gamma tilde in Kent, 1982), used to compute an initial estimate
+    of the Hotine oblique Mercator axes.
+    
+    Arguments:
+       X : 3D Euclidean coordinates of the data points on the auxiliary
+       sphere (retains ellipsoid features).
+
+    Returns:
+       phi0   : Estimate of central latitude in radians
+       lmbdc  : Estimate of central longitude in radians
+       alphac : Estimate of azimuth at central point, in radians
+    """
+    
+    # mean
+    m = np.sum(w*X, axis=1)
+    m_ = m/np.linalg.norm(m)
+    
+    # covariance
+    S = 1/np.sum(w) * (w*X)@X.T
+
+    H = np.array([
+        [m_[0], -m_[1]/np.sqrt(1-m_[2]**2), -m_[0]*m_[2]/np.sqrt(1-m_[2]**2)],
+        [m_[1],  m_[0]/np.sqrt(1-m_[2]**2), -m_[1]*m_[2]/np.sqrt(1-m_[2]**2)],
+        [m_[2],  0, np.sqrt(1-m_[2]**2)]
+    ])
+
+    B = H.T @ S @ H
+
+    psi = .5*np.arctan2(2*B[1,2], (B[1,1]-B[2,2]))
+
+    K = np.array([[1,       0,                0],
+                  [0, np.cos(psi), -np.sin(psi)],
+                  [0, np.sin(psi),  np.cos(psi)]])
+
+    G = H @ K
+
+    g1 = G[:,0] # central axis
+    g2 = G[:,1] # equator axis
+    g3 = G[:,2] # pole axis
+
+    # Compute the angles:
+    phi0 = np.arcsin(g1[2])
+    lmbdc = np.arctan2(g1[1],g1[0])
+
+
+    # To compute the azimuth, compute the latitude unit vector 
+    # (always pointing north) at (phi0,lmbdc) and determine the 
+    # angle between this vector and the equator axis g2. 
+    
+    uphi = np.array([
+        -np.sin(phi0)*np.cos(lmbdc),
+        -np.sin(phi0)*np.sin(lmbdc),
+        np.cos(phi0)
+    ])
+
+    alphac = np.arccos(np.dot(uphi,g2))
+    
+    # Ensure the result is in [-pi/2,pi/2].
+    alphac = (alphac + np.pi/2) % np.pi - np.pi/2
+    
+    return phi0,lmbdc,alphac
 
 
 def initial_parameters_fisher_bingham(lon, lat, w, pnorm, f):
