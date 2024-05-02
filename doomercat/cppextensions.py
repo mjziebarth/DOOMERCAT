@@ -3,7 +3,8 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
+#               2024 Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -19,6 +20,8 @@
 # limitations under the Licence.
 import platform
 import numpy as np
+from ._typing import ndarray64
+from typing import Optional
 from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER, c_ushort
 from pathlib import Path
 from .messages import info
@@ -29,7 +32,7 @@ from .messages import info
 # Python file.
 # The extension's name differs depending on the operating system:
 
-_cppextensions_so = None
+_cppextensions_so: Optional[CDLL] = None
 
 def find_cppextensions_file():
     """
@@ -109,7 +112,7 @@ class HotineResult:
                             step_size=self.step_size[-1])
 
 
-def bfgs_hotine(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
+def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
                 lat_0_0, alpha_0, k_0_0, Nmax, proot,
                 return_full_history=False, epsilon=1e-7):
     """
@@ -144,6 +147,7 @@ def bfgs_hotine(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     result = np.zeros((Nmax,11))
     M = np.zeros(1,dtype=np.uint)
@@ -196,10 +200,10 @@ def bfgs_hotine(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
                         mode=int(mode), step_size=float(step_size))
 
 
-def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
-                        alpha: np.ndarray, k_0: np.ndarray,
-                        lon: np.ndarray, lat: np.ndarray,
-                        h: np.ndarray, w: np.ndarray,
+def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
+                        alpha: ndarray64, k_0: ndarray64,
+                        lon: ndarray64, lat: ndarray64,
+                        h: ndarray64, w: ndarray64,
                         a: float, f: float, pnorm: float, k0_ap: float,
                         sigma_k0: float, proot: bool,
                         logarithmic: bool):
@@ -235,6 +239,7 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     cost = np.empty(M)
@@ -258,9 +263,9 @@ def compute_cost_hotine(lonc: np.ndarray, lat_0: np.ndarray,
 
     return cost
 
-def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
+def compute_k_hotine(lon: ndarray64, lat: ndarray64,
                      lonc: float, lat_0: float, alpha: float, k_0: float,
-                     f: float):
+                     f: float) -> ndarray64:
     # Input sanitization.
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -275,6 +280,7 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     k = np.empty(N)
@@ -290,9 +296,9 @@ def compute_k_hotine(lon: np.ndarray, lat: np.ndarray,
     return k.reshape(lon.shape)
 
 
-def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
+def project_hotine_uv(lon: ndarray64, lat: ndarray64,
                       lonc: float, lat_0: float, alpha: float, k_0: float,
-                      f: float):
+                      f: float) -> tuple[ndarray64, ndarray64]:
     # Input sanitization.
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -307,6 +313,7 @@ def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     uv = np.empty((N,2))
@@ -322,9 +329,9 @@ def project_hotine_uv(lon: np.ndarray, lat: np.ndarray,
     return uv[0,:], uv[1,:]
 
 
-def project_hotine(lon: np.ndarray, lat: np.ndarray,
+def project_hotine(lon: ndarray64, lat: ndarray64,
                    lonc: float, lat_0: float, alpha: float, k_0: float,
-                   gamma: float, f: float):
+                   gamma: float, f: float) -> tuple[ndarray64,ndarray64]:
     # Input sanitization.
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -340,6 +347,7 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     xy = np.empty((N,2))
@@ -355,8 +363,9 @@ def project_hotine(lon: np.ndarray, lat: np.ndarray,
     return xy[0,:], xy[1,:]
 
 
-def hotine_inverse(x: np.ndarray, y: np.ndarray, lonc: float, lat_0: float,
-                   alpha: float, k_0: float, gamma: float, f: float):
+def hotine_inverse(x: ndarray64, y: ndarray64, lonc: float, lat_0: float,
+                   alpha: float, k_0: float, gamma: float,
+                   f: float) -> tuple[ndarray64,ndarray64]:
     # Input sanitization.
     x = np.ascontiguousarray(x, dtype=np.double)
     y = np.ascontiguousarray(y, dtype=np.double)
@@ -372,6 +381,7 @@ def hotine_inverse(x: np.ndarray, y: np.ndarray, lonc: float, lat_0: float,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     lola = np.empty((N,2))
@@ -398,6 +408,7 @@ def _hotine_constants(lonc: float, lat_0: float, alpha: float, k_0: float,
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
+    assert _cppextensions_so is not None
 
     # Result vector:
     constants = np.empty(3)

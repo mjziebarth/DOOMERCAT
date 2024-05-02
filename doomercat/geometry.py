@@ -5,7 +5,8 @@
 #         Sebastian von Specht
 #
 # Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
-#                    Sebastian von Specht
+#               2022 Sebastian von Specht,
+#               2024 Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -21,21 +22,29 @@
 # limitations under the Licence.
 
 import numpy as np
-
+from ._typing import ndarray64
 #
 # Converting between geographic and Euclidean coordinates:
 #
 
 
-def _xyz2lola(xyz):
+def _xyz2lola(xyz: ndarray64) -> tuple[ndarray64, ndarray64]:
     """
-    Takes a vector (N,3) and computes the spherical coordinates.
+    Takes a vector (3,N) and computes the spherical coordinates.
     """
     xyz /= np.linalg.norm(xyz, axis=0)
     return np.rad2deg(np.arctan2(xyz[1], xyz[0])), np.rad2deg(np.arcsin(xyz[2]))
 
 
-def _lola2xyz(lo,la,f):
+def _lola2xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
+    """
+    Convert geographic coordinates to 3D Euclidean space.
+
+    Returns
+    -------
+    ndarray
+       Array of the Euclidean coordinates in shape (3,N).
+    """
     e2 = 2*f-f**2
 
     lo = np.deg2rad(lo)
@@ -51,13 +60,59 @@ def _lola2xyz(lo,la,f):
 
     return X
 
+def latitude2parametric(la,f,transform='forward'):
+    '''
+    Conversion between geographic latitude and parametric latitude to
+    solve problems for geodesics on the ellipsoid by transforming them 
+    to an equivalent problem for spherical geodesics.
+    
+    'forward'  : from geographic to parametric latitude (in rad)
+    'backward' : from parametric to geographic latitude (in rad)
+    '''
+
+    if transform == 'forward':
+        return np.arctan((1-f)*np.tan(la))
+    elif transform == 'backward':
+        return np.arctan(np.tan(la)/(1-f))
+    else:
+        print('Invalid input. Please enter a valid transform ("forward" or "backward").')
+
+def _lola_aux_2_xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
+    """
+    Convert ellipsoidal coordinates (lo,la)
+    to coordinates on an auxiliary sphere (lo,la_parametric)
+    and then to cartesian coordinates X (3xN).
+
+    Returns
+    -------
+    ndarray
+       Array of the Euclidean coordinates on the auxiliary sphere,
+       in the shape (3,N).
+
+    Notes
+    -----
+    Used for computations involving the Fisher-Bingham distribution,
+    as this distribution is defined on the sphere rather than an ellipsoid.
+    """
+
+    lo = np.deg2rad(lo)
+    la = np.deg2rad(la)
+    la_parametric = latitude2parametric(la,f)
+
+    X = np.zeros((3,lo.size))
+
+    X[0] = np.cos(lo)*np.cos(la_parametric)
+    X[1] = np.sin(lo)*np.cos(la_parametric)
+    X[2] = np.sin(la_parametric)
+
+    return X
 
 #
 # Rotational matrices:
 #
 
 
-def _Rx(a):
+def _Rx(a: float) -> ndarray64:
     R = np.array([
         [1,0,0.],
         [0.,np.cos(a),np.sin(a)],
@@ -66,7 +121,7 @@ def _Rx(a):
     return R
 
 
-def _Ry(a):
+def _Ry(a: float) -> ndarray64:
     R = np.array([
         [np.cos(a),0.,-np.sin(a)],
         [0,1,0.],
@@ -75,7 +130,7 @@ def _Ry(a):
     return R
 
 
-def _Rz(a):
+def _Rz(a: float) -> ndarray64:
     R = np.array([
         [np.cos(a),-np.sin(a),0.],
         [np.sin(a),np.cos(a),0.],
@@ -87,8 +142,12 @@ def _Rz(a):
 #
 # Ellipsoid scale factor:
 #
-def desired_scale_factor(h: np.ndarray, lat: np.ndarray, a: float,
-                         f: float, batch: int = 1000000) -> np.ndarray:
+def desired_scale_factor(
+        h: ndarray64,
+        lat: ndarray64,
+        a: float,
+        f: float,
+        batch: int = 1000000) -> ndarray64:
     """
     Computes the desired scale factor at a given height and latitude.
     """
@@ -151,4 +210,3 @@ def desired_scale_factor(h: np.ndarray, lat: np.ndarray, a: float,
         k_des /= re
         k_des /= a
         return k_des
-    k_des = r / (a*re)

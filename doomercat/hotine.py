@@ -3,8 +3,9 @@
 # Author: Sebastian von Specht (specht3@uni-potsdam.de),
 #         Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2022 Sebastian von Specht,
-#                    Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2022-2024 Sebastian von Specht,
+#               2022      Deutsches GeoForschungsZentrum Potsdam,
+#               2024      Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -22,9 +23,11 @@
 
 import numpy as np
 import sys
-from math import degrees
-from .geometry import _lola2xyz, _Rx, _Ry, _Rz
+from math import degrees, isinf
+from .geometry import _lola_aux_2_xyz, _Rx, _Ry, _Rz
 from .initial import initial_k0
+from ._typing import ndarray64
+from typing import Optional
 
 
 class HotineResultPy:
@@ -51,7 +54,8 @@ def _A(B,k0,e,phi0):
     return B*k0*np.sqrt(1-e**2) / (1-e**2*np.sin(phi0)**2)
 
 def _t0(phi0,e):
-    return np.tan(np.pi/4-phi0/2) / ((1-e*np.sin(phi0))/(1+e*np.sin(phi0)))**(e/2)
+    return np.tan(np.pi/4-phi0/2) \
+           / ((1-e*np.sin(phi0))/(1+e*np.sin(phi0)))**(e/2)
 
 def _t(phi,e):
     return np.tan(np.pi/4-phi/2) / ((1-e*np.sin(phi))/(1+e*np.sin(phi)))**(e/2)
@@ -72,7 +76,8 @@ def _gamma0(alphac,D):
     return np.arcsin(np.sin(alphac)/D)
 
 def _lmbd0(lmbdc,G,gamma0,B,alphac=0,phi0=0):
-    # the limit of G*tan(gamma0) as alphac-> +/- pi/2 is +/- 1. However, for large G and/or tan(gamma0) round-off errors may render the expression >|1|
+    # the limit of G*tan(gamma0) as alphac-> +/- pi/2 is +/- 1. However, for
+    # large G and/or tan(gamma0) round-off errors may render the expression >|1|
     X = G*np.tan(gamma0)
     X = 1. if X > 1. else X
     X = -1. if X < -1. else X
@@ -95,21 +100,24 @@ def _U(V,gamma0,S,T):
     return (-V*np.cos(gamma0)+S*np.sin(gamma0))/T
 
 def _u(A,S,gamma0,V,B,lmbd,lmbd0):
-    return A*np.arctan2((S*np.cos(gamma0)+V*np.sin(gamma0)),np.cos(B*(lmbd-lmbd0)))/B
+    return A*np.arctan2((S*np.cos(gamma0)+V*np.sin(gamma0)),
+                         np.cos(B*(lmbd-lmbd0)))/B
 
 def _h(dudp,dvdp,e,phi,k0):
     return np.sqrt(dudp**2 + dvdp**2) * (1-e**2*np.sin(phi)**2)**1.5 / (1-e**2)
 
 def _k(dudl,dvdl,e,phi,k0):
-    return np.sqrt(dudl**2 + dvdl**2) * (1-e**2*np.sin(phi)**2)**0.5 / np.cos(phi)
+    return np.sqrt(dudl**2 + dvdl**2) * (1-e**2*np.sin(phi)**2)**0.5 \
+           / np.cos(phi)
 
 def _ks(A,B,u,e,phi,lmbd,lmbd0):
-    return A*np.cos(B*u/A)*np.sqrt(1-e**2*np.sin(phi)**2)/(np.cos(phi)*np.cos(B*(lmbd-lmbd0)))
+    return A*np.cos(B*u/A)*np.sqrt(1-e**2*np.sin(phi)**2)\
+           /(np.cos(phi)*np.cos(B*(lmbd-lmbd0)))
 
 
 
 
-def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
+def _f_d_k_cse(lmbd,phi,phi0,lmbdc,alphac,k0,e,noJ=False):
 
     if np.abs(alphac) >= np.deg2rad((90-1/3600)):
         alphac = np.deg2rad((90-1/3600))*np.sign(alphac)
@@ -118,7 +126,7 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
     A = _A(B, k0, e, phi0)
     D = _D(B,e,phi0)
     F = _F(D,phi0)
-    t0 = _t(phi0,e)
+    t0 = _t0(phi0,e)
     t = _t(phi,e)
     E = _E(F,t0,B)
     G = _G(F)
@@ -131,9 +139,6 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
     u = _u(A,S,gamma0,V,B,lmbd,lmbd0)
 
     ks = _ks(A,B,u,e,phi,lmbd,lmbd0)
-
-    # Correct by the local scale:
-    ks /= a_h_rel
 
     if noJ:
         return ks
@@ -189,7 +194,8 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         x47 = np.sqrt(x36 - 1)
         x48 = x45*((1) if (phi0 == 0) else (D*phi0/(x47*abs(phi0)) + 1))
         x49 = F**2
-        x50 = G*x35*x42*x46 - 1/2*x31*x35*x48*(x49 + 1)/x49 + x19*np.arcsin(G*x31)/B**2
+        x50 = G*x35*x42*x46 - 1/2*x31*x35*x48*(x49 + 1)/x49 \
+              + x19*np.arcsin(G*x31)/B**2
         x51 = B*x50
         x52 = ks*np.tan(x2)
         x53 = np.sin(gamma0)
@@ -214,21 +220,30 @@ def f_d_k_cse(lmbd,phi,a_h_rel,phi0,lmbdc,alphac,k0,e,noJ=False):
         x72 = A*x10
 
 
-        f_dphi0 = -x10*x69*(x19*x61*(-u*x59 + x1*x57) + x27*x32*x55 + x39*x46*x62*x63 + (1/2)*x40*x68*(x64 + 1)*(-Q*x19*np.log(t) + t**(-B)*(B*E*x66*(-t0*x14*x67*x8 + (1/2)*x22/(x16 + 1))/(t0*x67*(x65 - 1)) + E*x19*np.log(t0) + t0**B*x48))/x64 - x50*x57*x60 + x53*x68*(x1*x11*x19 - x11*x51)) + x13*x19*(ks*x0*x1*x3 - u*x10) + x27*x30*(x28 + x29) - x51*x52
+        f_dphi0 = -x10*x69*(
+                x19*x61*(-u*x59 + x1*x57) + x27*x32*x55
+                + x39*x46*x62*x63 + (1/2)*x40*x68*(x64 + 1)*(-Q*x19*np.log(t)
+                    + t**(-B)*(B*E*x66*(-t0*x14*x67*x8 + (1/2)*x22/(x16 + 1))
+                        /(t0*x67*(x65 - 1))
+                    + E*x19*np.log(t0) + t0**B*x48))/x64
+                - x50*x57*x60 + x53*x68*(x1*x11*x19 - x11*x51)
+            ) + x13*x19*(ks*x0*x1*x3 - u*x10) + x27*x30*(x28 + x29) - x51*x52
         f_dlmbdc = x60*x69*(-x70 + x71*x72)
-        f_dalphac = x13*x34*x42*x60*(G*x70 - x72*(G*x71 - x33*x41*x62))*np.cos(alphac)/D
+        f_dalphac = x13*x34*x42*x60*(
+                G*x70 - x72*(G*x71 - x33*x41*x62)
+            )*np.cos(alphac)/D
         f_dk0 = x24*x30*x44*(A*x55*x7 - x28 - x29)
 
 
-        J = np.stack([f_dphi0/a_h_rel,
-                      f_dlmbdc/a_h_rel,
-                      f_dalphac/a_h_rel,
-                      f_dk0/a_h_rel]).T
+        J = np.stack([f_dphi0,
+                      f_dlmbdc,
+                      f_dalphac,
+                      f_dk0]).T
 
         return (ks,J)
 
 
-def confine(p):
+def _confine(p):
 
     # winding number for phi (p[0])
     wn = np.floor((p[0]+np.pi/2) / np.pi).astype(int)
@@ -244,9 +259,40 @@ def confine(p):
 
     return p
 
+def _subbatch(X,p,xper=.025,nper=50):
+    X0 = (_Rz(p[1]) @ _Ry(p[0]) @ _Rx(p[2]-np.pi/2)).T @ X
+    Z0 = np.abs(X0[2])
 
-def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
-         diagnostics=False, k0_ap=None, k0_ap_std=None):
+    I = np.ones_like(Z0,dtype=bool)
+
+    if Z0.size*(xper)>nper:
+        I1 = int(xper*Z0.size)
+        I2 = int((1-xper)*Z0.size)
+        I[I1:I2] = False
+        I_batch = np.argpartition(Z0,(I1,I2))[I]
+    else:
+        I_batch = np.arange(Z0.size)
+
+    return I_batch
+
+def lm_adamax_optimize(
+        lon: ndarray64,
+        lat: ndarray64,
+        h: ndarray64,
+        wdata: ndarray64,
+        phi0: float,
+        lmbdc: float,
+        alphac: float,
+        k0: float,
+        a: float,
+        f: float,
+        pnorm: int = 2,
+        Niter: int = 100,
+        Nmax_pre_adamax: int = 50,
+        diagnostics: bool = False,
+        k0_ap: Optional[float] = None,
+        k0_ap_std: Optional[float] = None
+    ):
 
     # normalize data weights to sum(wdata) = number of data points
     wdata /= wdata.sum()
@@ -269,12 +315,11 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
     al = 1e-4
     la = 1e-1
 
-    o = 1.
-
+    x0 = np.concatenate((np.array([-1.]), 2.**np.arange(-1,2.)))
     alm = .9
     bem = .999
     mm = 0.
-    vm = 0.
+    um = 0.
     eps = 1e-10
     ti = 1
     X = None
@@ -288,8 +333,11 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
     error_flag = None
 
     Ssd = 1.
-    Ssd_th = 1e-8
+    Ssd_th = 1e-9
     Nsd = 10
+    # If Nmax_pre_adamax < Nsd, the exit equality check further
+    # below never triggers.
+    Nmax_pre_adamax = max(Nmax_pre_adamax, 4*Nsd)
     Sv = []
     S33 = np.zeros((1,1)) + np.NaN
     Ij = Ik = 0
@@ -314,76 +362,78 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
 
     for i in range(Niter):
 
-        if pnorm != 0 or not is_p2opt:
-            fk,J = f_d_k_cse(lon,lat,a_h_rel,p[0],p[1],p[2],p[3],e)
+        if not isinf(pnorm) or not is_p2opt:
+            fk,J = _f_d_k_cse(lon,lat,p[0],p[1],p[2],p[3],e)
+            yk = a_h_rel[:]
         else:
-            X0 = (_Rz(p[1]) @ _Ry(p[0]) @ _Rx(p[2]-np.pi/2)).T @ X
-            Z0 = np.abs(X0[2])
+            I_batch = _subbatch(X,p)
 
-            I = np.ones_like(Z0,dtype=bool)
-            xper = .025
-            nper = 50
-            if Z0.size*(xper)>nper:
-                I1 = int(xper*Z0.size)
-                I2 = int((1-xper)*Z0.size)
-                I[I1:I2] = False
-                I_batch = np.argpartition(Z0,(I1,I2))[I]
-            else:
-                I_batch = np.arange(Z0.size)
-
-            fk = f_d_k_cse(lon[I_batch],lat[I_batch],a_h_rel[I_batch],p[0],p[1],
+            fk = _f_d_k_cse(lon[I_batch],lat[I_batch],p[0],p[1],
                            p[2],p[3],e,noJ = True)
+            yk = a_h_rel[I_batch]
 
 
-
-        if pnorm == 0. and is_p2opt:
-            res = np.abs(fk-1)
+        if isinf(pnorm) and is_p2opt:
+            res = np.abs(fk-yk)
             iresmax = np.argmax(res)
-            fk,J = f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
-                             a_h_rel[I_batch][iresmax],p[0],p[1],p[2],p[3],e)
+            fk,J = _f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
+                             p[0],p[1],p[2],p[3],e)
             J.shape = (1,4)
+            yk = a_h_rel[I_batch][iresmax]
 
-
-        if pnorm == 0:
+        if isinf(pnorm):
             if is_p2opt:
                 w = np.array([1.])
             else:
-                w = np.abs(fk-1)**(pnorm_p0-2)
+                w = np.abs(fk-yk)**(pnorm_p0-2)
                 w *= wdata
         elif pnorm > 0. and pnorm <= 1:
-            w = (np.abs(fk-1)+1e-15)**(pnorm-2)
+            w = (np.abs(fk-yk)+1e-15)**(pnorm-2)
             w *= wdata
         elif pnorm == 2:
             w = wdata*1.
         else:
-            w = np.abs(fk-1)**(pnorm-2)
+            w = np.abs(fk-yk)**(pnorm-2)
             w *= wdata
 
         w /= w.sum()
 
-
-        if pnorm == 0 and is_p2opt:
-
-            if i > iswitch+21:
-                vn = np.arange(-10,11)
-                Svn = np.log(Sv[-21:])
-                cS = np.sum(vn*(Svn-Svn.mean()))/np.sqrt(np.sum(vn**2)*np.sum((Svn-Svn.mean())**2))
-                if cS>-.25:
-                    al /= 1+1./20
-                elif cS<-.75:
-                    al *= 1+1./20
+        if isinf(pnorm) and is_p2opt:
 
             Theta =  (np.sign(v_ap[3]-p[3])+1)/2
-            dp = (J*np.sign(fk-1)).flatten() + P_ap @ (p-v_ap) * Theta
-            mm = alm*mm + (1-alm)*dp
-            vm = bem*vm + (1-bem)*dp**2
-            mt = mm/(1.-alm**ti)
-            vt = vm/(1.-bem**ti)
-            ti += 1.
+            dp = J*np.sign(fk-yk) + 2 * P_ap @ (p-v_ap) * -Theta
+
+            mm = alm*mm+(1-alm)*dp
+            um = np.maximum(bem*um,np.abs(dp))
+            ti += 1
 
             neodp = np.zeros((1,4))
-            neodp[0] = mt/(np.sqrt(vt)+eps)
-            p1 = confine(p - al*neodp[0])
+            neodp[0] = 1/(1-alm**ti) * mm/um
+
+            neop = np.zeros((x0.size,4))
+            S33 = np.zeros((x0.size,1))+np.inf
+
+            for k in range(x0.size):
+                neop[k] = _confine(p - x0[k]*al*neodp[0])
+
+                I_batch = _subbatch(X,neop[k])
+                neofk = _f_d_k_cse(lon[I_batch], lat[I_batch],
+                                  neop[k,0], neop[k,1], neop[k,2],neop[k,3],
+                                  e, noJ=True)
+                yk = a_h_rel[I_batch]
+
+                Theta =  (np.sign(v_ap[3]-neop[k,3])+1)/2
+                S33[k,0] = (np.abs(neofk-yk).max()) \
+                           + P_ap[3,3]*(neop[k,3]-v_ap[3])**2 * Theta
+                # S33[k,0] = np.maximum(np.abs(neofk-yk).max(), (np.sqrt(P_ap[3,3])*np.abs(neop[k,3]-v_ap[3]) * Theta).max())
+
+            I = np.argmin(S33)
+            al *= x0[I]
+
+            p1 = neop[I]
+
+
+            Ij,Ik = I,0 # for diagnostics format
             if np.any(np.isnan(p1)) or np.any(np.isinf(p1)):
                 # Exit before breaking parameters:
                 Sv.append(S33[Ij,Ik])
@@ -393,51 +443,46 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
                     P.append(p*1.)
                 error_flag = "NaNParameter"
                 break
-            p = p1
-            S33 = np.zeros((1,1))
-            Ij,Ik = 0,0
-            S33[0,0] = (np.abs(fk-1)) + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
+            p = p1*1
 
         else:
 
             JTJ = (J.T*w)@J
-            D = np.diag(np.diag(JTJ))
-            L = np.tril(JTJ)
-            try:
-                M = 1/(2-o)*(D/o+L)@np.linalg.solve(D/o, (D/o+L).T)
-                PJi = np.linalg.inv(M)
-            except np.linalg.LinAlgError:
-                error_flag = "LinAlgError"
-                break
+            D = np.diag(np.diag(JTJ)) # Preconditioner
 
             S33 = np.zeros((x.size,x.size))
             neop = np.zeros((x.size,x.size,4))
             neodp = np.zeros((x.size,4))
 
+            Theta =  (np.sign(v_ap[3]-p[3])+1)/2
+
             for j in range(x.size):
-                Theta =  (np.sign(v_ap[3]-p[3])+1)/2
+
                 try:
-                   neodp[j] = np.linalg.solve(JTJ @ PJi + x[j] * la * np.eye(4)
-                                                 + P_ap * Theta,
-                                              (J.T*w)@(fk-1)
-                                                 + P_ap @ (p-v_ap) * Theta)
+                    neodp[j] = np.linalg.solve(JTJ + x[j] * la * D
+                                                 + P_ap * -Theta,
+                                              (J.T*w)@(fk-yk)
+                                                 + P_ap @ (p-v_ap) * -Theta)
                 except np.linalg.LinAlgError:
                     error_flag = "LinAlgError"
                     break
-                neodp[j] = PJi@neodp[j]
+
+                neodp[j] = neodp[j]
 
                 for k in range(x.size):
-                    neop[j,k] = confine(p-x[k]*al*neodp[j])
+                    neop[j,k] = _confine(p-x[k]*al*neodp[j])
 
-                    neofk = f_d_k_cse(lon,lat,a_h_rel,neop[j,k,0],neop[j,k,1],
+                    neofk = _f_d_k_cse(lon,lat,neop[j,k,0],neop[j,k,1],
                                       neop[j,k,2],neop[j,k,3],e,noJ=True)
+                    yk = a_h_rel[:]
 
-                    if pnorm == 0:
-                        S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm_p0) \
-                                          + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
+                    Theta = (np.sign(v_ap[3]-neop[j,k,3])+1)/2
+                    if isinf(pnorm):
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm_p0) \
+                                    + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
                     else:
-                        S33[j,k] = np.sum(wdata*np.abs(neofk-1)**pnorm) \
-                                          + P_ap[3,3]*(p[3]-v_ap[3])**2 * Theta
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm) \
+                                    + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
 
                     if np.isnan(S33[j,k]):
                         S33[j,k] = np.inf
@@ -461,9 +506,8 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
                 break
             p = p1
 
-
-
         Sv.append(S33[Ij,Ik])
+        print(Sv[-1],p)
         if diagnostics:
             alv.append(al)
             lav.append(la)
@@ -473,31 +517,34 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
             break
 
         if i >= Nsd:
+
             Ssd = np.std(np.log(Sv[-Nsd:]),ddof=1)
             # print('var',np.log(Sv[-Nsd:]),Ssd)
 
-            # Especially for high pnorm, it might happen that the cost evaluation
-            # of S33 gives 0.0 for all data points if the distortions are already
-            # fairly small.
+            # Especially for high pnorm, it might happen that the cost
+            # evaluation of S33 gives 0.0 for all data points if the distortions
+            # are already fairly small.
             # Catch this case here:
             #if min(Sv[-Nsd:]) == 0.0:
             if np.isnan(Ssd):
                 Ssd = 0.0
 
-            if pnorm != 0. and Ssd<Ssd_th:
+            if not isinf(pnorm) and Ssd<Ssd_th:
                 break
-            elif pnorm == 0. and Ssd<Ssd_th:
+            elif isinf(pnorm) and (Ssd<Ssd_th):# or i == Nmax_pre_adamax):
                 is_p2opt = True
 
                 if switch_to_p0:
-                    X = _lola2xyz(np.rad2deg(lon),np.rad2deg(lat),f)
+                    X = _lola_aux_2_xyz(np.rad2deg(lon),np.rad2deg(lat),f)
                     p[3] = initial_k0(p[0], p[1], p[2], X, wdata, np.inf,
                                       is_p2opt, pnorm_p0)
 
                     switch_to_p0 = False
                     iswitch = i*1
-                    al = 1e-5
+                    al = 1e-6
                     la = .1
+                    mm = 0
+                    um = 0
                 else:
                     break
 
@@ -508,9 +555,9 @@ def grad(lon,lat,h,wdata,phi0,lmbdc,alphac,k0,a,f,pnorm=2,Niter = 100,
         alv = np.array(alv)
         lav = np.array(lav)
         P = np.array(P)
+        Sv = np.array(Sv)
         return p,alv,lav,Sv,P
     else:
         return HotineResultPy(cost=S33[Ij,Ik], lonc=degrees(p[1]),
                               lat_0=degrees(p[0]), alpha=degrees(p[2]),
                               k0=p[3], steps=i, f=f, error_flag=error_flag)
-

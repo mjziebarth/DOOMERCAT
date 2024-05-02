@@ -1,8 +1,8 @@
-# Test code for general imports of the DOOMERCAT package.
+# Typing.
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2024 Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -17,22 +17,16 @@
 # See the Licence for the specific language governing permissions and
 # limitations under the Licence.
 
-from doomercat import HotineObliqueMercator
+# Trying to import the NDArray type from numpy.typing
+# fails on Github runner with Python 3.9, so use np.ndarray
+# as a backup for older Python versions:
 import numpy as np
+from typing import Any
 
+def _get_dtype64():
+    try:
+        return np.ndarray[Any, np.dtype[np.float64]]
+    except TypeError:
+        return np.ndarray
 
-def test_basic_setup():
-    """
-    Dummy method to test the functionality of DOOMERCAT when not all
-    optional packages are installed (e.g. pyproj).
-    """
-    lon = np.array([15, 29, 31,  18., 23])
-    lat = np.array([7, 13, 13.5, 9, 10])
-
-    HOM = HotineObliqueMercator(lon=lon, lat=lat)
-
-    # Test agains reference values:
-    assert abs(HOM.lat_0() - 11.73733039) < 1e-4
-    assert abs(HOM.lonc()  - 26.70254065) < 1e-4
-    assert abs(HOM.alpha() - 70.67908827) < 1e-4
-    assert abs(HOM.k0()    - 0.99997646) < 1e-6
+ndarray64 = _get_dtype64()

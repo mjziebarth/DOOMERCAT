@@ -2,7 +2,8 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2021 Deutsches GeoForschungsZentrum Potsdam,
+#               2024      Technical University of Munich
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -20,6 +21,7 @@
 from doomercat import HotineObliqueMercator
 import numpy as np
 import json
+from pathlib import Path
 
 
 def read_geojson(filename):
@@ -40,12 +42,21 @@ def test_chile_places():
     Data taken from OSM export (HOT Export Tool), see data/chile/README.txt,
     and subselected in QGIS.
     """
-    lon, lat = read_geojson('data/chile/Chile-cities-select.geojson')
+    geojson_path = str((Path(__file__).parent / 'data' / 'chile'
+                        / 'Chile-cities-select.geojson').absolute())
+    lon, lat = read_geojson(geojson_path)
 
-    HOM = HotineObliqueMercator(lon=lon, lat=lat)
+    HOM = HotineObliqueMercator(
+            lon=lon, lat=lat, pnorm=2, k0_ap=0.98,
+            sigma_k0=0.98, ellipsoid=None, a=None, f=None,
+            Nmax=1000, backend="Python", proot=False,
+            fisher_bingham_use_weight=False,
+            compute_enclosing_sphere=True,
+            bfgs_epsilon=1e-3
+    )
 
     # Test agains reference values:
-    assert abs(HOM.lat_0() - (-22.74393664)) < 1e-6
+    assert abs(HOM.lat_0() - (-22.74393660)) < 1e-6
     assert abs(HOM.lonc()  - (-70.55450760)) < 1e-6
     assert abs(HOM.alpha() - (4.52169941)) < 1e-6
     assert abs(HOM.k0()    - (0.99997618)) < 1e-6

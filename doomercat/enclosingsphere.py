@@ -22,7 +22,8 @@
 
 import numpy as np
 
-def BoundingSphere(lon,lat,a,f,N=100):
+def bounding_sphere(lon: np.ndarray, lat: np.ndarray, a: float , f: float,
+                    N: int = 100):
     '''
     Iterative search for center of bounding sphere for points on an ellipsoid in
     geographic coordinates.

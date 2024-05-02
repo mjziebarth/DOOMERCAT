@@ -39,17 +39,17 @@ struct data_entry_t;
 
 template<>
 struct data_entry_t<true,true> {
-	double lambda;
-	double phi;
-	double kdest;
-	double w;
+	double lambda; //Longitude
+	double phi; // Latitude
+	double k_e; // Elevation scale k_e
+	double w; // weight
 };
 
 template<>
 struct data_entry_t<true,false> {
 	double lambda;
 	double phi;
-	double kdest;
+	double k_e;
 };
 
 template<>
@@ -110,11 +110,11 @@ protected:
 class WeightedDataSetWithHeight : public DataSet<true,true> {
 public:
 	WeightedDataSetWithHeight(const size_t N, const double* lon,
-	                          const double* lat, const double* kdest,
+	                          const double* lat, const double* h,
 	                          const double* w, double a, double f);
 
 	double w(size_t i) const;
-	double kdest(size_t i) const;
+	double k_e(size_t i) const;
 };
 
 class DataSetWithHeight : public DataSet<true,false> {
@@ -126,7 +126,7 @@ public:
 		return 1.0;
 	};
 
-	double kdest(size_t i) const;
+	double k_e(size_t i) const;
 };
 
 class WeightedDataSet : public DataSet<false,true> {
@@ -136,7 +136,7 @@ public:
 
 	double w(size_t i) const;
 
-	constexpr double kdest(size_t i) const {
+	constexpr double k_e(size_t i) const {
 		return 1.0;
 	};
 };
@@ -149,7 +149,7 @@ public:
 		return 1.0;
 	};
 
-	constexpr double kdest(size_t i) const {
+	constexpr double k_e(size_t i) const {
 		return 1.0;
 	};
 };
