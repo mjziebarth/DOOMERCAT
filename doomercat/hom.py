@@ -319,6 +319,62 @@ class HotineObliqueMercator:
                         epsilon=bfgs_epsilon
                     )
 
+            elif backend in ('truong2020',):
+                # Call the C++ two-way backtracking gradient descent
+                if logger is not None:
+                    logger.log(20, "Starting Truong & Nguyen (2020) "
+                                   "optimization.")
+
+                # Load the C++ backend:
+                self._load_backend()
+
+#                # If p=inf, pre-optimize with p=80 norm:
+#                if isinf(pnorm):
+#                    pre_res = \
+#                        self._bfgs_optimize(
+#                            lon_array,
+#                            lat_array,
+#                            h,
+#                            weight,
+#                            80,
+#                            k0_ap,
+#                            sigma_k0,
+#                            a,
+#                            f,
+#                            lonc0,
+#                            lat_00,
+#                            alpha0,
+#                            k00,
+#                            Nmax,
+#                            proot,
+#                            epsilon=bfgs_epsilon
+#                        )
+#                    lonc0  = pre_res.lonc
+#                    lat_00 = pre_res.lat_0
+#                    alpha0 = pre_res.alpha
+#                    k00    = pre_res.k0
+
+                # Optimize the Hotine oblique Mercator:
+                result = \
+                    self._truong2020_optimize(
+                        lon_array,
+                        lat_array,
+                        h,
+                        weight,
+                        pnorm,
+                        k0_ap,
+                        sigma_k0,
+                        a,
+                        f,
+                        lonc0,
+                        lat_00,
+                        alpha0,
+                        k00,
+                        Nmax,
+                        proot,
+                        epsilon=bfgs_epsilon
+                    )
+
             elif backend in ('python','Python'):
                 # Call the Python Levenberg-Marquardt backend.
                 if logger is not None:
@@ -677,9 +733,10 @@ class HotineObliqueMercator:
         """
         if not self._backend_loaded:
             from .cppextensions import (bfgs_optimize, project_hotine,
-                                        compute_k_hotine)
+                                        compute_k_hotine, truong2020_optimize)
             self._bfgs_optimize = bfgs_optimize
             self._project_hotine = project_hotine
             self._compute_k_hotine = compute_k_hotine
+            self._truong2020_optimize = truong2020_optimize
 
         self._backend_loaded = True

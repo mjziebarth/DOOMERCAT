@@ -4,7 +4,8 @@
  *
  * Authors: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
  *
- * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam
+ * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
+ *               2024 Technische Universität München
  *
  * Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
  * the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -528,6 +529,7 @@ ColVector<d,real> operator*(double c, const ColVector<d,real>& v)
 
 template<size_t d, typename real>
 struct linalg_t {
+	constexpr static size_t ndim = d;
 	typedef real real_t;
 	typedef SqMatrix<d,real> matrix_dxd_t;
 	typedef ColVector<d,real> column_vectord_t;
@@ -580,6 +582,3 @@ struct linalg_t {
 #endif
 
 #endif
-
-
-
