@@ -60,12 +60,9 @@ def initial_k0(phi0, lmbdc, alphac, X, wdata, pnorm, is_p2opt=True,
             w = np.ones_like(k0v)
         else:
             w = np.abs(k0_init-k0v)**(pnorm-2)
-
-        if np.isinf(pnorm) and is_p2opt:
-            k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
-        else:
-            k0_init -= .1* np.sum(w*wdata * (k0_init-k0v)**2)/np.sum(w*wdata)
-
+    
+        k0_init -= .1* np.sum(w*wdata * (k0_init-k0v))/np.sum(w*wdata)
+    
     if np.isnan(k0_init):
         return np.mean(k0v)
 
