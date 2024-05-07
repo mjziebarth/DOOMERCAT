@@ -4,7 +4,8 @@
  *
  * Authors: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
  *
- * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam
+ * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
+ *               2024 Technische Unviversität München
  *
  * Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
  * the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -312,24 +313,350 @@ bool no_preconditioning(typename lina::grad_t& g)
 }
 
 
-template<size_t d, typename lina, bool last_redux=true>
+//	typedef typename lina::point_t point_t;
+//	typedef typename lina::matrix_dxd_t Mdxd_t;
+//	typedef typename lina::column_vectord_t vd_t;
+
+/*
+ *
+ *
+ * Returns
+ * -------
+ * true if a step was performed, false otherwise.
+ */
+template<size_t d, typename lina,
+	typename preconditioner_t,
+	typename in_bounds_fun_t,
+	typename costfun_t,
+	typename gradfun_t,
+	typename vd_t = typename lina::column_vectord_t,
+	typename grad_t = typename lina::grad_t,
+	typename Mdxd_t = typename lina::matrix_dxd_t,
+	typename result_t = BFGS_result_t<lina>
+>
+bool gradient_step(
+	vd_t& xk,
+	vd_t& grad_fk,
+	grad_t& G,
+	Mdxd_t& Hk,
+	double& step,
+	double& cost0,
+	size_t& Hk_age,
+	unsigned int& gradient_steps,
+	result_t& result,
+	preconditioner_t preconditioner,
+	in_bounds_fun_t in_bounds,
+	costfun_t cost,
+	gradfun_t gradient,
+	const double INITIAL_STEP,
+	const size_t N_GRADIENT_STEPS,
+	const double c1,
+	const double c2,
+	const Mdxd_t& I
+)
+{
+	typedef typename lina::point_t point_t;
+
+	/* Preconditioning: */
+	vd_t grad_pre;
+	lina::fill_array(G, grad_fk);
+	bool step_reset = preconditioner(G);
+	lina::init_column_vectord(grad_pre, G);
+
+	if (step_reset)
+		step = INITIAL_STEP;
+
+	vd_t xkp1 = xk - step * grad_pre;
+	point_t Pp1;
+	lina::fill_array(Pp1, xkp1);
+	const double gpre_norm = grad_pre.norm();;
+	#ifdef DEBUG
+	std::cout << "grad_pre[" << i << "] = (";
+	for (size_t j=0; j<d; ++j)
+		std::cout << grad_pre[j] << ",";
+	std::cout << ")\n";
+	#endif
+
+	if (in_bounds(Pp1)){
+		const double cost1 = cost(Pp1);
+		const double delta_cost_expected
+		        = - step * gpre_norm * gpre_norm;
+		if (cost1 < cost0 + c1 * delta_cost_expected){
+			// Accept step.
+			// Inverse Hessian update:
+			vd_t grad_fkp1;
+			lina::init_column_vectord(grad_fkp1, gradient(Pp1));
+			if (lina::dot(grad_fkp1,grad_pre)
+				>= c2 * gpre_norm * gpre_norm)
+			{
+				vd_t sk = xkp1 - xk;
+				vd_t yk = grad_fkp1 - grad_fk;
+				const double rhok = 1.0 / lina::dot(yk,sk);
+				if (!std::isnan(rhok) && !std::isinf(rhok)){
+					Hk = (I - rhok * sk * lina::transpose(yk)) * Hk
+					     * (I - rhok * yk * lina::transpose(sk))
+					     + rhok * sk * lina::transpose(sk);
+					++Hk_age;
+				}
+			}
+
+			// Advance the gradient step:
+			xk = xkp1;
+			grad_fk = grad_fkp1;
+			if (cost1 < cost0 + c1 * 1.1 * delta_cost_expected)
+				step *= 1.1;
+			cost0 = cost1;
+			--gradient_steps;
+			result.exit_code = MAX_ITERATIONS;
+			return true;
+		} else {
+			#ifdef DEBUG
+			std::cout << "   do not accept step with \n"
+							"      cost0 = " << cost0 << "\n"
+							"      cost1 = " << cost1 << "\n";
+			#endif
+		}
+	}
+
+	// Do not accept step.
+	step *= 0.125;
+
+	if (xk - step * grad_fk == xk && xk - step * grad_pre == xk){
+		/* Converged to the limit of gradient information. */
+		#ifdef DEBUG
+			std::cout << "EXIT GRADIENT: STEP SMALLER THAN "
+							"PRECISION.\n" << std::flush;
+		#endif
+		result.exit_code = CONVERGED;
+		return false;
+	}
+
+	// Make sure that we do not end up in an infinite loop here:
+	const double xknorm = std::abs(lina::dot(grad_pre,xk)) / grad_pre.norm();
+	if (step*gpre_norm*gpre_norm < std::max(1e-12*xknorm, 1e-40)){
+		if (gradient_steps == N_GRADIENT_STEPS){
+			// Just entered the gradient loop and already we fail
+			// to perform any step - likely we are caught in an
+			// infinite loop.
+			// Here, we accept defeat and return with
+			// LINE_SEARCH_FAIL set.
+			#ifdef DEBUG
+			std::cout << "EXIT GRADIENT: INFINITE LOOP.\n"
+								"final cost:     "
+						<< cost0 << "\n" << std::flush;
+			if (in_bounds(Pp1)){
+				double cost1 = cost(Pp1);
+				const double gfk_gfp = std::abs(lina::dot(grad_fk, grad_pre));
+				const double delta_cost_expected
+				        = - step * gfk_gfp;
+				std::cout << "proposed cost:  " << cost1 << "\n";
+				std::cout << "      compare:  "
+				          << cost0 + c1 * delta_cost_expected
+				          << "\n";
+				std::cout << "      c1:       " << c1 << "\n";
+				std::cout << "delta_cost_exp. "
+				          << delta_cost_expected << "\n";
+				std::cout << "      step:     " << step << "\n"
+				          << std::flush;
+				std::cout << "grad_pre[" << i << "] = (";
+				for (size_t j=0; j<d; ++j)
+					std::cout << grad_pre[j] << ",";
+				std::cout << ")\n";
+				std::cout << "delta[" << i << "] = (";
+				for (size_t j=0; j<d; ++j)
+					std::cout << (xkp1-xk)[j] << ",";
+				std::cout << ")\n";
+			}
+			#endif
+			result.exit_code = LINESEARCH_FAIL;
+			return false;
+//				break;
+		}
+		--gradient_steps;
+	}
+	return false;
+}
+
+
+/*
+ *
+ *
+ * Returns
+ * -------
+ * true if a step was performed, false otherwise.
+ */
+enum BFGS_step_status_t {
+	SUCCESS, FAILED_HESSIAN_UPDATE, FAILED
+};
+
+template<size_t d, typename lina,
+	typename in_bounds_fun_t,
+	typename costfun_t,
+	typename gradfun_t,
+	typename vd_t = typename lina::column_vectord_t,
+	typename grad_t = typename lina::grad_t,
+	typename Mdxd_t = typename lina::matrix_dxd_t,
+	typename result_t = BFGS_result_t<lina>
+>
+BFGS_step_status_t bfgs_step(
+	vd_t& xk,
+	vd_t& grad_fk,
+	grad_t& G,
+	Mdxd_t& Hk,
+	double& cost0,
+	size_t& Hk_age,
+	unsigned int& gradient_steps,
+	unsigned int& update_steps,
+	result_t& result,
+	in_bounds_fun_t in_bounds,
+	costfun_t evaluate_cost,
+	gradfun_t evaluate_gradient,
+	const size_t N_GRADIENT_STEPS,
+	const double c1,
+	const double c2,
+	const Mdxd_t& I
+)
+{
+	typedef typename lina::point_t point_t;
+
+	/* Compute the search direction: */
+	vd_t pk = (Hk_age > 3) ? - (Hk * grad_fk) : -1.0 * grad_fk;
+
+	/* Compute the new point and gradient (Wolfe search, (3.6a & 3.6b).
+	 * First, decide how deep we can reduce alpha until we do not change
+	 * xk any more:
+	 */
+	constexpr double ALPHA_REDUX = 0.5;
+	const double alpha_min = 1e-10 * lina::norm(xk) / lina::norm(pk);
+	const size_t jmax_down
+	   = std::max(
+	        std::min(static_cast<size_t>(
+	                 std::floor(std::log(alpha_min)
+	                            / std::log(ALPHA_REDUX))
+	                 ),
+	                 static_cast<size_t>(100)
+	        ),
+	        static_cast<size_t>(10)
+	);
+	double alpha = 1.0;
+	vd_t xkp1(xk + alpha * pk);
+	point_t Pp1;
+	lina::fill_array(Pp1, xkp1);
+	vd_t grad_fkp1;
+	lina::init_column_vectord(grad_fkp1, evaluate_gradient(Pp1));
+	double cost1 = evaluate_cost(Pp1);
+
+	const double grad_fk_dot_pk = lina::dot(grad_fk, pk);
+	bool wolfe_success = false;
+	bool wolfe_1 = false;
+	bool wolfe_2 = false;
+	for (size_t j=0; j<jmax_down; ++j)
+	{
+		wolfe_1 = cost1 <= cost0 + c1 * alpha * grad_fk_dot_pk; // Wolfe 1, 3.6a
+		wolfe_2 = lina::dot(grad_fkp1,pk) >= c2 * grad_fk_dot_pk; // Wolfe 2, 3.6b
+		if (in_bounds(Pp1) && wolfe_1 && (wolfe_2 || Hk_age <= 3))
+		{
+			wolfe_success = true;
+			break;
+		}
+		/* Reduce alpha and compute the new point: */
+		alpha *= ALPHA_REDUX;
+		xkp1 = xk + alpha * pk;
+		lina::fill_array(Pp1, xkp1);
+		lina::init_column_vectord(grad_fkp1, evaluate_gradient(Pp1));
+		cost1 = evaluate_cost(Pp1);
+	}
+
+	if (!wolfe_success){
+		if (wolfe_1){
+			/* The sufficient reduction was not fulfilled. But maybe
+			 * the Hessian changed a lot, so we might gain something
+			 * from proceeding for another small step: */
+			result.exit_code = MAX_ITERATIONS;
+
+			/* But also make sure not to be forever stuck in this
+			 * loop: */
+			++update_steps;
+			if (update_steps == 4){
+				update_steps = 0;
+
+				/* Switch back to gradient descent: */
+				Hk = lina::identity();
+				Hk_age = 0;
+				gradient_steps = N_GRADIENT_STEPS;
+				return FAILED;
+			}
+		} else {
+			/* No sufficient reduction possible. */
+			result.exit_code = LINESEARCH_FAIL;
+
+			/* Switch back to gradient descent: */
+			Hk = lina::identity();
+			Hk_age = 0;
+			gradient_steps = N_GRADIENT_STEPS;
+			return FAILED;
+		}
+		#ifdef DEBUG
+		std::cout << "Wolfe failed. W1=" << wolfe_1 << ", W2="
+					<< wolfe_2 << "\n";
+		#endif
+	} else {
+		result.exit_code = MAX_ITERATIONS;
+	}
+
+
+	/* Compute sk and yk: */
+	vd_t sk = xkp1 - xk;
+	vd_t yk = grad_fkp1 - grad_fk;
+
+	/* Advance step: */
+	xk = xkp1;
+	grad_fk = grad_fkp1;
+	cost0 = cost1;
+
+	/* Compute next inverse Hessian approximation (6.17): */
+	const double rhok = 1.0 / lina::dot(yk,sk);
+	if (std::isnan(rhok) || std::isinf(rhok)){
+		/* This might happen due to bad numerical problems. Exit
+		 * before this influences anything else. */
+
+		/* Switch back to gradient descent: */
+		Hk = lina::identity();
+		Hk_age = 0;
+		gradient_steps = N_GRADIENT_STEPS;
+		return FAILED_HESSIAN_UPDATE;
+	}
+	Hk = (I - rhok * sk * lina::transpose(yk)) * Hk
+	     * (I - rhok * yk * lina::transpose(sk))
+	     + rhok * sk * lina::transpose(sk);
+	++Hk_age;
+
+	return SUCCESS;
+}
+
+
+template<
+	size_t d,
+	typename lina,
+	typename costfun_t,
+	typename gradfun_t,
+	typename boundary_fun_t,
+	typename propose_jump_t,
+	typename preconditioner_t,
+	bool last_redux=true
+>
 BFGS_result_t<lina>
 fallback_gradient_BFGS
-    (const typename lina::point_t& x0,
-     std::function<typename lina::real_t (const typename lina::point_t&)>
-         cost,
-     std::function<typename lina::grad_t (const typename lina::point_t&)>
-          gradient,
-     const size_t Nmax, const double epsilon,
-     std::function<bool (const typename lina::point_t&)>
-          in_bounds = no_boundary<typename lina::point_t>,
-     std::function<std::unique_ptr<typename lina::point_t>
-                   (const typename lina::point_t&,
-                    const typename lina::grad_t&)>
-          propose_jump = no_jumps<typename lina::point_t>,
-     std::function<bool (typename lina::grad_t&)>
-          preconditioner = no_preconditioning<lina>
-    )
+(
+	const typename lina::point_t& x0,
+	costfun_t cost,
+	gradfun_t gradient,
+	const size_t Nmax,
+	const double epsilon,
+	boundary_fun_t in_bounds = no_boundary<typename lina::point_t>,
+	propose_jump_t propose_jump = no_jumps<typename lina::point_t>,
+	preconditioner_t preconditioner = no_preconditioning<lina>
+)
 {
 	typedef typename lina::point_t point_t;
 	typedef typename lina::matrix_dxd_t Mdxd_t;
@@ -469,245 +796,34 @@ fallback_gradient_BFGS
 		}
 
 		if (gradient_steps > 0){
-			/* Perform gradient descent.
-			 * Preconditioning: */
-			vd_t grad_pre;
-			lina::fill_array(G, grad_fk);
-			bool step_reset = preconditioner(G);
-			lina::init_column_vectord(grad_pre, G);
-
-			if (step_reset)
-				step = INITIAL_STEP;
-
-			xkp1 = xk - step * grad_pre;
-			point_t Pp1;
-			lina::fill_array(Pp1, xkp1);
-			bool accept_step = in_bounds(Pp1);
-			const double gpre_norm = grad_pre.norm();;
-			#ifdef DEBUG
-			std::cout << "grad_pre[" << i << "] = (";
-			for (size_t j=0; j<d; ++j)
-				std::cout << grad_pre[j] << ",";
-			std::cout << ")\n";
-			#endif
-
-
-			if (accept_step){
-				const double cost1 = cost(Pp1);
-				const double delta_cost_expected
-				       = - step * gpre_norm * gpre_norm;
-				if (cost1 < cost0 + c1 * delta_cost_expected){
-					// Accept step.
-					// Inverse Hessian update:
-					vd_t grad_fkp1;
-					lina::init_column_vectord(grad_fkp1, gradient(Pp1));
-					if (lina::dot(grad_fkp1,grad_pre)
-					    >= c2 * gpre_norm * gpre_norm)
-					{
-						vd_t sk = xkp1 - xk;
-						vd_t yk = grad_fkp1 - grad_fk;
-						const double rhok = 1.0 / lina::dot(yk,sk);
-						if (!std::isnan(rhok) && !std::isinf(rhok)){
-							Hk = (I - rhok * sk * lina::transpose(yk)) * Hk
-							            * (I - rhok * yk * lina::transpose(sk))
-							     + rhok * sk * lina::transpose(sk);
-							++Hk_age;
-						}
-					}
-
-					// Advance the gradient step:
-					xk = xkp1;
-					grad_fk = grad_fkp1;
-					if (cost1 < cost0 + c1 * 1.1 * delta_cost_expected)
-						step *= 1.1;
-					cost0 = cost1;
-					--gradient_steps;
-					result.exit_code = MAX_ITERATIONS;
-					accept_step = true;
-				} else {
-					accept_step = false;
-					#ifdef DEBUG
-					std::cout << "   do not accept step with \n"
-					             "      cost0 = " << cost0 << "\n"
-					             "      cost1 = " << cost1 << "\n";
-					#endif
-				}
-			}
-			if (!accept_step){
-				// Do not accept step.
-				step *= 0.125;
-
-				if (xk - step * grad_fk == xk && xk - step * grad_pre == xk){
-					/* Converged to the limit of gradient information. */
-					#ifdef DEBUG
-						std::cout << "EXIT GRADIENT: STEP SMALLER THAN "
-						             "PRECISION.\n" << std::flush;
-					#endif
-					result.exit_code = CONVERGED;
+			/* Perform gradient descent. */
+			if (!gradient_step<d, lina>(xk, grad_fk, G, Hk, step, cost0, Hk_age,
+			                            gradient_steps, result, preconditioner,
+			                            in_bounds, cost, gradient, INITIAL_STEP,
+			                            N_GRADIENT_STEPS, c1, c2, I))
+			{
+				/* Check return type: */
+				if (result.exit_code == MAX_ITERATIONS)
+					// Reduce the step size.
+					continue;
+				else
 					break;
-				}
-
-				// Make sure that we do not end up in an infinite loop here:
-				const double xknorm = lina::dot(grad_pre,xk) / grad_pre.norm();
-				if (step*gpre_norm*gpre_norm < std::max(1e-12*xknorm, 1e-40)){
-					if (gradient_steps == N_GRADIENT_STEPS){
-						// Just entered the gradient loop and already we fail
-						// to perform any step - likely we are caught in an
-						// infinite loop.
-						// Here, we accept defeat and return with
-						// LINE_SEARCH_FAIL set.
-						#ifdef DEBUG
-						std::cout << "EXIT GRADIENT: INFINITE LOOP.\n"
-						                 "final cost:     "
-						          << cost0 << "\n" << std::flush;
-						if (in_bounds(Pp1)){
-							double cost1 = cost(Pp1);
-							const double gfk_gfp = std::abs(lina::dot(grad_fk, grad_pre));
-							const double delta_cost_expected
-							       = - step * gfk_gfp;
-							std::cout << "proposed cost:  " << cost1 << "\n";
-							std::cout << "      compare:  "
-							          << cost0 + c1 * delta_cost_expected
-							          << "\n";
-							std::cout << "      c1:       " << c1 << "\n";
-							std::cout << "delta_cost_exp. "
-							          << delta_cost_expected << "\n";
-							std::cout << "      step:     " << step << "\n"
-							          << std::flush;
-							std::cout << "grad_pre[" << i << "] = (";
-							for (size_t j=0; j<d; ++j)
-								std::cout << grad_pre[j] << ",";
-							std::cout << ")\n";
-							std::cout << "delta[" << i << "] = (";
-							for (size_t j=0; j<d; ++j)
-								std::cout << (xkp1-xk)[j] << ",";
-							std::cout << ")\n";
-						}
-						#endif
-						result.exit_code = LINESEARCH_FAIL;
-						break;
-					}
-					--gradient_steps;
-				}
-				continue;
 			}
 		} else {
-			/* BFGS: */
-
-			/* Compute the search direction: */
-			vd_t pk = (Hk_age > 3) ? - (Hk * grad_fk) : -1.0 * grad_fk;
-
-			/* Compute the new point and gradient (Wolfe search, (3.6a & 3.6b).
-			 * First, decide how deep we can reduce alpha until we do not change
-			 * xk any more:
-			 */
-			constexpr double ALPHA_REDUX = 0.5;
-			const double alpha_min = 1e-10 * lina::norm(xk) / lina::norm(pk);
-			const size_t jmax_down
-			   = std::max(
-				    std::min(static_cast<size_t>(
-				                std::floor(std::log(alpha_min)
-				                                  / std::log(ALPHA_REDUX))),
-				             static_cast<size_t>(100)),
-				    static_cast<size_t>(10));
-			double alpha = 1.0;
-			vd_t xkp1(xk + alpha * pk);
-			point_t Pp1;
-			lina::fill_array(Pp1, xkp1);
-			vd_t grad_fkp1;
-			lina::init_column_vectord(grad_fkp1, evaluate_gradient(Pp1));
-			double cost1 = evaluate_cost(Pp1);
-
-			const double grad_fk_dot_pk = lina::dot(grad_fk, pk);
-			bool wolfe_success = false;
-			bool wolfe_1 = false;
-			bool wolfe_2 = false;
-			for (size_t j=0; j<jmax_down; ++j)
+			if (bfgs_step<d, lina>(xk, grad_fk, G, Hk, cost0, Hk_age,
+			                       gradient_steps, update_steps, result,
+			                       in_bounds, evaluate_cost, evaluate_gradient,
+			                       N_GRADIENT_STEPS, c1, c2, I)
+			    != BFGS_step_status_t::FAILED)
 			{
-				wolfe_1 = cost1 <= cost0 + c1 * alpha * grad_fk_dot_pk; // Wolfe 1, 3.6a
-				wolfe_2 = lina::dot(grad_fkp1,pk) >= c2 * grad_fk_dot_pk; // Wolfe 2, 3.6b
-				if (in_bounds(Pp1) && wolfe_1 && (wolfe_2 || Hk_age <= 3))
-				{
-					wolfe_success = true;
-					break;
-				}
-				/* Reduce alpha and compute the new point: */
-				alpha *= ALPHA_REDUX;
-				xkp1 = xk + alpha * pk;
-				lina::fill_array(Pp1, xkp1);
-				lina::init_column_vectord(grad_fkp1, evaluate_gradient(Pp1));
-				cost1 = evaluate_cost(Pp1);
-			}
-
-			if (!wolfe_success){
-				if (wolfe_1){
-					/* The sufficient reduction was not fulfilled. But maybe
-					 * the Hessian changed a lot, so we might gain something
-					 * from proceeding for another small step: */
-					result.exit_code = MAX_ITERATIONS;
-
-					/* But also make sure not to be forever stuck in this
-					 * loop: */
-					++update_steps;
-					if (update_steps == 4){
-						update_steps = 0;
-
-						/* Switch back to gradient descent: */
-						Hk = lina::identity();
-						Hk_age = 0;
-						gradient_steps = N_GRADIENT_STEPS;
-						continue;
-					}
-				} else {
-					/* No sufficient reduction possible. */
-					result.exit_code = LINESEARCH_FAIL;
-
-					/* Switch back to gradient descent: */
-					Hk = lina::identity();
-					Hk_age = 0;
-					gradient_steps = N_GRADIENT_STEPS;
-					continue;
-				}
-				#ifdef DEBUG
-				std::cout << "Wolfe failed. W1=" << wolfe_1 << ", W2="
-						  << wolfe_2 << "\n";
-				#endif
+				/* With increasing number of BFGS steps, increase gradient
+				 * descent steps, i.e. forget the memory of where we were
+				 * in terms of step size: */
+				if (step != INITIAL_STEP)
+					step = std::min(2.0*step, INITIAL_STEP);
 			} else {
-				result.exit_code = MAX_ITERATIONS;
+
 			}
-
-
-			/* Compute sk and yk: */
-			vd_t sk = xkp1 - xk;
-			vd_t yk = grad_fkp1 - grad_fk;
-
-			/* Advance step: */
-			xk = xkp1;
-			grad_fk = grad_fkp1;
-			cost0 = cost1;
-
-			/* Compute next inverse Hessian approximation (6.17): */
-			const double rhok = 1.0 / lina::dot(yk,sk);
-			if (std::isnan(rhok) || std::isinf(rhok)){
-				/* This might happen due to bad numerical problems. Exit
-				 * before this influences anything else. */
-
-				/* Switch back to gradient descent: */
-				Hk = lina::identity();
-				Hk_age = 0;
-				gradient_steps = N_GRADIENT_STEPS;
-				continue;
-			}
-			Hk = (I - rhok * sk * lina::transpose(yk)) * Hk
-				         * (I - rhok * yk * lina::transpose(sk))
-				 + rhok * sk * lina::transpose(sk);
-			++Hk_age;
-
-			/* With increasing number of BFGS steps, increase gradient
-			 * descent steps, i.e. forget the memory of where we were
-			 * in terms of step size: */
-			if (step != INITIAL_STEP)
-				step = std::min(2.0*step, INITIAL_STEP);
 		}
 
 		/* Early exit: */

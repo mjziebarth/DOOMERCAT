@@ -122,7 +122,7 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 		}
 	};
 
-	auto in_boundary = [&](const std::array<double,P>& x) -> bool {
+	auto in_boundary = [](const std::array<double,P>& x) -> bool {
 		return (x[1] >= -0.5*PI && x[1] <= 0.5*PI
 		        && x[3] > 0.0 && x[3] < 2.0);
 	};
@@ -456,7 +456,8 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
 	                                      Nmax-y.history.size(),
 	                                      epsilon,
 	                                      in_boundary,
-	                                      propose_jump);
+	                                      propose_jump,
+	                                      no_preconditioning<lina_t>);
 
 
 
