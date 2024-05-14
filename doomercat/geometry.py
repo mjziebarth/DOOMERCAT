@@ -50,7 +50,7 @@ def _lola2xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
     lo = np.deg2rad(lo)
     la = np.deg2rad(la)
 
-    N = 1/np.sqrt(1-e2*np.sin(la))
+    N = 1/np.sqrt(1-e2*np.sin(la)**2)
 
     X = np.zeros((3,lo.size))
 
