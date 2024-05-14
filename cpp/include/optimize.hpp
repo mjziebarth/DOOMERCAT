@@ -710,11 +710,12 @@ backtrack_GD_optimize_hotine(
 					state = return_state_t::ERROR;
 			}
 
+			HotineParameters<real_t> params(z.parameters);
 			res.push_back({(cost_log) ? std::exp(z.cost) : z.cost,
-				           rad2deg(z.parameters[0]),
-				           rad2deg(z.parameters[1]),
-				           rad2deg(z.parameters[2]),
-				           z.parameters[3],
+				           rad2deg(params[0]),
+				           rad2deg(params[1]),
+				           rad2deg(params[2]),
+				           params[3],
 				           deg2rad(z.grad[0]),
 				           deg2rad(z.grad[1]),
 				           deg2rad(z.grad[2]),
