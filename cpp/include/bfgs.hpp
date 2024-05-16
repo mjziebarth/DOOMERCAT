@@ -723,7 +723,9 @@ fallback_gradient_BFGS
 	int jump_block = 0;
 	std::unique_ptr<point_t> proposed;
 	vd_t xkp1;
+	BFGS_mode_t mode = BFGS_mode_t::BFGS;
 	for (size_t i=0; i<Nmax-1; ++i){
+		result.exit_code = MAX_ITERATIONS;
 		/* From xk, compute the point: */
 		lina::fill_array(P, xk);
 		lina::fill_array(G, grad_fk);
@@ -801,6 +803,7 @@ fallback_gradient_BFGS
 		}
 
 		if (gradient_steps > 0){
+			mode = BFGS_mode_t::FALLBACK_GRADIENT;
 			/* Perform gradient descent. */
 			if (!gradient_step<d, lina>(xk, grad_fk, G, Hk, step, cost0, Hk_age,
 			                            gradient_steps, result, preconditioner,
@@ -815,6 +818,7 @@ fallback_gradient_BFGS
 					break;
 			}
 		} else {
+			mode = BFGS_mode_t::BFGS;
 			if (bfgs_step<last_redux, d, lina>(xk, grad_fk, G, Hk, cost0, Hk_age,
 			                       gradient_steps, update_steps, result,
 			                       in_bounds, evaluate_cost, evaluate_gradient,
@@ -833,6 +837,7 @@ fallback_gradient_BFGS
 
 		/* Early exit: */
 		if (lina::norm(grad_fk) < epsilon){
+			mode = BFGS_mode_t::FINISHED;
 			result.exit_code = CONVERGED;
 			#ifdef DEBUG
 			std::cout << "CONVERGED!\n" << std::flush;
@@ -850,7 +855,7 @@ fallback_gradient_BFGS
 
 	/* Last point: */
 	lina::fill_array(P, xk);
-	result.history.emplace_back(cost0, BFGS_mode_t::FINISHED, P,
+	result.history.emplace_back(cost0, mode, P,
 	                            convert_gradient(grad_fk), step);
 
 	return result;
