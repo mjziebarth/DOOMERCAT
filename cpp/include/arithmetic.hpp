@@ -47,6 +47,10 @@ public:
 	static T log(const T&);
 	static T log(T&&);
 	static T abs(T&&);
+	static long floor(T&&);
+
+	template<typename T2>
+	static T fmod(const T&, const T2&);
 
 	static T max(T&&, T&&);
 	static T min(T&&, T&&);
@@ -103,6 +107,13 @@ double Arithmetic<double>::tan(const double&);
 
 template<>
 double Arithmetic<double>::abs(double&&);
+
+template<>
+long Arithmetic<double>::floor(double&&);
+
+template<>
+template<>
+double Arithmetic<double>::fmod<double>(const double&, const double&);
 
 
 
@@ -213,6 +224,19 @@ template<typename T>
 T Arithmetic<T>::abs(T&& t)
 {
 	return T::abs(std::move(t));
+}
+
+template<typename T>
+long Arithmetic<T>::floor(T&& t)
+{
+	return T::floor(std::move(t));
+}
+
+template<typename T>
+template<typename T2>
+T Arithmetic<T>::fmod(const T& a, const T2& b)
+{
+	return T::fmod(a, b);
 }
 
 

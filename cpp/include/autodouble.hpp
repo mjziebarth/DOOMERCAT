@@ -98,6 +98,10 @@ public:
 	static autodouble pow(autodouble&& x, const double a);
 
 	static autodouble abs(autodouble&& x);
+	static long floor(autodouble&& x);
+
+	template<typename T>
+	static autodouble fmod(const autodouble& a, const T& b);
 
 	static autodouble sin(const autodouble& x);
 	static autodouble sin(autodouble&& x);
@@ -880,6 +884,21 @@ autodouble<d> autodouble<d>::abs(autodouble&& x)
 			x.deriv[i] = -x.deriv[i];
 	}
 	return x;
+}
+
+
+template<dim_t d>
+long autodouble<d>::floor(autodouble&& x)
+{
+	return std::floor(x.x);
+}
+
+
+template<dim_t d>
+template<typename T>
+autodouble<d> autodouble<d>::fmod(const autodouble& a, const T& b)
+{
+	return autodouble(std::fmod(a.x, b), a.deriv);
 }
 
 

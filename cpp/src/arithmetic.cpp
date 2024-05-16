@@ -127,6 +127,19 @@ double Arithmetic<double>::log(const double& x)
 	return std::log(x);
 }
 
+template<>
+long Arithmetic<double>::floor(double&& x)
+{
+	return std::floor(x);
+}
+
+template<>
+template<>
+double Arithmetic<double>::fmod<double>(const double& a, const double& b)
+{
+	return std::fmod(a, b);
+}
+
 
 
 
