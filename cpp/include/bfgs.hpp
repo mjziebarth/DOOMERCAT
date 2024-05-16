@@ -360,11 +360,8 @@ bool gradient_step(
 	/* Preconditioning: */
 	vd_t grad_pre;
 	lina::fill_array(G, grad_fk);
-	bool step_reset = preconditioner(G);
+	preconditioner(G);
 	lina::init_column_vectord(grad_pre, G);
-
-	if (step_reset)
-		step = INITIAL_STEP;
 
 	vd_t xkp1 = xk - step * grad_pre;
 	point_t Pp1;
