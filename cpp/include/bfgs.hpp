@@ -467,7 +467,6 @@ bool gradient_step(
 			#endif
 			result.exit_code = LINESEARCH_FAIL;
 			return false;
-//				break;
 		}
 		--gradient_steps;
 	}
