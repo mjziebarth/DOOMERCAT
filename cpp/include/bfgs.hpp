@@ -424,7 +424,7 @@ bool gradient_step(
 			std::cout << "EXIT GRADIENT: STEP SMALLER THAN "
 							"PRECISION.\n" << std::flush;
 		#endif
-		result.exit_code = CONVERGED;
+		result.exit_code = LINESEARCH_FAIL;
 		return false;
 	}
 
