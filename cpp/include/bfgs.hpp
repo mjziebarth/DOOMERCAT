@@ -813,6 +813,8 @@ fallback_gradient_BFGS
 				if (result.exit_code != MAX_ITERATIONS)
 					break;
 			}
+			if (gradient_steps == 0)
+				step = INITIAL_STEP;
 		} else {
 			mode = BFGS_mode_t::BFGS;
 			if (bfgs_step<last_redux, d, lina>(xk, grad_fk, G, Hk, cost0, Hk_age,
