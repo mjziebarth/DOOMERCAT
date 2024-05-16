@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <functional>
 #include <type_traits>
+#include <stdint.h>
 
 #ifndef AUTODOUBLE_H
 #define AUTODOUBLE_H
