@@ -486,7 +486,10 @@ enum BFGS_step_status_t {
 	SUCCESS, FAILED_HESSIAN_UPDATE, FAILED
 };
 
-template<size_t d, typename lina,
+template<
+	bool last_redux,
+	size_t d,
+	typename lina,
 	typename in_bounds_fun_t,
 	typename costfun_t,
 	typename gradfun_t,
@@ -588,7 +591,10 @@ BFGS_step_status_t bfgs_step(
 			result.exit_code = LINESEARCH_FAIL;
 
 			/* Switch back to gradient descent: */
-			Hk = lina::identity();
+			Hk = 1e-3 * lina::identity();
+			if (last_redux)
+				Hk(d-1,d-1) *= 1e-5;
+
 			Hk_age = 0;
 			gradient_steps = N_GRADIENT_STEPS;
 			return FAILED;
@@ -618,7 +624,9 @@ BFGS_step_status_t bfgs_step(
 		 * before this influences anything else. */
 
 		/* Switch back to gradient descent: */
-		Hk = lina::identity();
+		Hk = 1e-3 * lina::identity();
+		if (last_redux)
+			Hk(d-1,d-1) *= 1e-5;
 		Hk_age = 0;
 		gradient_steps = N_GRADIENT_STEPS;
 		return FAILED_HESSIAN_UPDATE;
@@ -807,7 +815,7 @@ fallback_gradient_BFGS
 					break;
 			}
 		} else {
-			if (bfgs_step<d, lina>(xk, grad_fk, G, Hk, cost0, Hk_age,
+			if (bfgs_step<last_redux, d, lina>(xk, grad_fk, G, Hk, cost0, Hk_age,
 			                       gradient_steps, update_steps, result,
 			                       in_bounds, evaluate_cost, evaluate_gradient,
 			                       N_GRADIENT_STEPS, c1, c2, I)
