@@ -810,10 +810,7 @@ fallback_gradient_BFGS
 			                            N_GRADIENT_STEPS, c1, c2, I))
 			{
 				/* Check return type: */
-				if (result.exit_code == MAX_ITERATIONS)
-					// Reduce the step size.
-					continue;
-				else
+				if (result.exit_code != MAX_ITERATIONS)
 					break;
 			}
 		} else {
