@@ -25,19 +25,20 @@
 #include <../include/dataset.hpp>
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 using doomercat::SimpleDataSet;
 using doomercat::DataSetWithHeight;
 using doomercat::WeightedDataSet;
 using doomercat::WeightedDataSetWithHeight;
 
-static double compute_k_e(double h, double a, double f, double phi)
+static long double compute_k_e(double h, double a, double f, double phi)
 {
 	/* Local half-axis derived by SvS: */
-	const double e2 = f*(2-f);
-	const double sphi = std::sin(phi);
-	const double N = a / std::sqrt(1.0 - e2 * sphi * sphi);
-	const double A = N*e2 - N + e2*h*sphi*sphi - h;
+	const long double e2 = f*(2-f);
+	const long double sphi = std::sin((long double)phi);
+	const long double N = a / std::sqrt(1.0 - e2 * sphi * sphi);
+	const long double A = N*e2 - N + e2*h*sphi*sphi - h;
 	return std::sqrt((A*A)/(N*N*(e2 - 1.0)*(e2 - 1.0)));
 }
 
