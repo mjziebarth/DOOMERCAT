@@ -22,22 +22,23 @@
  */
 
 #ifndef DOOMERCAT_PARAMETERS_HPP
-#define DOOMERCAT_PARMAETERS_HPP
+#define DOOMERCAT_PARAMETERS_HPP
 
 #include <array>
 #include <cmath>
 #include <../include/constants.hpp>
+#include <../include/arithmetic.hpp>
 
 namespace doomercat {
 
 
 
-template<typename real>
-real fmod(real a, real b) {
+template<typename real, typename real2 = real>
+real fmod(real a, real2 b) {
     /* True modulo operation (similar to Python's (a % b)).
-        * Implemented here only for positive b (which is what we use).
-        */
-    real y = std::fmod(a, b);
+     * Implemented here only for positive b (which is what we use).
+     */
+    real y = Arithmetic<real>::fmod(a, b);
     if (y < 0.0)
         return y+b;
     return y;
@@ -49,10 +50,11 @@ struct HotineParameters
 public:
     constexpr static size_t ndim = 4;
     typedef real real_t;
+    typedef Arithmetic<real> AR;
+    typedef typename AR::numeric_type number_t;
 
     HotineParameters(real lambda_c, real phi_0, real alpha, real k0)
     {
-
         /* Latitude flip: */
         if (phi_0 < -PI/2 || phi_0 > PI/2){
             /* Shift latitudes to the range [0,180],
@@ -63,7 +65,7 @@ public:
             /* This covers the whole plane within the
              * long range. Get the current winding index:
              */
-            long winding = std::floor(phi_0 / PI);
+            long winding = AR::floor(phi_0 / PI);
             long abs_wind = std::abs(winding);
 
             /* Shift to the range [0,180]: */
@@ -76,7 +78,7 @@ public:
                 lambda_c += PI;
 
                 /* Flip orientation of north and south: */
-                phi_0 = PI - phi_0;
+                phi_0 = static_cast<number_t>(PI) - phi_0;
             }
             /* Examples:
              * -1 -> 179 -> 180 - 179 = 1

@@ -21,8 +21,9 @@
 import platform
 import numpy as np
 from ._typing import ndarray64
-from typing import Optional
-from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER, c_ushort
+from typing import Optional, Literal
+from ctypes import CDLL, c_double, c_size_t, c_uint, POINTER, c_ushort, \
+                   c_uint64
 from pathlib import Path
 from .messages import info
 
@@ -83,7 +84,8 @@ class HotineResult:
     Result of the optimization.
     """
     def __init__(self, cost, lonc, lat_0, alpha, k0, grad_lonc, grad_lat0,
-                 grad_alpha, grad_k0, steps, f, mode, step_size):
+                 grad_alpha, grad_k0, steps, f, mode, step_size,
+                 function_evaluations):
         self.cost = cost
         self.lonc = lonc
         self.lat_0 = lat_0
@@ -98,6 +100,7 @@ class HotineResult:
         self.f = f
         self.mode = mode
         self.step_size = step_size
+        self.function_evaluations = function_evaluations
 
     def last(self):
         if self.N == 1:
@@ -109,7 +112,8 @@ class HotineResult:
                             grad_alpha=self.grad_alpha[-1],
                             grad_k0=self.grad_k0[-1], steps=self.steps,
                             f=self.f, mode=self.mode[-1],
-                            step_size=self.step_size[-1])
+                            step_size=self.step_size[-1],
+                            function_evaluations=self.function_evaluations)
 
 
 def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0,
@@ -151,6 +155,7 @@ def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0
 
     result = np.zeros((Nmax,11))
     M = np.zeros(1,dtype=np.uint)
+    nfuneval = np.zeros(1, dtype=np.uint64)
 
     res = _cppextensions_so.hotine_bfgs(c_size_t(N),
                                  data_lon.ctypes.data_as(POINTER(c_double)),
@@ -166,7 +171,8 @@ def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0
                                  c_uint(Nmax), c_ushort(1 if proot else 0),
                                  c_double(epsilon),
                                  result.ctypes.data_as(POINTER(c_double)),
-                                 M.ctypes.data_as(POINTER(c_uint)))
+                                 M.ctypes.data_as(POINTER(c_uint)),
+                                 nfuneval.ctypes.data_as(POINTER(c_uint64)))
     M = int(M)
 
     if return_full_history:
@@ -182,7 +188,8 @@ def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0
                             steps=M,
                             f=f,
                             mode=result[:M,9].astype(int),
-                            step_size=result[:M,10])
+                            step_size=result[:M,10],
+                            function_evaluations=nfuneval)
 
     cost, lonc, lat_0, alpha, k0, grad_lonc, grad_lat0,\
        grad_alpha, grad_k0, mode, step_size = result[M-1,:]
@@ -197,7 +204,8 @@ def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0
                         grad_k0=float(grad_k0),
                         steps=M,
                         f=f,
-                        mode=int(mode), step_size=float(step_size))
+                        mode=int(mode), step_size=float(step_size),
+                        function_evaluations=nfuneval)
 
 
 def truong2020_optimize(
@@ -219,7 +227,7 @@ def truong2020_optimize(
         return_full_history=False,
         epsilon=1e-7):
     """
-    Perform two-way backtracking gradient desccent on Hotine oblique Mercator
+    Perform two-way backtracking gradient descent on Hotine oblique Mercator
     cost function.
     """
     # Ensure types:
@@ -255,6 +263,7 @@ def truong2020_optimize(
 
     result = np.zeros((Nmax,11))
     M = np.zeros(1,dtype=np.uint)
+    nfuneval = np.zeros(1, dtype=np.uint64)
 
     res = _cppextensions_so.hotine_backtrack_GD(
         c_size_t(N),
@@ -275,7 +284,8 @@ def truong2020_optimize(
         c_ushort(1 if proot else 0),
         c_double(epsilon),
         result.ctypes.data_as(POINTER(c_double)),
-        M.ctypes.data_as(POINTER(c_uint)))
+        M.ctypes.data_as(POINTER(c_uint)),
+        nfuneval.ctypes.data_as(POINTER(c_uint64)))
     M = int(M)
 
     if return_full_history:
@@ -291,7 +301,8 @@ def truong2020_optimize(
                             steps=M,
                             f=f,
                             mode=result[:M,9].astype(int),
-                            step_size=result[:M,10])
+                            step_size=result[:M,10],
+                            function_evaluations=nfuneval)
 
     cost, lonc, lat_0, alpha, k0, grad_lonc, grad_lat0,\
        grad_alpha, grad_k0, mode, step_size = result[M-1,:]
@@ -306,7 +317,8 @@ def truong2020_optimize(
                         grad_k0=float(grad_k0),
                         steps=M,
                         f=f,
-                        mode=int(mode), step_size=float(step_size))
+                        mode=int(mode), step_size=float(step_size),
+                        function_evaluations=nfuneval)
 
 
 def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
@@ -315,7 +327,81 @@ def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
                         h: ndarray64, w: ndarray64,
                         a: float, f: float, pnorm: float, k0_ap: float,
                         sigma_k0: float, proot: bool,
-                        logarithmic: bool):
+                        logarithmic: bool, wrap_plane: bool,
+                        precision: Literal['double','long double']):
+    """
+    Computes the cost function for different k0.
+    """
+    # Input sanitization.
+    lonc = np.ascontiguousarray(lonc, dtype=np.double)
+    lat_0 = np.ascontiguousarray(lat_0, dtype=np.double)
+    alpha = np.ascontiguousarray(alpha, dtype=np.double)
+    k_0 = np.ascontiguousarray(k_0, dtype=np.double)
+    lon = np.ascontiguousarray(lon, dtype=np.double)
+    lat = np.ascontiguousarray(lat, dtype=np.double)
+    N = lon.size
+    if w is None:
+        w = np.empty(0)
+    if h is None:
+        h = np.empty(0)
+    w = np.ascontiguousarray(w, dtype=np.double)
+    h = np.ascontiguousarray(h, dtype=np.double)
+    assert w.size == N or w.size == 0
+    assert h.size == N or h.size == 0
+    assert lat.size == N
+    M = lonc.size
+    assert lat_0.size == M
+    assert alpha.size == M
+    assert k_0.size == M
+    a = float(a)
+    f = float(f)
+    k0_ap = float(k0_ap)
+    sigma_k0 = float(sigma_k0)
+    pnorm = float(pnorm)
+    if precision == 'double':
+        c_prec = c_ushort(0)
+    elif precision == 'long double':
+        c_prec = c_ushort(1)
+    else:
+        raise ValueError("precision must be one of 'double' or 'long double'.")
+
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
+    assert _cppextensions_so is not None
+
+    # Result vector:
+    cost = np.empty(M)
+
+    _cppextensions_so.compute_cost_hotine_batch(c_size_t(N),
+            lon.ctypes.data_as(POINTER(c_double)),
+            lat.ctypes.data_as(POINTER(c_double)),
+            h.ctypes.data_as(POINTER(c_double))
+               if h.size > 0 else None,
+            w.ctypes.data_as(POINTER(c_double))
+               if w.size > 0 else None,
+            c_size_t(M),
+            lonc.ctypes.data_as(POINTER(c_double)),
+            lat_0.ctypes.data_as(POINTER(c_double)),
+            alpha.ctypes.data_as(POINTER(c_double)),
+            k_0.ctypes.data_as(POINTER(c_double)),
+            c_double(a), c_double(f), c_double(pnorm), c_double(k0_ap),
+            c_double(sigma_k0), c_ushort(1 if proot else 0),
+            c_ushort(1 if logarithmic else 0),
+            c_ushort(1 if wrap_plane else 0),
+            c_prec,
+            cost.ctypes.data_as(POINTER(c_double)));
+
+    return cost
+
+
+def compute_cost_gradient_hotine(
+        lonc: ndarray64, lat_0: ndarray64,
+        alpha: ndarray64, k_0: ndarray64,
+        lon: ndarray64, lat: ndarray64,
+        h: ndarray64, w: ndarray64,
+        a: float, f: float, pnorm: float, k0_ap: float,
+        sigma_k0: float, proot: bool,
+        logarithmic: bool, wrap_plane: bool):
     """
     Computes the cost function for different k0.
     """
@@ -351,9 +437,9 @@ def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
     assert _cppextensions_so is not None
 
     # Result vector:
-    cost = np.empty(M)
+    grad = np.empty((M,4))
 
-    _cppextensions_so.compute_cost_hotine_batch(c_size_t(N),
+    _cppextensions_so.compute_cost_gradient_hotine_batch(c_size_t(N),
             lon.ctypes.data_as(POINTER(c_double)),
             lat.ctypes.data_as(POINTER(c_double)),
             h.ctypes.data_as(POINTER(c_double))
@@ -368,9 +454,11 @@ def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
             c_double(a), c_double(f), c_double(pnorm), c_double(k0_ap),
             c_double(sigma_k0), c_ushort(1 if proot else 0),
             c_ushort(1 if logarithmic else 0),
-            cost.ctypes.data_as(POINTER(c_double)));
+            c_ushort(1 if wrap_plane else 0),
+            grad.ctypes.data_as(POINTER(c_double)));
 
-    return cost
+    return grad
+
 
 def compute_k_hotine(lon: ndarray64, lat: ndarray64,
                      lonc: float, lat_0: float, alpha: float, k_0: float,

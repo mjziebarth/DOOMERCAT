@@ -23,9 +23,11 @@
 #ifndef DOOMERCAT_COST_HOTINE_HPP
 #define DOOMERCAT_COST_HOTINE_HPP
 
-#include <../include/types.hpp>
+#include <../include/autodouble.hpp>
 #include <../include/dataset.hpp>
 #include <../include/hotine.hpp>
+
+#include <algorithm>
 
 namespace doomercat {
 
@@ -45,15 +47,35 @@ friend CostFunctionHotine<T>;
 friend CostFunctionHotineInf<T>;
 
 public:
-	operator double() const;
+	typedef Arithmetic<T> AR;
+	typedef typename AR::numeric_type numeric_t;
 
-	std::array<double,4> grad() const;
+	operator numeric_t() const
+	{
+		return cost.value();
+	}
+
+	std::array<numeric_t,4> grad() const
+	{
+		std::array<numeric_t,4> g;
+		for (dim_t i=0; i<4; ++i){
+			g[i] = cost.derivative(i);
+		}
+		return g;
+	}
 
 private:
 	CostHotine(const T& cost);
 	T cost;
 
 };
+
+/* Declare some specifications: */
+template<>
+CostHotine<double>::operator double() const;
+
+template<>
+CostHotine<long double>::operator long double() const;
 
 template<typename T>
 CostHotine<T>::CostHotine(const T& cost) : cost(cost)
@@ -78,14 +100,19 @@ public:
 	};
 
 private:
-	double pnorm;
-	double k0_ap;
-	double sigma_k0;
+	typedef Arithmetic<T> AR;
+	typedef typename AR::numeric_type number_t;
+	number_t pnorm;
+	number_t k0_ap;
+	number_t sigma_k0;
 	bool logarithmic;
 	bool parallel = true;
 	bool proot = true;
 
-	static T sum(const std::vector<T>& x);
+	static T sum(const std::vector<T>& x)
+	{
+		return AR::sum(x);
+	}
 
 	template<typename DS>
 	T compute_cost(const DS& data,
@@ -106,16 +133,6 @@ CostFunctionHotine<T>::CostFunctionHotine(double pnorm,
 	if (pnorm <= 0)
 		throw std::runtime_error("pnorm too small");
 }
-
-
-/*
- * Kahan summation implemented depending on type in the source file:
- */
-template<>
-double CostFunctionHotine<double>::sum(const std::vector<double>&);
-
-template<>
-real4v CostFunctionHotine<real4v>::sum(const std::vector<real4v>&);
 
 
 /*
@@ -148,12 +165,14 @@ T CostFunctionHotine<T>::compute_cost(const DS& data,
 		const int ipnorm = static_cast<int>(pnorm);
 		#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
-			cost_vec[i] = data.w(i) * AR::pow(cost_vec[i] / distmax, ipnorm);
+			const number_t wi = data.w(i);
+			cost_vec[i] = wi * AR::pow(cost_vec[i] / distmax, ipnorm);
 		}
 	} else {
 		#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
-			cost_vec[i] = data.w(i) * AR::pow(cost_vec[i] / distmax, pnorm);
+			const number_t wi = data.w(i);
+			cost_vec[i] = wi * AR::pow(cost_vec[i] / distmax, pnorm);
 		}
 	}
 
@@ -174,7 +193,7 @@ T CostFunctionHotine<T>::compute_cost(const DS& data,
 		return cost * distmax;
 
 	} else {
-		T cost(sum(cost_vec));
+		T cost(CostFunctionHotine::sum(cost_vec));
 
 		/* Add the k0  prior: */
 		if (hom.k0() < k0_ap){
@@ -245,20 +264,30 @@ T CostFunctionHotineInf<T>::compute_cost(const DS& data,
                           const HotineObliqueMercator<T>& hom) const
 {
 	typedef Arithmetic<T> AR;
+	typedef typename AR::numeric_type numeric_t;
 
 	/* Compute the absolute of the distortions (here without taking
 	 * into consideration the derivatives since we need it only for the
 	 * largest distortion): */
-	HotineObliqueMercator<double> homd(hom);
-	std::vector<double> cost_vec(data.size(), 0.0);
-	#pragma omp parallel for if(parallel)
-	for (size_t i=0; i<data.size(); ++i){
-		cost_vec[i] = std::abs(homd.k(data.lambda(i), data.phi(i))
-		                       - data.k_e(i));
+	std::vector<numeric_t> cost_vec(data.size(), 0.0);
+	if constexpr (std::is_same_v<numeric_t, T>){
+		#pragma omp parallel for if(parallel)
+		for (size_t i=0; i<data.size(); ++i){
+			cost_vec[i] = std::abs(hom.k(data.lambda(i), data.phi(i))
+			                       - data.k_e(i));
+		}
+	} else {
+		HotineObliqueMercator<numeric_t> homd(hom);
+		#pragma omp parallel for if(parallel)
+		for (size_t i=0; i<data.size(); ++i){
+			cost_vec[i] = std::abs(homd.k(data.lambda(i), data.phi(i))
+			                       - data.k_e(i));
+		}
 	}
 
+	/* Find the maximum cost: */
 	size_t imin=0;
-	double costd(cost_vec[0]);
+	numeric_t costd(cost_vec[0]);
 	for (size_t i=1; i<data.size(); ++i){
 		if (cost_vec[i] > costd){
 			costd = cost_vec[i];
@@ -266,9 +295,14 @@ T CostFunctionHotineInf<T>::compute_cost(const DS& data,
 		}
 	}
 
-	/* Get the minimum cost with derivatives: */
-	T cost(AR::abs(hom.k(data.lambda(imin), data.phi(imin))
-	       - data.k_e(imin)));
+	/* Get the minimum cost, possibly with derivatives: */
+	T cost;
+	if constexpr (std::is_same_v<numeric_t, T>){
+		cost = costd;
+	} else {
+		cost = AR::abs(hom.k(data.lambda(imin), data.phi(imin))
+		       - data.k_e(imin));
+	}
 
 	/* Add the k0  prior: */
 	if (hom.k0() < k0_ap){

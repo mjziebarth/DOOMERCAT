@@ -32,32 +32,10 @@ using doomercat::CostFunctionHotineInf;
 
 
 template<>
-real4v CostFunctionHotine<real4v>::sum(const std::vector<real4v>& x){
-	return real4v::sum(x);
-}
-
-// Make sure that Kahan summation is not killed by re-association:
-#pragma GCC optimize("-fno-associative-math")
-template<>
-double CostFunctionHotine<double>::sum(const std::vector<double>& x)
+long double
+CostFunctionHotine<long double>::sum(const std::vector<long double>& x)
 {
-	/* Copy of the code from autodouble.hpp */
-	long double S = 0.0;
-	long double comp = 0.0;
-	for (const double& xi : x){
-		long double add = xi - comp;
-		long double res = S + add;
-		comp = (res - S) - add;
-		S = res;
-	}
-
-	return static_cast<double>(S);
-}
-
-template<>
-CostHotine<real4v>::operator double() const
-{
-	return cost.value();
+	return recursive_sum<long double>(x);
 }
 
 template<>
@@ -66,15 +44,10 @@ CostHotine<double>::operator double() const
 	return cost;
 }
 
-
 template<>
-std::array<double,4> CostHotine<real4v>::grad() const
+CostHotine<long double>::operator long double() const
 {
-	std::array<double,4> g;
-	for (dim_t i=0; i<4; ++i){
-		g[i] = cost.derivative(i);
-	}
-	return g;
+	return cost;
 }
 
 
@@ -84,4 +57,3 @@ std::array<double,4> CostHotine<real4v>::grad() const
 /***************************************************************************
  *                          Cost with p=infty                              *
  ***************************************************************************/
-

@@ -11,8 +11,21 @@ using doomercat::HOM_constants;
 
 template<>
 template<>
+HotineObliqueMercator<long double>::HotineObliqueMercator(
+	const HotineObliqueMercator<autodouble<4,long double>>& other
+)
+	: e2(other.e2), e(other.e), k0_(other.k0_.value()),
+	  phi0(other.phi0.value()), alpha(other.alpha.value()),
+	  B(other.B.value()), A(other.A.value()), E_(other.E_.value()),
+	  g0(other.g0.value()), cos_g0(other.cos_g0.value()),
+	  sin_g0(other.sin_g0.value()), l0(other.l0.value())
+{
+}
+
+template<>
+template<>
 HotineObliqueMercator<double>::HotineObliqueMercator(
-	const HotineObliqueMercator<real4v>& other
+	const HotineObliqueMercator<autodouble<4,double>>& other
 )
 	: e2(other.e2), e(other.e), k0_(other.k0_.value()),
 	  phi0(other.phi0.value()), alpha(other.alpha.value()),
@@ -30,7 +43,7 @@ static double compute_uc(double A, double B, double alpha, double phi0,
 	if (std::abs(alpha) == PI/2){
 		return 0.0;
 	} else {
-		if (std::abs(phi0) > deg2rad(89.9))
+		if (std::abs(phi0) > deg2rad(89.9l))
 			throw std::runtime_error("Error computing central u: phi_0 out "
 			                         "of range (too close to +/- pi/2).");
 		const double D = hom::compute_D(std::cos(phi0), std::sin(phi0), B, e2);
@@ -71,11 +84,12 @@ HotineObliqueMercatorProjection::project(double lambda, double phi) const
 
 #include <iostream>
 
-static double modulo(double a, double b){
+template<typename real>
+static real modulo(real a, real b){
 	/* True modulo operation (similar to Python's (a % b)).
 	 * Implemented here only for positive b (which is what we use).
 	 */
-	double y = std::fmod(a,b);
+	real y = std::fmod(a,b);
 	if (y < 0.0)
 		return y+b;
 	return y;
@@ -102,7 +116,8 @@ HotineObliqueMercatorProjection::inverse(double x, double y) const
 		                              std::floor(std::abs(lola[1]+PI/2) / PI)
 		                           : std::floor(std::abs(lola[1]-PI/2) / PI);
 		const bool even = (winding_number % 2) == 0;
-		geo.lambda = (even) ? modulo(lola[0], 2*PI) : modulo(-lola[0],2*PI);
+		geo.lambda = (even) ? modulo<double>(lola[0], 2*PI)
+		                    : modulo<double>(-lola[0],2*PI);
 		geo.phi = modulo(lola[1]+PI/2, PI) - PI/2;
 		if (!even)
 			geo.phi = -geo.phi;
@@ -180,4 +195,15 @@ HotineObliqueMercatorProjection::inverse(double x, double y) const
 		lp.lambda -= 2*PI;
 
 	return lp;
+}
+
+template<>
+long double doomercat::to_long_double<double>(const double& t)
+{
+	return t;
+}
+template<>
+long double doomercat::to_long_double<long double>(const long double& t)
+{
+	return t;
 }

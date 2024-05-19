@@ -5,6 +5,7 @@
  * Authors: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
  *
  * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
+ *               2024 Technische Universität München
  *
  * Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
  * the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -21,13 +22,44 @@
  */
 
 #include <utility>
+#include <../include/sum.hpp>
 
 #ifndef DOOMERCAT_ARITHMETIC_H
 #define DOOMERCAT_ARITHMETIC_H
 
+/*
+ * Here we define which type to use for temporary numeric variables so
+ * as not to have precision loss:
+ */
+template<typename T>
+struct _temporary_numeric_type
+{
+	typedef typename T::real_t numeric_type;
+};
+
+template<>
+struct _temporary_numeric_type<long double>
+{
+	typedef long double numeric_type;
+};
+
+template<>
+struct _temporary_numeric_type<double>
+{
+	typedef double numeric_type;
+};
+
+
+
 template<typename T>
 class Arithmetic {
 public:
+	/*
+	 * A type to use for temporary numeric variables so as not to have
+	 * precision loss:
+	 */
+	typedef typename _temporary_numeric_type<T>::numeric_type numeric_type;
+
 	static T sqrt(const T&);
 	static T sqrt(T&&);
 	static T cos(const T&);
@@ -36,7 +68,7 @@ public:
 	static T sin(T&&);
 	static T pow(const T&, int);
 	static T pow(T&&, int);
-	static T pow(T&&, double);
+	static T pow(T&&, numeric_type);
 	static T pow2(const T&);
 	static T pow2(T&&);
 	template<typename T2>
@@ -56,6 +88,10 @@ public:
 	static T min(T&&, T&&);
 
 	static T constant(double);
+
+	static T sum(const std::vector<T>& v){
+		return doomercat::recursive_sum(v);
+	}
 };
 
 /* Declare the specializations for double: */
@@ -116,6 +152,67 @@ template<>
 double Arithmetic<double>::fmod<double>(const double&, const double&);
 
 
+/* Declare the specializations for long double: */
+template<>
+long double Arithmetic<long double>::sqrt(const long double&);
+
+template<>
+long double Arithmetic<long double>::sqrt(long double&&);
+
+template<>
+long double Arithmetic<long double>::cos(const long double&);
+
+template<>
+long double Arithmetic<long double>::cos(long double&&);
+
+template<>
+long double Arithmetic<long double>::sin(const long double&);
+
+template<>
+long double Arithmetic<long double>::sin(long double&&);
+
+template<>
+long double Arithmetic<long double>::atan2(long double&&, const long double&);
+
+template<>
+long double Arithmetic<long double>::log(long double&&);
+
+template<>
+long double Arithmetic<long double>::log(const long double&);
+
+template<>
+template<>
+long double
+Arithmetic<long double>::pow(const long double&, const long double&);
+
+template<>
+long double Arithmetic<long double>::pow(long double&&, int);
+
+template<>
+long double Arithmetic<long double>::pow(const long double&, int);
+
+template<>
+long double Arithmetic<long double>::pow(long double&&, long double);
+
+template<>
+long double Arithmetic<long double>::asin(long double&&);
+
+template<>
+long double Arithmetic<long double>::tan(const long double&);
+
+template<>
+long double Arithmetic<long double>::abs(long double&&);
+
+template<>
+long Arithmetic<long double>::floor(long double&&);
+
+template<>
+template<>
+long double
+Arithmetic<long double>::fmod<long double>(const long double&,
+                                           const long double&);
+
+
 
 template<typename T>
 T Arithmetic<T>::sqrt(const T& t)
@@ -166,7 +263,7 @@ T Arithmetic<T>::pow(T&& t, int n)
 }
 
 template<typename T>
-T Arithmetic<T>::pow(T&& t, double b)
+T Arithmetic<T>::pow(T&& t, numeric_type b)
 {
 	return T::pow(std::move(t), b);
 }

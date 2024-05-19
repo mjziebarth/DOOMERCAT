@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <variant>
+#include <optional>
 #include <../include/cost_hotine.hpp>
 #include <../include/hotine.hpp>
 #include <../include/linalg.hpp>
@@ -63,7 +64,10 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
                      const double k00, const double f,
                      const double pnorm, const double k0_ap,
                      const double sigma_k0,
-                     const size_t Nmax, const bool proot, const double epsilon)
+                     const size_t Nmax, const bool proot,
+                     const double epsilon,
+                     std::optional<size_t>& function_evaluations
+)
 {
 	/* Number of parameters used in the optimization: */
 	constexpr size_t P = 4;
@@ -73,6 +77,7 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 
 	/* Defining the linear algebra implementation: */
 	typedef linalg_t<P,double> lina_t;
+	typedef autodouble<4, double> real4v;
 	typedef HotineObliqueMercator<real4v> hom_t;
 
 
@@ -97,6 +102,8 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 		return y;
 	};
 
+	size_t fun_evals = 0;
+
 	/*  A lambda function that checks whether the currently cached version
 	 * of 'cost' is equal to a given one: */
 	std::array<double,P> last_x;
@@ -118,6 +125,7 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 			                                 variable4<2>(alpha),
 			                                 variable4<3>(x[3]),
 			                                 f));
+			++fun_evals;
 			last_x = x;
 		}
 	};
@@ -239,21 +247,22 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 
 	std::vector<hotine_result_t> res;
 	res.reserve(y.history.size() + y2.history.size());
-	auto append_history = [&](const BFGS_result_t<lina_t>& Y, bool cost_log) {
+	auto append_history = [&](const BFGS_result_t<lina_t>& Y, bool cost_log)
+	{
+		return_state_t state = return_state_t::ERROR;
+		switch (Y.exit_code){
+			case CONVERGED:
+				state = return_state_t::CONVERGED;
+				break;
+			case MAX_ITERATIONS:
+				state = return_state_t::MAX_ITERATIONS;
+				break;
+			case RHO_DIVERGENCE:
+			case LINESEARCH_FAIL:
+			case COST_DIVERGENCE:
+				state = return_state_t::ERROR;
+		}
 		for (auto z : Y.history){
-			return_state_t state = return_state_t::ERROR;
-			switch (y.exit_code){
-				case CONVERGED:
-					state = return_state_t::CONVERGED;
-					break;
-				case MAX_ITERATIONS:
-					state = return_state_t::MAX_ITERATIONS;
-					break;
-				case RHO_DIVERGENCE:
-				case LINESEARCH_FAIL:
-				case COST_DIVERGENCE:
-					state = return_state_t::ERROR;
-			}
 			const double lambda_c = fmod(z.parameters[0]+PI, 2*PI) - PI;
 
 			/* Same for alpha: */
@@ -277,6 +286,10 @@ bfgs_optimize_hotine(const DS& data, const double lonc0,
 	append_history(y, true);
 	append_history(y2, true);
 
+	/* If requested, list the total number of function evaluations: */
+	if (function_evaluations)
+		*function_evaluations = fun_evals;
+
 	return res;
 }
 
@@ -288,7 +301,8 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
                           const double lat_00, const double alpha0,
                           const double k00, const double f,
                           const double k0_ap, const double sigma_k0,
-                          const size_t Nmax, const double epsilon)
+                          const size_t Nmax, const double epsilon,
+                          std::optional<size_t>& function_evaluations)
 {
 	/* Number of parameters used in the optimization: */
 	constexpr size_t P = 4;
@@ -298,6 +312,7 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
 
 	/* Defining the linear algebra implementation: */
 	typedef linalg_t<P,double> lina_t;
+	typedef autodouble<4, double> real4v;
 	typedef HotineObliqueMercator<real4v> hom_t;
 
 
@@ -318,6 +333,8 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
 			return y+b;
 		return y;
 	};
+
+	size_t fun_evals = 0;
 
 
 	/*  A lambda function that checks whether the currently cached version
@@ -341,6 +358,7 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
 			                                 variable4<2>(alpha),
 			                                 variable4<3>(x[3]),
 			                                 f));
+			++fun_evals;
 			last_x = x;
 		}
 	};
@@ -501,6 +519,10 @@ bfgs_optimize_hotine_pinf(const DS& data, const double lonc0,
 	append_history(y, true);
 	append_history(y2, false);
 
+	/* If requested, list the total number of function evaluations: */
+	if (function_evaluations)
+		*function_evaluations = fun_evals;
+
 	return res;
 }
 
@@ -516,7 +538,8 @@ backtrack_GD_optimize_hotine(
     const double k00, const double f,
     const double pnorm,
     const double k0_ap, const double sigma_k0,
-    const size_t Nmax, const double epsilon
+    const size_t Nmax, const double epsilon,
+    std::optional<size_t>& function_evaluations
 )
 {
 	/* Number of parameters used in the optimization: */
@@ -528,6 +551,7 @@ backtrack_GD_optimize_hotine(
 	/* Defining the linear algebra implementation: */
 	typedef double real_t;
 	typedef linalg_t<P, real_t> lina_t;
+	typedef autodouble<4, real_t> real4v;
 	typedef HotineObliqueMercator<real4v> hom_t;
 
 
@@ -570,11 +594,13 @@ backtrack_GD_optimize_hotine(
 	);
 
 
+	size_t fun_evals = 0;
+
 	/*  A lambda function that checks whether the currently cached version
 	 * of 'cost' is equal to a given one: */
 	HotineParameters<real_t> last_x = HotineParameters<real_t>::invalid();
 	auto check_cached_cost
-	    = [&last_x, &cost_function, &cost, &data, f]
+	    = [&last_x, &cost_function, &cost, &data, &fun_evals, f]
 	    (const HotineParameters<real_t>& x)
 	{
 		bool x_new = false;
@@ -588,7 +614,7 @@ backtrack_GD_optimize_hotine(
 		if (x_new){
 			/* Recalculate. */
 			cost = std::visit(
-				[x,f,&data](auto&& cfun) -> CostHotine<real4v>
+				[x,f,&data,&fun_evals](auto&& cfun) -> CostHotine<real4v>
 				{
 					return cfun(data,
 					    hom_t(variable4<0>(x[0]),
@@ -600,6 +626,7 @@ backtrack_GD_optimize_hotine(
 				},
 				cost_function
 			);
+			++fun_evals;
 			last_x = x;
 		}
 	};
@@ -607,7 +634,9 @@ backtrack_GD_optimize_hotine(
 	auto in_boundary
 		= [&](const HotineParameters<real_t>& x) -> bool
 	{
-		return x[3] > 0.0 && x[3] < 1.01;
+		return x[3] > 0.0 && x[3] < 1.01 && !std::isnan(x[0])
+		    && !std::isnan(x[1]) && !std::isnan(x[2])
+		    && !std::isinf(x[0]) && !std::isinf(x[1]) && !std::isinf(x[2]);
 	};
 
 	auto cost_lambda
@@ -728,6 +757,10 @@ backtrack_GD_optimize_hotine(
 
 	append_history(y, true);
 	append_history(y2, false);
+
+	/* If requested, list the total number of function evaluations: */
+	if (function_evaluations)
+		*function_evaluations = fun_evals;
 
 	return res;
 }

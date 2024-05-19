@@ -20,7 +20,7 @@
  * limitations under the Licence.
  */
 
-#include <../include/types.hpp>
+#include <../include/autodouble.hpp>
 #include <../include/constants.hpp>
 
 #ifndef AUTODOUBLE_FUNCTIONS_H
@@ -207,29 +207,38 @@ template<>
 double max(const double& a, const double& b);
 
 // Constants and variables:
-real5v constant5(double x);
-real4v constant4(double x);
-
-template<dim_t i>
-real5v variable5(double x) {
-	return real5v::variable<i>(x);
+template<typename real>
+autodouble<5,real> constant5(real x)
+{
+	return autodouble<5,real>::constant(x);
 }
 
-template<dim_t i>
-real4v variable4(double x) {
-	return real4v::variable<i>(x);
+template<typename real>
+autodouble<4,real> constant4(real x)
+{
+	return autodouble<4,real>::constant(x);
+}
+
+template<dim_t i, typename real>
+autodouble<5,real> variable5(real x) {
+	return autodouble<5,real>::template variable<i>(x);
+}
+
+template<dim_t i, typename real>
+autodouble<4,real> variable4(real x) {
+	return autodouble<4,real>::template variable<i>(x);
 }
 
 // Some math functions:
 template<typename T>
 T deg2rad(const T& deg) {
-	constexpr double d2r = PI / 180.0;
+	constexpr long double d2r = PI / 180.0;
 	return deg * d2r;
 }
 
 template<typename T>
 T rad2deg(const T& rad) {
-	constexpr double r2d = 180.0 / PI;
+	constexpr long double r2d = 180.0 / PI;
 	return rad * r2d;
 }
 
