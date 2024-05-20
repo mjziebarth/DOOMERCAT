@@ -163,13 +163,13 @@ T CostFunctionHotine<T>::compute_cost(const DS& data,
 	/* Extract the factor (distmax)**pnorm and calculate the cost: */
 	if (pnorm == static_cast<double>(static_cast<int>(pnorm)) && pnorm < 5){
 		const int ipnorm = static_cast<int>(pnorm);
-		#pragma omp parallel for if(parallel)
+		//#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
 			const number_t wi = data.w(i);
 			cost_vec[i] = wi * AR::pow(cost_vec[i] / distmax, ipnorm);
 		}
 	} else {
-		#pragma omp parallel for if(parallel)
+		//#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
 			const number_t wi = data.w(i);
 			cost_vec[i] = wi * AR::pow(cost_vec[i] / distmax, pnorm);
