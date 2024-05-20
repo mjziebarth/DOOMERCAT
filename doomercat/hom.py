@@ -192,7 +192,9 @@ class HotineObliqueMercator:
                  compute_enclosing_sphere: bool
                      = _default["compute_enclosing_sphere"],
                  bfgs_epsilon: float = _default["bfgs_epsilon"],
-                 Nmax_pre_adamax: int = _default["Nmax_pre_adamax"]):
+                 Nmax_pre_adamax: int = _default["Nmax_pre_adamax"],
+                 return_full_history: bool = _default["return_full_history"]
+        ):
         # Initialization.
         # 1) Sanity checks:
         assert ellipsoid in _ellipsoids or ellipsoid is None
@@ -316,7 +318,8 @@ class HotineObliqueMercator:
                         k00,
                         Nmax,
                         proot,
-                        epsilon=bfgs_epsilon
+                        epsilon=bfgs_epsilon,
+                        return_full_history=return_full_history
                     )
 
             elif backend in ('BFGS-damped',):
@@ -403,7 +406,8 @@ class HotineObliqueMercator:
                         k00,
                         Nmax,
                         proot,
-                        epsilon=bfgs_epsilon
+                        epsilon=bfgs_epsilon,
+                        return_full_history=return_full_history
                     )
 
             elif backend in ('python','Python'):

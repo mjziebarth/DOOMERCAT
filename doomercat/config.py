@@ -40,6 +40,7 @@ def _generate_default_config():
     _default["compute_enclosing_sphere"] = True
     _default["bfgs_epsilon"] = 1e-3
     _default["Nmax_pre_adamax"] = 100
+    _default["return_full_history"] = False
     return _default
 
 
@@ -80,6 +81,7 @@ try:
         defaults["bfgs_epsilon"] = float(defaults["bfgs_epsilon"])
         defaults["Nmax_pre_adamax"] = int(defaults["nmax_pre_adamax"])
         del defaults["nmax_pre_adamax"]
+        defaults["return_full_history"] = bool(defaults["return_full_history"])
         return defaults
 
     def save_defaults():
