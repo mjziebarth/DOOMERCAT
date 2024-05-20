@@ -564,6 +564,94 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
 }
 
 
+int hotine_damped_bfgs(
+    const size_t N, const double* lon, const double* lat,
+    const double* h, const double* w, double a, double f,
+    double pnorm, double k0_ap, double sigma_k0, double lonc_0,
+    double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
+    unsigned short proot, double epsilon, double* result,
+    unsigned int* n_steps, uint64_t* n_fun_eval
+)
+{
+	// Sanity check on weights (probably very much redundant):
+	if (w == 0)
+		w = nullptr;
+
+	/* Init the data set and optimize: */
+	typedef std::variant<WeightedDataSetWithHeight,
+	                     WeightedDataSet,
+	                     DataSetWithHeight,
+	                     SimpleDataSet>
+	    dataset_t;
+	auto make_data = [=]() -> dataset_t
+	{
+		if (w){
+			if (h){
+				return WeightedDataSetWithHeight(
+					N, lon, lat, h, w, a, f
+				);
+			} else {
+				return WeightedDataSet(
+					N, lon, lat, w
+				);
+			}
+		} else {
+			if (h){
+				return DataSetWithHeight(
+					N, lon, lat, h, a, f
+				);
+			} else {
+				return SimpleDataSet(
+					N, lon, lat
+				);
+			}
+		}
+	};
+	dataset_t data = make_data();
+
+	/* Result of the optimization goes here: */
+	std::optional<size_t> function_evaluations = 0;
+	std::vector<doomercat::hotine_result_t>
+	history = std::visit(
+		[=,&function_evaluations](auto&& data_)
+		-> std::vector<doomercat::hotine_result_t>
+		{
+			return damped_BFGS_optimize_hotine(
+			    data_, lonc_0, lat_0_0, alpha_0,
+			    k_0_0, f, pnorm, k0_ap, sigma_k0,
+			    Nmax, epsilon, function_evaluations
+			);
+		},
+		data
+	);
+
+	/* Return the results: */
+	for (size_t i=0; i<history.size(); ++i){
+		result[11*i]    = history[i].cost;
+		result[11*i+1]  = history[i].lonc;
+		result[11*i+2]  = history[i].lat_0;
+		result[11*i+3]  = history[i].alpha;
+		result[11*i+4]  = history[i].k0;
+		result[11*i+5]  = history[i].grad_lonc;
+		result[11*i+6]  = history[i].grad_lat0;
+		result[11*i+7]  = history[i].grad_alpha;
+		result[11*i+8]  = history[i].grad_k0;
+		result[11*i+9]  = history[i].algorithm_state;
+		result[11*i+10] = history[i].step;
+	}
+
+	if (n_fun_eval){
+		*n_fun_eval = *function_evaluations;
+	}
+
+	if (n_steps){
+		*n_steps = static_cast<unsigned int>(history.size());
+	}
+
+	return 0;
+}
+
+
 int hotine_backtrack_GD(
     const size_t N, const double* lon, const double* lat,
     const double* h, const double* w, double a, double f,

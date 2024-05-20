@@ -36,12 +36,13 @@ ColVector<3,double>::cross(const ColVector<3,double>& other) const
 }
 
 template<>
-ColVector<3,real5v>
-ColVector<3,real5v>::cross(const ColVector<3,real5v>& other) const
+ColVector<3, long double>
+ColVector<3, long double>::cross(const ColVector<3, long double>& other) const
 {
-	return ColVector<3,real5v>({x[1] * other.x[2] - x[2] * other.x[1],
-	                            x[2] * other.x[0] - x[0] * other.x[2],
-	                            x[0] * other.x[1] - x[1] * other.x[0]});
+	const double xnew = x[1] * other.x[2] - x[2] * other.x[1];
+	const double ynew = x[2] * other.x[0] - x[0] * other.x[2];
+	const double znew = x[0] * other.x[1] - x[1] * other.x[0];
+	return ColVector<3, long double>({xnew,ynew,znew});
 }
 
 #endif

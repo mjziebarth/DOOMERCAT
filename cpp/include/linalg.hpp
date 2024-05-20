@@ -27,6 +27,16 @@
 #include <cstddef>
 #include <stdexcept>
 
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+#define NDEBUG
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/symmetric.hpp>
+#include <boost/numeric/ublas/lu.hpp>
+
 #ifndef DOOMERCAT_LINALG_HPP
 #define DOOMERCAT_LINALG_HPP
 
@@ -59,6 +69,7 @@ public:
 		M.fill(0.0);
 	};
 	SqMatrix(SqMatrix&&) = default;
+	explicit SqMatrix(const SqMatrix&) = default;
 	SqMatrix& operator=(SqMatrix&&) = default;
 
 	SqMatrix operator*(const SqMatrix& other) &&;
@@ -193,6 +204,13 @@ SqMatrix<d,real>::operator*(double c) &&
 		M[i] *= c;
 
 	return std::move(*this);
+}
+
+template<size_t d, typename real>
+SqMatrix<d,real>
+operator*(double c, const SqMatrix<d,real>& A)
+{
+	return SqMatrix<d,real>(A) * c;
 }
 
 template<size_t d, typename real>
@@ -332,10 +350,11 @@ class ColVector
 public:
 	ColVector() {};
 	ColVector(ColVector&&) = default;
+	ColVector(const ColVector&) = default;
 	ColVector(std::array<real,d>&& x) : x(x) {};
 
 	ColVector& operator=(ColVector&&) = default;
-	ColVector& operator=(ColVector&) = default;
+	ColVector& operator=(const ColVector&) = default;
 
 	void fill_from_array(const std::array<real,d>&);
 
@@ -576,6 +595,44 @@ struct linalg_t {
 		return matrix_dxd_t::identity();
 	}
 
+	static column_vectord_t solve(const matrix_dxd_t& A,
+	                              const column_vectord_t& b)
+	{
+		namespace ublas = boost::numeric::ublas;
+		typedef size_t index_t;
+
+		/* The result will be stored here: */
+		column_vectord_t res;
+
+		ublas::matrix<real> Au(d,d);
+		for (index_t i=0; i<d; ++i){
+			for (index_t j=0; j<d; ++j){
+				Au(i,j) = A(i,j);
+			}
+		}
+
+		ublas::vector<real> bu(d);
+		for (index_t i=0; i<d; ++i)
+			bu(i) = b[i];
+
+
+		/* Perform the matrix inversion using LU factorization and
+		 * substitution */
+		ublas::permutation_matrix<index_t> permutations(d);
+		if (ublas::lu_factorize(Au, permutations)){
+			std::cerr << "lu_factorize failed :-(\n" << std::flush;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			return res;
+		}
+
+		ublas::lu_substitute(Au, permutations, bu);
+
+		/* Reassign: */
+		for (index_t i=0; i<d; ++i)
+			res[i] = bu(i);
+
+		return res;
+	}
 
 };
 

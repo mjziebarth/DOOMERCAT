@@ -66,6 +66,15 @@ int hotine_bfgs(const size_t N, const double* lon, const double* lat,
                 unsigned short proot, double epsilon, double* result,
                 unsigned int* n_steps, uint64_t* n_fun_eval);
 
+int hotine_damped_bfgs(
+    const size_t N, const double* lon, const double* lat,
+    const double* h, const double* w, double a, double f,
+    double pnorm, double k0_ap, double sigma_k0, double lonc_0,
+    double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
+    unsigned short proot, double epsilon, double* result,
+    unsigned int* n_steps, uint64_t* n_fun_eval
+);
+
 int hotine_backtrack_GD(
     const size_t N, const double* lon, const double* lat,
     const double* h, const double* w, double a, double f,

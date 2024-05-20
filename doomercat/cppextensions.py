@@ -208,6 +208,119 @@ def bfgs_optimize(data_lon, data_lat, h, w, pnorm, k0_ap, sigma_k0, a, f, lonc_0
                         function_evaluations=nfuneval)
 
 
+def damped_bfgs_optimize(
+        data_lon,
+        data_lat,
+        h,
+        w,
+        pnorm,
+        k0_ap,
+        sigma_k0,
+        a,
+        f,
+        lonc_0,
+        lat_0_0,
+        alpha_0,
+        k_0_0,
+        Nmax,
+        proot,
+        return_full_history=False,
+        epsilon=1e-7):
+    """
+    Perform dampened BFGS optimization on Hotine oblique Mercator
+    cost function.
+    """
+    # Ensure types:
+    if w is None:
+        w = np.empty(0)
+    if h is None:
+        h = np.empty(0)
+    data_lon = np.ascontiguousarray(data_lon, dtype=np.double)
+    data_lat = np.ascontiguousarray(data_lat, dtype=np.double)
+    w = np.ascontiguousarray(w, dtype=np.double)
+    h = np.ascontiguousarray(h, dtype=np.double)
+    N = data_lon.size
+    assert data_lat.size == N
+    assert w.size == N or w.size == 0
+    assert h.size == N or h.size == 0
+    pnorm = float(pnorm)
+    k0_ap = float(k0_ap)
+    sigma_k0 = float(sigma_k0)
+    lonc_0  = float(lonc_0)
+    lat_0_0 = float(lat_0_0)
+    alpha_0 = float(alpha_0)
+    k_0_0   = float(k_0_0)
+    a = float(a)
+    f = float(f)
+    Nmax = int(Nmax)
+    assert Nmax > 0
+    epsilon = float(epsilon)
+    proot = bool(proot)
+
+    # Make sure that we have loaded the CDLL:
+    load_cppextensions()
+    assert _cppextensions_so is not None
+
+    result = np.zeros((Nmax,11))
+    M = np.zeros(1,dtype=np.uint)
+    nfuneval = np.zeros(1, dtype=np.uint64)
+
+    res = _cppextensions_so.hotine_damped_bfgs(
+        c_size_t(N),
+        data_lon.ctypes.data_as(POINTER(c_double)),
+        data_lat.ctypes.data_as(POINTER(c_double)),
+        h.ctypes.data_as(POINTER(c_double)) if h.size > 0 else None,
+        w.ctypes.data_as(POINTER(c_double)) if w.size > 0 else None,
+        c_double(a),
+        c_double(f),
+        c_double(pnorm),
+        c_double(k0_ap),
+        c_double(sigma_k0),
+        c_double(lonc_0),
+        c_double(lat_0_0),
+        c_double(alpha_0),
+        c_double(k_0_0),
+        c_uint(Nmax),
+        c_ushort(1 if proot else 0),
+        c_double(epsilon),
+        result.ctypes.data_as(POINTER(c_double)),
+        M.ctypes.data_as(POINTER(c_uint)),
+        nfuneval.ctypes.data_as(POINTER(c_uint64)))
+    M = int(M)
+
+    if return_full_history:
+        return HotineResult(cost=result[:M,0],
+                            lonc=result[:M,1],
+                            lat_0=result[:M,2],
+                            alpha=result[:M,3],
+                            k0=result[:M,4],
+                            grad_lonc=result[:M,5],
+                            grad_lat0=result[:M,6],
+                            grad_alpha=result[:M,7],
+                            grad_k0=result[:M,8],
+                            steps=M,
+                            f=f,
+                            mode=result[:M,9].astype(int),
+                            step_size=result[:M,10],
+                            function_evaluations=nfuneval)
+
+    cost, lonc, lat_0, alpha, k0, grad_lonc, grad_lat0,\
+       grad_alpha, grad_k0, mode, step_size = result[M-1,:]
+    return HotineResult(cost=float(cost),
+                        lonc=float(lonc),
+                        lat_0=float(lat_0),
+                        alpha=float(alpha),
+                        k0=float(k0),
+                        grad_lonc=float(grad_lonc),
+                        grad_lat0=float(grad_lat0),
+                        grad_alpha=float(grad_alpha),
+                        grad_k0=float(grad_k0),
+                        steps=M,
+                        f=f,
+                        mode=int(mode), step_size=float(step_size),
+                        function_evaluations=nfuneval)
+
+
 def truong2020_optimize(
         data_lon,
         data_lat,
