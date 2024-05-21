@@ -665,12 +665,18 @@ class HotineObliqueMercator:
             Corresponding latitudes :math:`\phi_i` in degrees.
         h : array_like, optional
             Corresponding elevations :math:`h_i` with respect to the reference
-            ellipsoid in meters.
+            ellipsoid in meters. If given, compute distortion relative to
+            desired scale factor due to elevation.
 
         Returns
         -------
         np.ndarray
             Distortion at the data points,
+
+            .. math:: k(\lambda_i, \phi_i) - 1.
+
+            If heights :math:`h_i` are given by the ``h`` parameter, the
+            distortion is computed relative to :math:`k_\\mathrm{des}`,
 
             .. math:: \\frac{k(\lambda_i, \phi_i)}
                             {k_\\mathrm{des}(h_i, \phi_i)} - 1,
@@ -678,6 +684,12 @@ class HotineObliqueMercator:
             where :math:`k_\\mathrm{dest}(h_i, \phi_i)` is the desired scale
             factor at the location due to the local elevation with respect to
             the reference ellipsoid.
+
+        Notes
+        -----
+        Uses the Hotine oblique Mercator equations as described by
+        Snyder [1]_. Can only be used if the compiled C++ backend
+        is available.
         """
         self._load_backend()
         # The Hotine k, a citizen of the ellipsoid:
