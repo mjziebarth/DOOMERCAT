@@ -545,10 +545,53 @@ ColVector<d,real> operator*(double c, const ColVector<d,real>& v)
  * The linear algebra definition.
  */
 
+template<uint8_t required_bits>
+struct index_type
+{
+};
+
+template<>
+struct index_type<8>
+{
+	typedef uint_fast8_t type;
+};
+
+template<>
+struct index_type<16>
+{
+	typedef uint_fast16_t type;
+};
+
+template<>
+struct index_type<32>
+{
+	typedef uint_fast32_t type;
+};
+
+template<>
+struct index_type<64>
+{
+	typedef uint64_t type;
+};
+
+template<size_t d>
+constexpr uint8_t get_required_bits()
+{
+	if constexpr (d < 256)
+		return 8;
+	else if constexpr (d < 65536)
+		return 16;
+	else if constexpr (d < 4294967296)
+		return 32;
+
+	return 64;
+}
+
 
 template<size_t d, typename real>
 struct linalg_t {
 	constexpr static size_t ndim = d;
+	typedef typename index_type<get_required_bits<d>()>::type index_t;
 	typedef real real_t;
 	typedef SqMatrix<d,real> matrix_dxd_t;
 	typedef ColVector<d,real> column_vectord_t;
@@ -599,7 +642,6 @@ struct linalg_t {
 	                              const column_vectord_t& b)
 	{
 		namespace ublas = boost::numeric::ublas;
-		typedef size_t index_t;
 
 		/* The result will be stored here: */
 		column_vectord_t res;
