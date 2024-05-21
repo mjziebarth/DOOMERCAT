@@ -39,12 +39,12 @@
 
 #include <../include/linalg.hpp>
 #include <../include/exitcode.hpp>
-#include <../include/bfgs.hpp>
 
 
 #ifndef DOOMERCAT_BFGS2_H
 #define DOOMERCAT_BFGS2_H
 
+namespace doomercat {
 
 struct wolfe_result_t {
     bool success;
@@ -286,6 +286,46 @@ wolfe_linesearch(
     return wolfe_result_t(wolfe_success, wolfe_1, strong_wolfe_2);
 };
 
+
+enum class BFGS_mode_t {
+	BFGS=1, FINISHED=0
+};
+
+template<typename lina>
+struct BFGS_step_t {
+	double cost;
+	BFGS_mode_t mode;
+	typename lina::point_t parameters;
+	typename lina::grad_t grad;
+	double step;
+
+	BFGS_step_t(double cost, BFGS_mode_t mode,
+	            const typename lina::point_t& parameters,
+	            double step)
+	   : cost(cost), mode(mode), parameters(parameters), step(step)
+	{
+		for (int i=0; i<grad.size(); ++i){
+			grad[i] = 0.0;
+		}
+	};
+
+	BFGS_step_t(double cost, BFGS_mode_t mode,
+	            const typename lina::point_t& parameters,
+	            const typename lina::grad_t& gradient,
+	            double step)
+	   : cost(cost), mode(mode), parameters(parameters),
+	     grad(gradient), step(step)
+	{};
+
+	BFGS_step_t(BFGS_step_t&& other) = default;
+	BFGS_step_t(const BFGS_step_t& other) = default;
+};
+
+template<typename lina>
+struct BFGS_result_t {
+	exit_code_t exit_code;
+	std::vector<BFGS_step_t<lina>> history;
+};
 
 
 
@@ -543,5 +583,7 @@ dampened_BFGS
 
     return result;
 }
+
+} // end namespace
 
 #endif // include guard
