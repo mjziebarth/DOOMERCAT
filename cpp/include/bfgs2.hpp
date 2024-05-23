@@ -46,16 +46,6 @@
 
 namespace doomercat {
 
-struct wolfe_result_t {
-    bool success;
-    bool wolfe1;
-    bool wolfe2;
-
-    wolfe_result_t(bool success, bool wolfe1, bool wolfe2)
-        : success(success), wolfe1(wolfe1), wolfe2(wolfe2)
-    {}
-};
-
 template<typename vd_t>
 bool any_nan(const vd_t& vec){
     for (uint_fast8_t i=0; i<4; ++i)
@@ -87,7 +77,7 @@ template<
     typename gradient_fun_t,
     typename in_bounds_fun_t
 >
-wolfe_result_t
+bool
 wolfe_linesearch(
     const vd_t& xk,
     const vd_t& pk,
@@ -110,7 +100,6 @@ wolfe_linesearch(
 
 
     constexpr size_t d = parameters_t::ndim;
-    // typedef typename parameters_t::real_t real_t;
     typedef linalg_t<d, real_t> lina;
     typedef typename lina::point_t point_t;
 
@@ -183,27 +172,23 @@ wolfe_linesearch(
 
         /* Wolfe 1 (3.6a): */
         wolfe_1 = (cost1 <= cost0 + c1 * alpha * grad_fk_dot_pk);
-        if (in_bds && wolfe_1)
-            wolfe_1_alphas.push_back(j);
-
-
 
         /* Wolfe 2 (3.7b): */
         real_t grad_fkp1__dot__pk = lina::dot(grad_fkp1,pk);
         wolfe_2 = (grad_fkp1__dot__pk >= c2 * grad_fk_dot_pk);
+
         /* Strong Wolfe 2 (3.7b): */
         strong_wolfe_2 = (std::abs(grad_fkp1__dot__pk) <= sw2_rhs);
 
         if (in_bds && wolfe_1)
         {
-            if (strong_wolfe_2) // || Bk_age <= 3)
+            /* Keep track of the successful */
+            wolfe_1_alphas.push_back(j);
+
+            if (strong_wolfe_2)
             {
-                wolfe_success = true;
-                alpha_memory = std::min(
-                    alpha,
-                    1.0
-                );
-                break;
+                alpha_memory = alpha;
+                return true;
             }
             else if (wolfe_2)
             {
@@ -214,7 +199,13 @@ wolfe_linesearch(
         alpha *= ALPHA_REDUX;
         xkp1 = xk + alpha * pk;
 
-        /* Check if we have maxed out the reduction: */
+        /* Check if we have maxed out the reduction.
+         * If so, we have not found a step width that satisfies the strong
+         * Wolfe conditions. We might have still found a step width that
+         * satisfies the weak Wolfe conditions, or at least a step width
+         * that satisfies the first Wolfe condition (i.e. reduces the cost
+         * function).
+         * To check these cases, exit this loop: */
         if (equal_to_double_precision(xkp1, xk)){
             alpha_memory = 1.0;
             break;
@@ -226,7 +217,7 @@ wolfe_linesearch(
         cost1 = evaluate_cost(Pp1);
     }
 
-    if (!wolfe_success && !normal_wolfe_2_alphas.empty())
+    if (!normal_wolfe_2_alphas.empty())
     {
         /* While the search for strong Wolfe conditions failed,
          * we succeeded in finding points that comply to the normal
@@ -247,16 +238,11 @@ wolfe_linesearch(
         xkp1 = xk + alpha * pk;
         grad_fkp1 = std::get<2>(best);
         cost1 = std::get<1>(best);
-        alpha_memory = std::min(
-            alpha,
-            1.0
-        );
-        wolfe_1 = true;
-        strong_wolfe_2 = false;
-        wolfe_success = true;
+        alpha_memory = alpha;
+        return true;
     }
 
-    if (!wolfe_success && !wolfe_1_alphas.empty())
+    if (!wolfe_1_alphas.empty())
     {
         /* Wolfe 2 was generally not successful but we found at least
          * a success of Wolfe 1. */
@@ -274,16 +260,11 @@ wolfe_linesearch(
         xkp1 = xk + alpha * pk;
         grad_fkp1 = std::get<2>(best);
         cost1 = std::get<1>(best);
-        alpha_memory = std::min(
-            alpha,
-            1.0
-        );
-        wolfe_1 = true;
-        strong_wolfe_2 = false;
-        wolfe_success = true;
+        alpha_memory = alpha;
+        return true;
     }
 
-    return wolfe_result_t(wolfe_success, wolfe_1, strong_wolfe_2);
+    return false;
 };
 
 
@@ -431,7 +412,6 @@ dampened_BFGS
     typename lina::grad_t G(gradient(x0));
     lina::init_column_vectord(grad_fk, G);
     double cost0 = costfun(x0);
-    uint_fast8_t update_steps = 0;
     for (size_t i=0; i<Nmax-1; ++i)
     {
         /* Check sanity of the parameters: */
@@ -484,47 +464,30 @@ dampened_BFGS
         vd_t grad_fkp1;
         double cost1;
         const double alpha_on_enter = alpha;
-        wolfe_result_t wolfe
+        bool wolfe_success
         = wolfe_linesearch<real_t,parameters_t>(
             xk, pk, grad_fk, cost0, xkp1,
             grad_fkp1, cost1, alpha, Bk_age,
             evaluate_cost, evaluate_gradient,
             in_bounds);
 
-        if (!wolfe.success)
+        if (!wolfe_success)
         {
-            /* The two Wolfe conditions could not be fulfilled. */
-            if (wolfe.wolfe1){
-                /* The sufficient reduction was not fulfilled. But maybe
-                 * the Hessian changed a lot, so we might gain something
-                 * from proceeding for another small step.
-                 * Make sure, however, not to be stuck in this small-step
-                 * loop forever: */
-                reset_Bk();
-                ++update_steps;
-                if (update_steps == 4){
-                    result.exit_code = LINESEARCH_FAIL;
-                    break;
-                }
-            } else {
-                /* No condition was fulfilled. */
+            /* No condition was fulfilled. */
+            result.exit_code = LINESEARCH_FAIL;
+            if (Bk_age == 0 && alpha_on_enter == 1.0){
+                /* We have already previously reset the Hessian.
+                 * Even with pure gradient descent, we cannot obtain a
+                 * sufficient reduction.
+                 * We have to end the program here.
+                 */
                 result.exit_code = LINESEARCH_FAIL;
-                if (Bk_age == 0 && alpha_on_enter == 1.0){
-                    /* We have already previously reset the Hessian.
-                     * Even with pure gradient descent, we cannot obtain a
-                     * sufficient reduction.
-                     * We have to end the program here.
-                     */
-                    result.exit_code = LINESEARCH_FAIL;
-                    break;
-                }
-                reset_Bk();
+                break;
             }
+            reset_Bk();
 
             /* Since we have not found an acceptable step, continue: */
             continue;
-        } else {
-            update_steps = 0;
         }
 
         /* Compute sk and yk: */
