@@ -94,20 +94,14 @@ def _T(Q):
     return (Q+1/Q)/2
 
 def _V(B,lmbd,lmbd0):
-    dlambda = lmbd-lmbd0
-    dlambda[dlambda < -np.pi] += 2*np.pi
-    dlambda[dlambda > np.pi] -= 2*np.pi
-    return np.sin(B*dlambda)
+    return np.sin(B*(lmbd-lmbd0))
 
 def _U(V,gamma0,S,T):
     return (-V*np.cos(gamma0)+S*np.sin(gamma0))/T
 
 def _u(A,S,gamma0,V,B,lmbd,lmbd0):
-    dlambda = lmbd-lmbd0
-    dlambda[dlambda < -np.pi] += 2*np.pi
-    dlambda[dlambda > np.pi] -= 2*np.pi
     return A*np.arctan2((S*np.cos(gamma0)+V*np.sin(gamma0)),
-                         np.cos(B*dlambda))/B
+                         np.cos(B*(lmbd-lmbd0)))/B
 
 def _h(dudp,dvdp,e,phi,k0):
     return np.sqrt(dudp**2 + dvdp**2) * (1-e**2*np.sin(phi)**2)**1.5 / (1-e**2)
@@ -117,11 +111,8 @@ def _k(dudl,dvdl,e,phi,k0):
            / np.cos(phi)
 
 def _ks(A,B,u,e,phi,lmbd,lmbd0):
-    dlambda = lmbd-lmbd0
-    dlambda[dlambda < -np.pi] += 2*np.pi
-    dlambda[dlambda > np.pi] -= 2*np.pi
     return A*np.cos(B*u/A)*np.sqrt(1-e**2*np.sin(phi)**2)\
-           /(np.cos(phi)*np.cos(B*dlambda))
+           /(np.cos(phi)*np.cos(B*(lmbd-lmbd0)))
 
 
 
