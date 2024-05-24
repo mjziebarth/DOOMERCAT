@@ -264,6 +264,7 @@ wolfe_linesearch(
         return true;
     }
 
+    alpha_memory = 1.0;
     return false;
 };
 
