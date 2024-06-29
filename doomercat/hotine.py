@@ -340,7 +340,7 @@ def lm_adamax_optimize(
     # below never triggers.
     Nmax_pre_adamax = max(Nmax_pre_adamax, 4*Nsd)
     Sv = []
-    S33 = np.zeros((1,1)) + np.NaN
+    S33 = np.zeros((1,1)) + np.nan
     Ij = Ik = 0
 
     if diagnostics:
