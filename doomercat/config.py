@@ -38,7 +38,7 @@ def _generate_default_config():
     _default["proot"] = False
     _default["fisher_bingham_use_weight"] = False
     _default["compute_enclosing_sphere"] = True
-    _default["bfgs_epsilon"] = 1e-3
+    _default["bfgs_epsilon"] = 0.0
     _default["Nmax_pre_adamax"] = 100
     _default["return_full_history"] = False
     return _default
