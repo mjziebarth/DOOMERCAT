@@ -424,7 +424,7 @@ def lm_adamax_optimize(
                 yk = a_h_rel[I_batch]
 
                 Theta =  (np.sign(v_ap[3]-neop[k,3])+1)/2
-                S33[k,0] = (np.abs(neofk-yk).max()) \
+                S33[k,0] = (np.abs(w*(neofk-yk)).max()) \
                            + P_ap[3,3]*(neop[k,3]-v_ap[3])**2 * Theta
                 # S33[k,0] = np.maximum(np.abs(neofk-yk).max(), (np.sqrt(P_ap[3,3])*np.abs(neop[k,3]-v_ap[3]) * Theta).max())
 
