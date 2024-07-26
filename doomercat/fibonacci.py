@@ -1,6 +1,6 @@
 # Fibonacci lattice to generate uniformly distributed points on a sphere.
 #
-# Author: Sebastian von Specht,
+# Author: Sebastian von Specht (s.von.specht@protonmail.com),
 #         Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
 # Copyright (C) 2022-2024 Sebastian von Specht,
@@ -20,49 +20,104 @@
 # limitations under the Licence.
 
 import numpy as np
+from numba import njit
 
-def fibonacci_lattice(D: float, a: float = 6378137.0):
+@njit
+def fibonacci_lattice(D: float, 
+                      a: float = 6378.137, 
+                      f: float = 1/298.257223563,
+                      phi_min: float = -90,
+                      phi_max: float = 90,
+                      lam_min: float = -180,
+                      lam_max: float = 180):
     """
-    Returns (nearly) equally spaced points with a Fibonacci lattice
-    on a sphere.
+    Returns (almost) equally spaced points with a Fibonacci lattice
+    on a sphere/ellipsoid with radius 'a' in longitude and latitude. 
+    Spherical (parametric) latitude is converted to geographic latitude 
+    with flattening f (set f=0 for no flattening, default is WGS84 
+    flattening).
 
     Parameters
     ----------
     D : float
-       Average distance of points on the sphere (unit follows from unit
-       of radius, default is in meter).
+        Average distance of points on the sphere/ellipsoid (unit follows 
+        from unit of radius/semi-major axis, default is in kilometer).
     a : float, optional
-       Radius of the sphere. Default is the WGS84 in meter.
+        Radius of the sphere (semi-major axis of the ellipsoid). 
+        Default is the WGS84 radius in kilometer, f = 6378.137 km.
+    f : float, optional
+        Flattening of the ellipsoid. Set to f = 0 for a sphere.
+        Default is the WGS84 flattening, f = 1/298.257223563.
+    phi_min, phi_max, lam_min, lam_max : float, optional
+        extent (in degrees) of a region for which the 
+        lattice should be computed.
+        Default is global coverage; phi_min = -90, phi_max = 90, 
+        lam_min = 180, lam_max = 180.
+        If a region is crossing the +/-180th meridian, then set 
+        lam_min > lam_max, e.g., lam_min = 170, lam_max = -170 
+        covers the range from 170 deg to 180 deg and from 
+        -180 deg (= 180 deg) to -170 deg.
+    
 
     Returns
     -------
     longitude: ndarray
        Longitudes of the point set in degrees.
     latitude: ndarray
-       Latitudes of the point set in degrees.
+       Geographic latitudes of the point set in degrees.
     """
 
     # golden ratio
     PHI = (1+np.sqrt(5))/2
 
-    # parameters of model to relate number of points to average distance on the sphere
+    # radius (standard Earth radius [WGS84])
+    a_earth = 6378.137
+    
+    # parameters of model to relate number of points to average distance 
+    # on the sphere/ellipsoid with radius/semi-major axis "a_earth"
     p = np.array([ 1.03033653e+00,  9.08039046e-05,  1.57110979e+00,  1.29553736e-02,
             1.78518128e+00,  3.01690251e+01, -2.89932149e+00])
 
+    # adjust distance for sphere with radius "a"
+    D *= a_earth/a
+    
     # number-distance model
     ldf = np.log10(D)
     c = p[0]+p[1]*np.exp(p[2]*ldf) + p[3]*np.log(p[4]+np.sin(p[5]*ldf+p[6]))
-
+    
     # convert "c" to half-number of points on a sphere with radius "a"
-    N = np.round((4*np.pi*a**2/(c*D)**2-1)/2).astype(int)
-
+    N = int(np.round((4*np.pi*a_earth**2/(c*D)**2-1)/2))
+    
     # total numbers of point (always odd)
     P = 2*N+1
 
-    i = np.arange(-N,N+1)
+    lam = []
+    phi = []
 
-    # latitude (phi), longitude (lam) in degrees
-    phi = np.arcsin(2*i/P)*180/np.pi
-    lam = np.mod(i,PHI)*360/PHI
+    # latitude range converted to sines
+    sphi_min = np.sin(np.deg2rad(phi_min))
+    sphi_max = np.sin(np.deg2rad(phi_max))
 
-    return (lam,phi)
+    # sine range converted to indices
+    iphi_min = int(np.floor(sphi_min*P/2))
+    iphi_max = int(np.ceil(sphi_max*P/2))
+    
+    for i in range(iphi_min,iphi_max):
+        if 2*i/P >= sphi_min and 2*i/P <= sphi_max:
+
+            lam_i = np.mod(i,PHI)*360/PHI-180
+
+            if lam_min < lam_max:
+                if lam_i >= lam_min and lam_i <= lam_max:
+                    lam.append(lam_i)
+                    phi_i = np.arcsin(2*i/P)
+                    phi_i = np.arctan((1-f)*np.tan(phi_i))
+                    phi.append(phi_i*180/np.pi)
+            else:
+                if lam_i >= lam_min or lam_i <= lam_max:
+                    lam.append(lam_i)
+                    phi_i = np.arcsin(2*i/P)
+                    phi_i = np.arctan((1-f)*np.tan(phi_i))
+                    phi.append(phi_i*180/np.pi)
+    
+    return (np.array(lam),np.array(phi))
