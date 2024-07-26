@@ -113,8 +113,9 @@ def fibonacci_lattice_batch(D: float,
             if lam_i.size > 0:
                 lam.extend(lam_i)
                 phi_i = np.arcsin(2*i[mask]/P)
-                phi_i = np.arctan((1-f)*np.tan(phi_i))
                 phi.extend(phi_i*(180/np.pi))
+
+            i += batch_size
     else:
         # Interval straddles the 180° meridian
         while i[0] < iphi_max:
@@ -132,7 +133,6 @@ def fibonacci_lattice_batch(D: float,
             if lam_i.size > 0:
                 lam.extend(lam_i)
                 phi_i = np.arcsin(2*i[mask]/P)
-                phi_i = np.arctan((1-f)*np.tan(phi_i))
                 phi.extend(phi_i*(180/np.pi))
 
             i += batch_size
