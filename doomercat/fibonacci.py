@@ -25,17 +25,13 @@ from numba import njit
 @njit
 def fibonacci_lattice(D: float, 
                       a: float = 6378.137, 
-                      f: float = 1/298.257223563,
                       phi_min: float = -90,
                       phi_max: float = 90,
                       lam_min: float = -180,
                       lam_max: float = 180):
     """
     Returns (almost) equally spaced points with a Fibonacci lattice
-    on a sphere/ellipsoid with radius 'a' in longitude and latitude. 
-    Spherical (parametric) latitude is converted to geographic latitude 
-    with flattening f (set f=0 for no flattening, default is WGS84 
-    flattening).
+    on a sphere with radius 'a' in longitude and latitude. 
 
     Parameters
     ----------
@@ -45,9 +41,6 @@ def fibonacci_lattice(D: float,
     a : float, optional
         Radius of the sphere (semi-major axis of the ellipsoid). 
         Default is the WGS84 radius in kilometer, f = 6378.137 km.
-    f : float, optional
-        Flattening of the ellipsoid. Set to f = 0 for a sphere.
-        Default is the WGS84 flattening, f = 1/298.257223563.
     phi_min, phi_max, lam_min, lam_max : float, optional
         extent (in degrees) of a region for which the 
         lattice should be computed.
@@ -64,7 +57,7 @@ def fibonacci_lattice(D: float,
     longitude: ndarray
        Longitudes of the point set in degrees.
     latitude: ndarray
-       Geographic latitudes of the point set in degrees.
+       Latitudes of the point set in degrees.
     """
 
     # golden ratio
@@ -74,19 +67,18 @@ def fibonacci_lattice(D: float,
     a_earth = 6378.137
     
     # parameters of model to relate number of points to average distance 
-    # on the sphere/ellipsoid with radius/semi-major axis "a_earth"
-    p = np.array([ 1.03033653e+00,  9.08039046e-05,  1.57110979e+00,  1.29553736e-02,
-            1.78518128e+00,  3.01690251e+01, -2.89932149e+00])
+    # on the sphere with radius "a_earth"
+    p = np.array([ 1.06113340e+00,  1.81909121e-04,  6.87745830e-01,  2.73178890e-02,
+        1.80008060e+00,  1.31022975e+01, -2.89844396e+00])
 
     # adjust distance for sphere with radius "a"
     D *= a_earth/a
     
     # number-distance model
-    ldf = np.log10(D)
-    c = p[0]+p[1]*np.exp(p[2]*ldf) + p[3]*np.log(p[4]+np.sin(p[5]*ldf+p[6]))
+    c = p[0]+p[1]*D**p[2] + p[3]*np.log(p[4]+np.sin(p[5]*np.log(D)+p[6]))
     
     # convert "c" to half-number of points on a sphere with radius "a"
-    N = int(np.round((4*np.pi*a_earth**2/(c*D)**2-1)/2))
+    N = int(np.round((4*np.pi*a_earth**2/(c*D**2)-1)/2))
     
     # total numbers of point (always odd)
     P = 2*N+1
@@ -111,13 +103,11 @@ def fibonacci_lattice(D: float,
                 if lam_i >= lam_min and lam_i <= lam_max:
                     lam.append(lam_i)
                     phi_i = np.arcsin(2*i/P)
-                    phi_i = np.arctan((1-f)*np.tan(phi_i))
                     phi.append(phi_i*180/np.pi)
             else:
                 if lam_i >= lam_min or lam_i <= lam_max:
                     lam.append(lam_i)
                     phi_i = np.arcsin(2*i/P)
-                    phi_i = np.arctan((1-f)*np.tan(phi_i))
                     phi.append(phi_i*180/np.pi)
     
     return (np.array(lam),np.array(phi))
