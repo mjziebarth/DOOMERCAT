@@ -533,7 +533,7 @@ def lm_adamax_optimize(
 
             if not isinf(pnorm) and Ssd<Ssd_th:
                 break
-            elif isinf(pnorm) and (Ssd<Ssd_th):# or i == Nmax_pre_adamax):
+            elif isinf(pnorm) and (Ssd<Ssd_th or i == Nmax_pre_adamax):
                 is_p2opt = True
 
                 if switch_to_p0:
