@@ -98,6 +98,7 @@ public:
 	bool operator<=(real) const;
 	bool operator>(real) const;
 	bool operator<(real) const;
+	bool operator==(real) const;
 
 	static autodouble div(real c, const autodouble& x);
 	static autodouble minus(real c, const autodouble& x);
@@ -557,6 +558,12 @@ template<dim_t d, typename real>
 bool autodouble<d,real>::operator<(real y) const
 {
 	return x < y;
+}
+
+template<dim_t d, typename real>
+bool autodouble<d,real>::operator==(real y) const
+{
+	return x == y;
 }
 
 

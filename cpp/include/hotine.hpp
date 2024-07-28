@@ -526,7 +526,12 @@ T HotineObliqueMercator<T>::u(double lambda, double phi) const
 
 	T cBdl(AR::cos(B * dlambda));
 	/* Case cos(B*(lambda - lambda_0)) == 0:
-	 * Note: seems unproblematic.*/
+	 * Note: this case causes the scale factor to diverge to infinity.
+	 *       Since such a scale factor is against *all* optimization goals,
+	 *       this case does not really have an important role in DOOMERCAT.
+	 */
+	if (cBdl == 0.0)
+		return A * B * dlambda;
 
 	return A / B * AR::atan2(S*cos_g0 + V*sin_g0, cBdl);
 }
