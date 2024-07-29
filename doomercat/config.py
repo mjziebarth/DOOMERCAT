@@ -61,6 +61,8 @@ try:
 
         # Convert parameters from the string-based handling
         # within the configparser module:
+        def to_bool(val: str) -> bool:
+            return True if val.lower() == "true" else False
         pnorm = defaults["pnorm"]
         defaults["pnorm"] = int(pnorm) if pnorm != "inf" else inf
         defaults["k0_ap"] = float(defaults["k0_ap"])
@@ -73,15 +75,16 @@ try:
         defaults["f"] = float(f) if f != "None" else None
         defaults["Nmax"] = int(defaults["nmax"])
         del defaults["nmax"]
-        defaults["proot"] = bool(defaults["proot"])
+        defaults["proot"] = to_bool(defaults["proot"])
         defaults["fisher_bingham_use_weight"] \
-           = bool(defaults["fisher_bingham_use_weight"])
+           = to_bool(defaults["fisher_bingham_use_weight"])
         defaults["compute_enclosing_sphere"] \
-           = bool(defaults["compute_enclosing_sphere"])
+           = to_bool(defaults["compute_enclosing_sphere"])
         defaults["bfgs_epsilon"] = float(defaults["bfgs_epsilon"])
         defaults["Nmax_pre_adamax"] = int(defaults["nmax_pre_adamax"])
         del defaults["nmax_pre_adamax"]
-        defaults["return_full_history"] = bool(defaults["return_full_history"])
+        defaults["return_full_history"] \
+            = to_bool(defaults["return_full_history"])
         return defaults
 
     def save_defaults():
