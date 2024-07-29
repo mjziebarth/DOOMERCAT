@@ -57,10 +57,7 @@ public:
 	                                       const T& sin_alpha,
 	                                       number_t e2);
 	/* */
-	static T g0_asymptotic_pos(const T& sin_phi0, const T& sin_alpha,
-	                           number_t e2);
-	static T g0_asymptotic_neg(const T& sin_phi0, const T& sin_alpha,
-	                           number_t e2);
+	static T g0_asymptotic(const T& x, const T& sin_alpha, number_t e2);
 
 	static hom_E_parabola_params_t<number_t> fit_E_parabola_pos(number_t e);
 	static hom_E_parabola_params_t<number_t> fit_E_parabola_neg(number_t e);
@@ -198,40 +195,21 @@ T HOM_constants<T>::tan_g0_div_sqx_asymptotic_neg(const T& sin_phi0,
 
 
 template<typename T>
-T HOM_constants<T>::g0_asymptotic_pos(const T& sin_phi0,
-                                      const T& sa, number_t e2)
+T HOM_constants<T>::g0_asymptotic(const T& x,
+                                  const T& sa, number_t e2)
 {
 	/* Computes g0 in the asymptotic sin(phi0) -> 1 */
 	constexpr number_t SQ2 = std::sqrt(2.0l);
 	T sa2(sa*sa);
-	T x(ONE - sin_phi0);
-	number_t Y = e2/(1.0 - e2);
-	return SQ2*sa * (ONE
-	                 + x * ((Y - 0.25) + sa2/(3*ONE)
-	                        +  x * (sa2*(Y - 0.25)
-	                                + (-11.0/4.0 * Y + 0.5 * Y*Y - 1.0/32.0)
-	                                + (3*ONE/10) * sa2*sa2
-	                                )
-	                        )
-	                ) * AR::sqrt(x);
-}
-
-template<typename T>
-T HOM_constants<T>::g0_asymptotic_neg(const T& sin_phi0,
-                                      const T& sa, number_t e2)
-{
-	/* Computes g0 in the asymptotic sin(phi0) -> -1 */
-	constexpr number_t SQ2 = std::sqrt(2.0l);
-	T sa2(sa*sa);
-	T x(ONE + sin_phi0);
 	number_t Y = e2/(1.0 - e2);
 	return SQ2*sa * (ONE
 	                 + x * ((Y - 0.25)
 	                        + sa2/(3*ONE)
 	                        + x * (sa2*(Y - 0.25)
-	                              + (-11.0/4.0 * Y - 0.5*Y*Y - 1.0/32.0)
-	                              + (3*ONE/10)*sa2*sa2)
-	                       )
+	                              + (-11.0/4.0 * Y - 0.5 * Y*Y - 1.0/32.0)
+	                              + (3*ONE/10) * sa2*sa2
+	                              )
+	                        )
 	                ) * AR::sqrt(x);
 }
 
@@ -384,6 +362,7 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
                               double f)
    : e2(f*(2.0l-f)), e(std::sqrt(e2)), k0_(k0), phi0(phi0), alpha(alpha)
 {
+	constexpr number_t ONE = 1.0;
 	typedef HOM_constants<T> hom;
 	T sin_phi0(AR::sin(phi0));
 	T cos_phi0(AR::cos(phi0));
@@ -394,7 +373,7 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		auto C0a = hom::fit_E_parabola_pos(e);
 		E_ = C0a.C0 - C0a.a * (phi0 - PI/2) * (phi0 - PI/2);
 		T sa = AR::sin(alpha);
-		g0 = hom::g0_asymptotic_pos(sin_phi0, sa, e2);
+		g0 = hom::g0_asymptotic(ONE - sin_phi0, sa, e2);
 
 		l0 = lambda_c
 		   - AR::asin(
@@ -410,7 +389,7 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		auto C0a = hom::fit_E_parabola_neg(e);
 		E_ = C0a.C0 + C0a.a * (phi0 + PI/2) * (phi0 + PI/2);
 		T sa = AR::sin(alpha);
-		g0 = hom::g0_asymptotic_neg(sin_phi0, sa, e2);
+		g0 = hom::g0_asymptotic(ONE + sin_phi0, sa, e2);
 
 		l0 = lambda_c
 		   - AR::asin(
