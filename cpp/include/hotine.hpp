@@ -50,12 +50,9 @@ public:
 	static T G_mul_sqx_neg(const T& z,const T& sa, number_t e2);
 
 	/* tan(g0)/sqrt(1 - sin(phi0)) in the limit phi0 -> +/-90° */
-	static T tan_g0_div_sqx_asymptotic_pos(const T& sin_phi0,
-	                                       const T& sin_alpha,
-	                                       number_t e2);
-	static T tan_g0_div_sqx_asymptotic_neg(const T& sin_phi0,
-	                                       const T& sin_alpha,
-	                                       number_t e2);
+	static T tan_g0_div_sqx_asymptotic(const T& sin_phi0,
+	                                   const T& sin_alpha,
+	                                   number_t e2);
 	/* */
 	static T g0_asymptotic(const T& x, const T& sin_alpha, number_t e2);
 
@@ -152,35 +149,13 @@ T HOM_constants<T>::G_mul_sqx_neg(const T& z,const T& sa, number_t e2)
 }
 
 template<typename T>
-T HOM_constants<T>::tan_g0_div_sqx_asymptotic_pos(const T& sin_phi0,
-                                                  const T& sa, number_t e2)
+T HOM_constants<T>::tan_g0_div_sqx_asymptotic(const T& x,
+                                              const T& sa, number_t e2)
 {
 	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
 	constexpr number_t SQ2 = std::sqrt(2.0l);
 	T sa2(sa*sa);
 	T sa4(sa2*sa2);
-	T x(ONE - sin_phi0);
-	number_t Y = e2/(1.0 - e2);
-
-	return SQ2*sa * (ONE
-	                 + x * ((Y - 0.25) + sa2
-	                        + x * ((-Y*(11.0/4.0 + 0.5*Y) - 1.0/32.0)
-	                               + (3*ONE/2) * sa4
-	                               + (0.25*(15.0*e2 - 3.0)/(1.0-e2))*sa2
-	                                   )
-	                           )
-	                );
-}
-
-template<typename T>
-T HOM_constants<T>::tan_g0_div_sqx_asymptotic_neg(const T& sin_phi0,
-                                                  const T& sa, number_t e2)
-{
-	/* Computes tan(g0)/sqrt(1-sin(phi0)) in the asymptotic sin(phi0) -> 1 */
-	constexpr number_t SQ2 = std::sqrt(2.0l);
-	T sa2(sa*sa);
-	T sa4(sa2*sa2);
-	T x(ONE + sin_phi0);
 	number_t Y = e2/(1.0 - e2);
 
 	return SQ2*sa * (ONE
@@ -373,14 +348,15 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		auto C0a = hom::fit_E_parabola_pos(e);
 		E_ = C0a.C0 - C0a.a * (phi0 - PI/2) * (phi0 - PI/2);
 		T sa = AR::sin(alpha);
-		g0 = hom::g0_asymptotic(ONE - sin_phi0, sa, e2);
+		T x = ONE - sin_phi0;
+		g0 = hom::g0_asymptotic(x, sa, e2);
 
 		l0 = lambda_c
 		   - AR::asin(
 		       AR::min(
 		         AR::max(
 		           hom::G_mul_sqx(sin_phi0, sa, e2)
-		              * hom::tan_g0_div_sqx_asymptotic_pos(sin_phi0, sa, e2),
+		              * hom::tan_g0_div_sqx_asymptotic(x, sa, e2),
 		           AR::constant(-1.0)),
 		       AR::constant(1.0))
 		     ) / B;
@@ -389,14 +365,15 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		auto C0a = hom::fit_E_parabola_neg(e);
 		E_ = C0a.C0 + C0a.a * (phi0 + PI/2) * (phi0 + PI/2);
 		T sa = AR::sin(alpha);
-		g0 = hom::g0_asymptotic(ONE + sin_phi0, sa, e2);
+		T x = ONE + sin_phi0;
+		g0 = hom::g0_asymptotic(x, sa, e2);
 
 		l0 = lambda_c
 		   - AR::asin(
 		       AR::min(
 		         AR::max(
 		           hom::G_mul_sqx_neg(sin_phi0, sa, e2)
-		              * hom::tan_g0_div_sqx_asymptotic_neg(sin_phi0, sa, e2),
+		              * hom::tan_g0_div_sqx_asymptotic(x, sa, e2),
 		           AR::constant(-1.0)),
 		       AR::constant(1.0))
 		     ) / B;
