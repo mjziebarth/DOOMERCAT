@@ -10,6 +10,7 @@
 #include <../include/constants.hpp>
 #include <../include/parameters.hpp>
 #include <cmath>
+#include <numbers>
 
 #ifdef DEBUG
 #include <iostream>
@@ -58,6 +59,9 @@ public:
 
 	static hom_E_parabola_params_t<number_t> fit_E_parabola_pos(number_t e);
 	static hom_E_parabola_params_t<number_t> fit_E_parabola_neg(number_t e);
+
+	static T E_asymptotic_pos(number_t e, const T& phi0);
+	static T E_asymptotic_neg(number_t e, const T& phi0);
 
 private:
 	constexpr static number_t ONE = 1.0;
@@ -200,49 +204,33 @@ T HOM_constants<T>::compute_l0(const T& lambda_c, const T& G, const T& g0,
 }
 
 template<typename T>
-hom_E_parabola_params_t<typename HOM_constants<T>::number_t>
-HOM_constants<T>::fit_E_parabola_pos(number_t e)
+T HOM_constants<T>::E_asymptotic_neg(number_t e, const T& phi0)
 {
-	/* Computes the parabola that estimates E for z -> 1: */
-	number_t a = 0.0;
+	constexpr number_t ONE = 1.0;
+	number_t C0 = std::pow((1 - e) / (1 + e), e/2);
 	number_t e2 = e*e;
-	number_t C0 = std::pow((1.0 + e) / (1.0 - e), 0.5*e);
-	for (int i=0; i<8; ++i){
-		number_t phi_i = deg2rad(89.0 + 0.1l*i);
-		number_t cp = std::cos(phi_i);
-		number_t B = HOM_constants<number_t>::compute_B(cp, e2);
-		number_t sp = std::sin(phi_i);
-		number_t t0 = HOM_constants<number_t>::compute_t0(phi_i, sp, e);
-		number_t D = HOM_constants<number_t>::compute_D(cp, sp, B, e2);
-		number_t F = HOM_constants<number_t>::compute_F(D, phi_i);
-		number_t yi = C0 - HOM_constants<number_t>::compute_E(F, t0, B);
-		number_t xi = 0.5*PI - phi_i;
-		a += yi/(xi*xi);
-	}
-	return {C0, a / 8};
+	number_t C1_div_C0 = 2 * e2 / (1 - e2);
+	// Series expansion of
+	// T x = 1 + std::sin(phi0)
+	T dphi(phi0 + std::numbers::pi_v<number_t>/2);
+	T dphi2(dphi * dphi);
+	T x(dphi2 * (ONE/2 + dphi2 * (-ONE/24 + dphi2/720)));
+	return C0 * (ONE + C1_div_C0 * x);
 }
 
 template<typename T>
-hom_E_parabola_params_t<typename HOM_constants<T>::number_t>
-HOM_constants<T>::fit_E_parabola_neg(number_t e)
+T HOM_constants<T>::E_asymptotic_pos(number_t e, const T& phi0)
 {
-	/* Computes the parabola that estimates E for z -> 1: */
-	number_t a = 0.0;
+	constexpr number_t ONE = 1.0;
+	number_t C0 = std::pow((1 + e) / (1 - e), e/2);
 	number_t e2 = e*e;
-	number_t C0 = std::pow((1.0 - e) / (1.0 + e), 0.5*e);
-	for (int i=0; i<8; ++i){
-		number_t phi_i = deg2rad(-89.0 - 0.1l*i);
-		number_t cp = std::cos(phi_i);
-		number_t B = HOM_constants<number_t>::compute_B(cp, e2);
-		number_t sp = std::sin(phi_i);
-		number_t t0 = HOM_constants<number_t>::compute_t0(phi_i, sp, e);
-		number_t D = HOM_constants<number_t>::compute_D(cp, sp, B, e2);
-		number_t F = HOM_constants<number_t>::compute_F(D, phi_i);
-		number_t yi = HOM_constants<number_t>::compute_E(F, t0, B) - C0;
-		number_t xi = 0.5*PI + phi_i;
-		a += yi/(xi*xi);
-	}
-	return {C0, a / 8};
+	number_t C1_div_C0 = -2 * e2 / (1 - e2);
+	// Series expansion of
+	// T x = 1 + std::sin(phi0)
+	T dphi(phi0 - std::numbers::pi_v<number_t>/2);
+	T dphi2(dphi * dphi);
+	T x(dphi2 * (ONE/2 + dphi2 * (-ONE/24 + dphi2/720)));
+	return C0 * (ONE + C1_div_C0 * x);
 }
 
 
@@ -345,8 +333,7 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 	A = hom::compute_A(sin_phi0, k0, B, e2);
 
 	if (phi0 > deg2rad(89.9l)){
-		auto C0a = hom::fit_E_parabola_pos(e);
-		E_ = C0a.C0 - C0a.a * (phi0 - PI/2) * (phi0 - PI/2);
+		E_ = hom::E_asymptotic_pos(e, phi0);
 		T sa = AR::sin(alpha);
 		T x = ONE - sin_phi0;
 		g0 = hom::g0_asymptotic(x, sa, e2);
@@ -362,8 +349,7 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		     ) / B;
 
 	} else if (phi0 < deg2rad(-89.9l)) {
-		auto C0a = hom::fit_E_parabola_neg(e);
-		E_ = C0a.C0 + C0a.a * (phi0 + PI/2) * (phi0 + PI/2);
+		E_ = hom::E_asymptotic_neg(e, phi0);
 		T sa = AR::sin(alpha);
 		T x = ONE + sin_phi0;
 		g0 = hom::g0_asymptotic(x, sa, e2);
