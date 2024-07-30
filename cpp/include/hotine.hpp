@@ -46,7 +46,7 @@ public:
 	/* Asymptotic computations: */
 
 	/* G*sqrt(1-sin(phi0)) in the limit phi0 -> +/-90° */
-	static T G_mul_sqx(const T& sin_phi0, const T& sin_alpha,number_t e2);
+	static T G_mul_sqx_pos(const T& sin_phi0, const T& sin_alpha,number_t e2);
 	static T G_mul_sqx_neg(const T& z,const T& sa, number_t e2);
 
 	/* tan(g0)/sqrt(1 - sin(phi0)) in the limit phi0 -> +/-90° */
@@ -121,15 +121,15 @@ T HOM_constants<T>::compute_g0(const T& alpha_c, const T& D)
 }
 
 template<typename T>
-T HOM_constants<T>::G_mul_sqx(const T& z,const T& sa, number_t e2)
+T HOM_constants<T>::G_mul_sqx_pos(const T& z,const T& sa, number_t e2)
 {
 	/* Computes G*sqrt(1-sin_phi0) */
 	T xp(ONE + z);
 	T xm(ONE - z);
 	number_t Y = e2/(1.0 - e2);
-	T V((1.0 - e2)*(Y*AR::pow2(xp*xm) + ONE)/(xp*(ONE - e2*z*z)));
-	T W(AR::sqrt(V) + AR::sqrt(V-xm));
-	return (ONE/2) * (W - xm/W);
+	T W((1.0 - e2)*(Y*AR::pow2(xp*xm) + ONE)/(xp*(ONE - e2*z*z)));
+	T Z(AR::sqrt(W) + AR::sqrt(W-xm));
+	return (ONE/2) * (Z - xm/Z);
 }
 
 template<typename T>
@@ -140,12 +140,12 @@ T HOM_constants<T>::G_mul_sqx_neg(const T& z,const T& sa, number_t e2)
 	T xm(ONE - z);
 	number_t Y = e2/(1.0 - e2);
 	T xpxm2 = AR::pow2(xp*xm);
-	T V((1 - e2)*(Y*xpxm2 + ONE)/(xm*(ONE - e2*z*z)));
-	T xpV(xp/V);
-	// Series of W = AR::sqrt(V) - AR::sqrt(V - xp),
+	T W((1 - e2)*(Y*xpxm2 + ONE)/(xm*(ONE - e2*z*z)));
+	T xpW(xp/W);
+	// Series of Z = AR::sqrt(W) - AR::sqrt(W - xp),
 	// evaluated with Horner's method:
-	T W(ONE/AR::sqrt(V)*(ONE / 2 + xpV*(ONE / 4 + ONE / 8 * xpV)));
-	return (ONE/2) * (xp*W - ONE/W);
+	T Z(ONE/AR::sqrt(W)*(ONE / 2 + xpW*(ONE / 4 + ONE / 8 * xpW)));
+	return (ONE/2) * (xp*Z - ONE/Z);
 }
 
 template<typename T>
@@ -355,7 +355,7 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 		   - AR::asin(
 		       AR::min(
 		         AR::max(
-		           hom::G_mul_sqx(sin_phi0, sa, e2)
+		           hom::G_mul_sqx_pos(sin_phi0, sa, e2)
 		              * hom::tan_g0_div_sqx_asymptotic(x, sa, e2),
 		           AR::constant(-1.0)),
 		       AR::constant(1.0))
