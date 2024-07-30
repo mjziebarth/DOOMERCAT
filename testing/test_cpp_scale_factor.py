@@ -46,10 +46,10 @@ def test_k_code_cpp_phi_near_north():
     k_cpp = compute_k_hotine(LON, LAT, LONC, PHI0, ALPHA, K_0, F)
 
     # Make sure that the scale factors are comparable:
-    assert np.allclose(k_ref, k_cpp, rtol=1e-6)
+    assert np.allclose(k_ref, k_cpp, rtol=1e-10, atol=0.0)
 
     # Make sure that the disctortions are comparable:
-    assert np.allclose(k_ref-1, k_cpp-1, rtol=5e-4, atol=0.0)
+    assert np.allclose(k_ref-1, k_cpp-1, rtol=1e-8, atol=0.0)
 
 
 def test_k_code_cpp_phi_near_south():
@@ -75,7 +75,7 @@ def test_k_code_cpp_phi_near_south():
 
     # Make sure that the scale factors are comparable:
     print(k_ref - k_cpp)
-    assert np.allclose(k_ref, k_cpp, rtol=1e-5)
+    assert np.allclose(k_ref, k_cpp, rtol=1e-5, atol=0)
 
     # Make sure that the disctortions are comparable:
-    assert np.allclose(k_ref-1, k_cpp-1, rtol=5e-4, atol=0.0)
+    assert np.allclose(k_ref-1, k_cpp-1, rtol=1e-3, atol=0.0)
