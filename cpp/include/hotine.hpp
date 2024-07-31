@@ -47,8 +47,10 @@ public:
 	/* Asymptotic computations: */
 
 	/* G*sqrt(1-sin(phi0)) in the limit phi0 -> +/-90° */
-	static T G_mul_sqx_pos(const T& sin_phi0, const T& sin_alpha,number_t e2);
-	static T G_mul_sqx_neg(const T& z,const T& sa, number_t e2);
+	static T G_mul_sqx_pos(const T& sin_phi0, const T& xp, const T& xm,
+	                       const T& sin_alpha, number_t e2);
+	static T G_mul_sqx_neg(const T& sin_phi0, const T& xp, const T& xm,
+	                       const T& sin_alpha, number_t e2);
 
 	/* tan(g0)/sqrt(1 - sin(phi0)) in the limit phi0 -> +/-90° */
 	static T tan_g0_div_sqx_asymptotic(const T& sin_phi0,
@@ -125,26 +127,27 @@ T HOM_constants<T>::compute_g0(const T& alpha_c, const T& D)
 }
 
 template<typename T>
-T HOM_constants<T>::G_mul_sqx_pos(const T& z,const T& sa, number_t e2)
+T HOM_constants<T>::G_mul_sqx_pos(
+    const T& sp0, const T& xp, const T& xm, const T& sa, number_t e2
+)
 {
 	/* Computes G*sqrt(1-sin_phi0) */
-	T xp(ONE + z);
-	T xm(ONE - z);
 	number_t Y = e2/(1.0 - e2);
-	T W((1.0 - e2)*(Y*AR::pow2(xp*xm) + ONE)/(xp*(ONE - e2*z*z)));
+	T W((1.0 - e2)*(Y*AR::pow2(xp*xm) + ONE)/(xp*(ONE - e2*sp0*sp0)));
 	T Z(AR::sqrt(W) + AR::sqrt(W-xm));
 	return (ONE/2) * (Z - xm/Z);
 }
 
 template<typename T>
-T HOM_constants<T>::G_mul_sqx_neg(const T& z,const T& sa, number_t e2)
+T HOM_constants<T>::G_mul_sqx_neg(
+    const T& sp0, const T& xp, const T& xm, const T& sa, number_t e2
+)
 {
+	// sp0: sin_phi0
 	/* Computes G*sqrt(1-sin_phi0) */
-	T xp(ONE + z);
-	T xm(ONE - z);
 	number_t Y = e2/(1.0 - e2);
 	T xpxm2 = AR::pow2(xp*xm);
-	T W((1 - e2)*(Y*xpxm2 + ONE)/(xm*(ONE - e2*z*z)));
+	T W((1 - e2)*(Y*xpxm2 + ONE)/(xm*(ONE - e2*sp0*sp0)));
 	T xpW(xp/W);
 	// Series of Z = AR::sqrt(W) - AR::sqrt(W - xp),
 	// evaluated with Horner's method:
@@ -204,7 +207,7 @@ T HOM_constants<T>::compute_l0(const T& lambda_c, const T& G, const T& g0,
 }
 
 template<typename T>
-T HOM_constants<T>::E_asymptotic_neg(number_t e, const T& phi0)
+T HOM_constants<T>::E_asymptotic_neg(number_t e, const T& x)
 {
 	constexpr number_t ONE = 1.0;
 	number_t C0 = std::pow((1 - e) / (1 + e), e/2);
@@ -212,14 +215,11 @@ T HOM_constants<T>::E_asymptotic_neg(number_t e, const T& phi0)
 	number_t C1_div_C0 = 2 * e2 / (1 - e2);
 	// Series expansion of
 	// T x = 1 + std::sin(phi0)
-	T dphi(phi0 + std::numbers::pi_v<number_t>/2);
-	T dphi2(dphi * dphi);
-	T x(dphi2 * (ONE/2 + dphi2 * (-ONE/24 + dphi2/720)));
 	return C0 * (ONE + C1_div_C0 * x);
 }
 
 template<typename T>
-T HOM_constants<T>::E_asymptotic_pos(number_t e, const T& phi0)
+T HOM_constants<T>::E_asymptotic_pos(number_t e, const T& x)
 {
 	constexpr number_t ONE = 1.0;
 	number_t C0 = std::pow((1 + e) / (1 - e), e/2);
@@ -227,9 +227,6 @@ T HOM_constants<T>::E_asymptotic_pos(number_t e, const T& phi0)
 	number_t C1_div_C0 = -2 * e2 / (1 - e2);
 	// Series expansion of
 	// T x = 1 + std::sin(phi0)
-	T dphi(phi0 - std::numbers::pi_v<number_t>/2);
-	T dphi2(dphi * dphi);
-	T x(dphi2 * (ONE/2 + dphi2 * (-ONE/24 + dphi2/720)));
 	return C0 * (ONE + C1_div_C0 * x);
 }
 
@@ -333,33 +330,41 @@ HotineObliqueMercator<T>::HotineObliqueMercator(const T& lambda_c,
 	A = hom::compute_A(sin_phi0, k0, B, e2);
 
 	if (phi0 > deg2rad(89.9l)){
-		E_ = hom::E_asymptotic_pos(e, phi0);
+		/* More precise expansion of 1 - sin(phi0) at phi0 -> pi/2: */
+		T dphi(std::numbers::pi_v<number_t>/2 - phi0);
+		T dphi2(dphi * dphi);
+		T xm(dphi2 * (ONE/2 + dphi2 * (-ONE/24 + dphi2/720)));
+		T xp = static_cast<number_t>(2) - xm;
+
+		E_ = hom::E_asymptotic_pos(e, xm);
 		T sa = AR::sin(alpha);
-		T x = ONE - sin_phi0;
-		g0 = hom::g0_asymptotic(x, sa, e2);
+		g0 = hom::g0_asymptotic(xm, sa, e2);
 
 		l0 = lambda_c
 		   - AR::asin(
 		       AR::min(
 		         AR::max(
-		           hom::G_mul_sqx_pos(sin_phi0, sa, e2)
-		              * hom::tan_g0_div_sqx_asymptotic(x, sa, e2),
+		           hom::G_mul_sqx_pos(sin_phi0, xp, xm, sa, e2)
+		              * hom::tan_g0_div_sqx_asymptotic(xm, sa, e2),
 		           AR::constant(-1.0)),
 		       AR::constant(1.0))
 		     ) / B;
 
 	} else if (phi0 < deg2rad(-89.9l)) {
-		E_ = hom::E_asymptotic_neg(e, phi0);
+		T dphi(phi0 + std::numbers::pi_v<number_t>/2);
+		T dphi2(dphi * dphi);
+		T xp(dphi2 * (ONE/2 + dphi2 * (-ONE/24 + dphi2/720)));
+		T xm = static_cast<number_t>(2) - xp;
+		E_ = hom::E_asymptotic_neg(e, xp);
 		T sa = AR::sin(alpha);
-		T x = ONE + sin_phi0;
-		g0 = hom::g0_asymptotic(x, sa, e2);
+		g0 = hom::g0_asymptotic(xp, sa, e2);
 
 		l0 = lambda_c
 		   - AR::asin(
 		       AR::min(
 		         AR::max(
-		           hom::G_mul_sqx_neg(sin_phi0, sa, e2)
-		              * hom::tan_g0_div_sqx_asymptotic(x, sa, e2),
+		           hom::G_mul_sqx_neg(sin_phi0, xp, xm, sa, e2)
+		              * hom::tan_g0_div_sqx_asymptotic(xp, sa, e2),
 		           AR::constant(-1.0)),
 		       AR::constant(1.0))
 		     ) / B;
