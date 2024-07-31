@@ -148,7 +148,7 @@ T HOM_constants<T>::G_mul_sqx_neg(const T& z,const T& sa, number_t e2)
 	T xpW(xp/W);
 	// Series of Z = AR::sqrt(W) - AR::sqrt(W - xp),
 	// evaluated with Horner's method:
-	T Z(ONE/AR::sqrt(W)*(ONE / 2 + xpW*(ONE / 4 + ONE / 8 * xpW)));
+	T Z(ONE/AR::sqrt(W)*(ONE / 2 + xpW*(ONE / 8 + ONE / 16 * xpW)));
 	return (ONE/2) * (xp*Z - ONE/Z);
 }
 
