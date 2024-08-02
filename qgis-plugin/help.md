@@ -13,9 +13,8 @@ paper [1].
 
 ### Parameters
 The **cost function exponent** determines how
-the residual distance between the points on
-the ellipsoid and the projected points on the
-cylinder are weighted in the cost function
+the values of map distortion at the data points
+are weighted in the cost function
 which is minimized. A value of 2 leads to a
 simple least-squares solution of the
 residuals. A large value, up to a maximum of
@@ -25,6 +24,10 @@ other words, a value of 2 leads to a
 least-squares compromise in projection error
 while the largest values resemble a
 minimization of the maximum distortion.
+If the **is infinite** box is checked, the
+exponent is positive infinity. This means that
+the maximum absolute distortion across all data
+points is minimized.
 
 The **minimum k0 constraint** (k0min) gives a
 soft lower bound on the scale k0 at the
@@ -81,11 +84,15 @@ box will apply a local scale correction at each
 data point to balance both sources of
 distortion. The height above the reference
 ellipsoid will be read from the *z* coordinate
-of vector layer points.
+of vector layer points. Note that this check
+box does not check a prior whether valid
+*z* coordinates can be read from the layer;
+failure to do so will show an error message once
+the optimization starts.
 
-The **orient North** row allows to specify one
+The **orient north** row allows to specify one
 point on the map which is rotated so that up
-is North. The point can be the center of the
+is north. The point can be the center of the
 data set, the center of the optimized projection
 (which may lie outside the data set), or a
 manually chosen point.
@@ -96,7 +103,7 @@ representation of the resulting projection. A
 user CRS can be created from this string
 using the **save** button and, afterwards,
 this CRS can be **apply**-ed to the current
-project. Unchecking the **orient North** box
+project. Unchecking the **orient north** box
 adds the necessary flags that cause PROJ to
 return the raw *u*,*v* coordinates in the
 oblique Mercator projection. That is, the
