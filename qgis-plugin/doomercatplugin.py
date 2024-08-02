@@ -546,6 +546,25 @@ class DOOMERCATPlugin:
         if self.cbUseHeight.checkState() != Qt.Checked:
             h = None
 
+        # The methods used to obtain elevation from the vertices may return
+        # nan. Here we ensure that we catch any such cases.
+        # Also early check for infinite height.
+        if h is not None:
+            if np.any(np.isnan(h)):
+                self.errorDialog.showMessage(
+                    "At least one data point has elevation `nan'. This "
+                    "cannot be handled. Please uncheck `Use data height' or "
+                    "fix the data's elevation."
+                )
+                return
+            elif np.any(np.isinf(h)):
+                self.errorDialog.showMessage(
+                    "At least one data point has infinite elevation. This "
+                    "cannot be handled. Please uncheck `Use data height' or "
+                    "fix the data's elevation."
+                )
+                return
+
         # Set waiting cursor:
         self._cursor = self.dialog.cursor()
         self.dialog.setCursor(Qt.WaitCursor)
