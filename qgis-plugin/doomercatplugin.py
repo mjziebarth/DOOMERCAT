@@ -126,6 +126,8 @@ class DOOMERCATPlugin:
         self.cbOrientCenter.addItem(_ORIENT_NORTH_CUSTOM)
         self.cbInfinityNorm = QCheckBox(self.dialog)
         self.cbInfinityNorm.setCheckState(Qt.Unchecked)
+        self.cbFisherBinghamWeight = QCheckBox(self.dialog)
+        self.cbFisherBinghamWeight.setCheckState(Qt.Unchecked)
         self.sb_k0= QDoubleSpinBox(self.dialog)
         self.sb_k0.setMinimum(0.0)
         self.sb_k0.setValue(0.95)
@@ -193,10 +195,17 @@ class DOOMERCATPlugin:
                                 self.dialog), row, 0)
         dialog_layout.addWidget(self.cbAlgorithm, row, 1)
 
+
+        # Some optimization parameters:
         row += 1
         dialog_layout.addWidget(QLabel("Maximum iterations:",
                                 self.dialog), row, 0)
         dialog_layout.addWidget(self.sb_Nmax, row, 1)
+
+        row += 1
+        dialog_layout.addWidget(QLabel("Fisher-Bingham weighted:",
+                                self.dialog), row, 0)
+        dialog_layout.addWidget(self.cbFisherBinghamWeight, row, 1)
 
 
 
@@ -594,15 +603,22 @@ class DOOMERCATPlugin:
                 else self.sbExponent.value()
         backend = 'Python' if self.cbAlgorithm.currentText() == _ALGORITHM_PY \
                   else 'C++'
-        worker = OptimizationWorker(lon, lat, h=h, weight=weight, pnorm=pnorm,
-                                    k0_ap=k0_ap,
-                                    sigma_k0=self.sb_k0_std.value(),
-                                    ellipsoid= None if ellps == 'custom'
-                                               else ellps,
-                                    f = f if ellps == 'custom' else None,
-                                    a = 1e3*a_km if ellps == 'custom' else None,
-                                    Nmax=self.sb_Nmax.value(),
-                                    backend = backend)
+        fb_weighted = self.cbFisherBinghamWeight.checkState() == Qt.Checked
+        worker = OptimizationWorker(
+            lon,
+            lat,
+            h=h,
+            weight=weight,
+            pnorm=pnorm,
+            k0_ap=k0_ap,
+            sigma_k0=self.sb_k0_std.value(),
+            ellipsoid= None if ellps == 'custom' else ellps,
+            f = f if ellps == 'custom' else None,
+            a = 1e3*a_km if ellps == 'custom' else None,
+            Nmax=self.sb_Nmax.value(),
+            fisher_bingham_use_weight = fb_weighted,
+            backend = backend
+        )
         worker.signals.result.connect(self.receiveResult)
         worker.signals.error.connect(self.receiveError)
         worker.signals.finished.connect(self.workerFinished)
