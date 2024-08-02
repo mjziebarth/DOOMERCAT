@@ -565,6 +565,12 @@ class DOOMERCATPlugin:
                 )
                 return
 
+        threadpool = QThreadPool.globalInstance()
+        if threadpool is None:
+            # If no threadpool found, show error message and reenable button:
+            self.errorDialog.showMessage("Could not get a thread pool.")
+            return
+
         # Set waiting cursor:
         self._cursor = self.dialog.cursor()
         self.dialog.setCursor(Qt.WaitCursor)
@@ -579,7 +585,6 @@ class DOOMERCATPlugin:
                 else self.sbExponent.value()
         backend = 'Python' if self.cbAlgorithm.currentText() == _ALGORITHM_PY \
                   else 'C++'
-        threadpool = QThreadPool.globalInstance()
         worker = OptimizationWorker(lon, lat, h=h, weight=weight, pnorm=pnorm,
                                     k0_ap=k0_ap,
                                     sigma_k0=self.sb_k0_std.value(),
@@ -947,4 +952,3 @@ class DOOMERCATPlugin:
         self.action.setIcon(QIcon(self._icon_path+".png"))
         self.svg_widget.load(self._icon_path+".svg")
         self.svg_widget.renderer().setAspectRatioMode(Qt.KeepAspectRatio)
-
