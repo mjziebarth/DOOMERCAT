@@ -59,6 +59,21 @@ differ much in the resulting quality. If a
 difficulty occurs in one of the solvers, using
 the alternative might lead to a better solution.
 
+The optimizers can be configured by a number of
+technical parameters. The **maximum iterations**
+before aborting the optimization can be specified
+for both optimizers as well as whether the
+Fisher-Bingham pre-optimizer shall include the
+optionally-specified data weight
+(**Fisher-Bingham weighted**). The `'Python'`
+optimizer Adamax (*p* infinite) can be prepended
+by a number of *p*=10 norm optimization steps using
+the Levenberg-Marquardt algorithm
+(**Adamax preoptim. steps**). The `'C++'` BFGS
+optimizer can be configured to exit early once
+the cost function gradient falls below a certain
+norm (**BFGS epsilon**).
+
 Next, the tabs switch between mechanisms
 to input the point set used in the
 optimization. **Selection** collects the
