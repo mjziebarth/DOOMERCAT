@@ -136,6 +136,10 @@ class DOOMERCATPlugin:
         self.sb_k0_std.setValue(0.01)
         self.sb_k0_std.setDecimals(3)
         self.sb_k0_std.setSingleStep(0.001)
+        self.sb_Nmax = QSpinBox(self.dialog)
+        self.sb_Nmax.setMinimum(10)
+        self.sb_Nmax.setMaximum(1000000)
+        self.sb_Nmax.setValue(1000)
         self.tabLayout = QTabWidget(self.dialog)
         self.tabLayout.setMinimumWidth(480)
         dialog_layout = QGridLayout(self.dialog)
@@ -188,6 +192,11 @@ class DOOMERCATPlugin:
         dialog_layout.addWidget(QLabel("Optimizer:",
                                 self.dialog), row, 0)
         dialog_layout.addWidget(self.cbAlgorithm, row, 1)
+
+        row += 1
+        dialog_layout.addWidget(QLabel("Maximum iterations:",
+                                self.dialog), row, 0)
+        dialog_layout.addWidget(self.sb_Nmax, row, 1)
 
 
 
@@ -592,6 +601,7 @@ class DOOMERCATPlugin:
                                                else ellps,
                                     f = f if ellps == 'custom' else None,
                                     a = 1e3*a_km if ellps == 'custom' else None,
+                                    Nmax=self.sb_Nmax.value(),
                                     backend = backend)
         worker.signals.result.connect(self.receiveResult)
         worker.signals.error.connect(self.receiveError)
