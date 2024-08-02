@@ -110,7 +110,7 @@ oblique Mercator projection. That is, the
 oblique Mercator equator is horizontal in the
 resulting projection. If the box is checked,
 an affine transformation is performed that
-ensures that North is upwards at the
+ensures that north is upwards at the
 projection center.
 
 [1] von Specht, Ziebarth, Veh (in prep.)
