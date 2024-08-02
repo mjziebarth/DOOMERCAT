@@ -100,6 +100,12 @@ class DOOMERCATPlugin:
         self.leCentralPoint = QLineEdit(self.dialog)
         self.leCentralPoint.setEnabled(False)
         self.leCentralPoint.setValidator(CoordinateValidator())
+        self.leBFGSEpsilon = QLineEdit(self.dialog)
+        self.leBFGSEpsilon.setEnabled(False)
+        self.leBFGSEpsilon.setValidator(
+            QDoubleValidator(0.0, 1e5, 1, self.dialog)
+        )
+        self.leBFGSEpsilon.setText("0.0")
         self.sbExponent= QDoubleSpinBox(self.dialog)
         self.sbExponent.setMinimum(2.0)
         self.cb_k0 = QCheckBox(self.dialog)
@@ -207,6 +213,11 @@ class DOOMERCATPlugin:
                                 self.dialog), row, 0)
         dialog_layout.addWidget(self.cbFisherBinghamWeight, row, 1)
 
+        row += 1
+        dialog_layout.addWidget(QLabel("BFGS epsilon:",
+                                self.dialog), row, 0)
+        dialog_layout.addWidget(self.leBFGSEpsilon, row, 1)
+
 
 
         # The tab layout widget that switches between the data sources:
@@ -304,6 +315,7 @@ class DOOMERCATPlugin:
         self.iface.mapCanvas().layersChanged.connect(self.checkOptimizeEnable)
         self.cbOrientCenter.currentIndexChanged.connect(self.orientNorthChanged)
         self.leCentralPoint.textEdited.connect(self.centralPointEdited)
+        self.cbAlgorithm.currentIndexChanged.connect(self.cbAlgorithmChanged)
 
         dialog_layout.addWidget(self.btnOptimize, row, 0, 1, 1)
         dialog_layout.addWidget(self.btnApply, row, 3, 1, 1)
@@ -617,6 +629,7 @@ class DOOMERCATPlugin:
             a = 1e3*a_km if ellps == 'custom' else None,
             Nmax=self.sb_Nmax.value(),
             fisher_bingham_use_weight = fb_weighted,
+            bfgs_epsilon = float(self.leBFGSEpsilon.text()),
             backend = backend
         )
         worker.signals.result.connect(self.receiveResult)
@@ -967,6 +980,20 @@ class DOOMERCATPlugin:
         self.cbOrientCenter.setDisabled(disabled)
         if self._hom is not None:
             self.adjustProjStr()
+
+
+    def cbAlgorithmChanged(self, item):
+        """
+        This slot is called when the algorithm was changed.
+        Depending on which algorithm is selected, different parameters
+        become relevant, and the corresponding edits are activated.
+        """
+        if self.cbAlgorithm.currentText() == _ALGORITHM_PY:
+            # Python.
+            self.leBFGSEpsilon.setEnabled(False)
+        else:
+            # C++
+            self.leBFGSEpsilon.setEnabled(True)
 
 
     def switchIcon(self, *args):
