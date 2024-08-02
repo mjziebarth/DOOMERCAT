@@ -364,16 +364,6 @@ class HotineObliqueMercator:
                     weight = np.ones_like(lon_array)
                 if h is None:
                     h = np.zeros_like(lon_array)
-                print(np.deg2rad(lat_00),
-                        np.deg2rad(lonc0),
-                        np.deg2rad(alpha0),
-                        k00,
-                        a,
-                        f,
-                        pnorm,
-                        Nmax,
-                        k0_ap,
-                        sigma_k0)
                 result \
                     = lm_adamax_optimize(
                         np.deg2rad(lon_array),
