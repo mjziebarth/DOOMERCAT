@@ -148,6 +148,10 @@ class DOOMERCATPlugin:
         self.sb_Nmax.setMinimum(10)
         self.sb_Nmax.setMaximum(1000000)
         self.sb_Nmax.setValue(1000)
+        self.sbNmaxPreAdamax = QSpinBox(self.dialog)
+        self.sbNmaxPreAdamax.setMinimum(0)
+        self.sbNmaxPreAdamax.setMaximum(1000)
+        self.sbNmaxPreAdamax.setValue(50)
         self.tabLayout = QTabWidget(self.dialog)
         self.tabLayout.setMinimumWidth(480)
         dialog_layout = QGridLayout(self.dialog)
@@ -212,6 +216,11 @@ class DOOMERCATPlugin:
         dialog_layout.addWidget(QLabel("Fisher-Bingham weighted:",
                                 self.dialog), row, 0)
         dialog_layout.addWidget(self.cbFisherBinghamWeight, row, 1)
+
+        row += 1
+        dialog_layout.addWidget(QLabel("Adamax preoptim. steps:",
+                                self.dialog), row, 0)
+        dialog_layout.addWidget(self.sbNmaxPreAdamax, row, 1)
 
         row += 1
         dialog_layout.addWidget(QLabel("BFGS epsilon:",
@@ -630,6 +639,7 @@ class DOOMERCATPlugin:
             Nmax=self.sb_Nmax.value(),
             fisher_bingham_use_weight = fb_weighted,
             bfgs_epsilon = float(self.leBFGSEpsilon.text()),
+            Nmax_pre_adamax = self.sbNmaxPreAdamax.value(),
             backend = backend
         )
         worker.signals.result.connect(self.receiveResult)
@@ -991,9 +1001,11 @@ class DOOMERCATPlugin:
         if self.cbAlgorithm.currentText() == _ALGORITHM_PY:
             # Python.
             self.leBFGSEpsilon.setEnabled(False)
+            self.sbNmaxPreAdamax.setEnabled(True)
         else:
             # C++
             self.leBFGSEpsilon.setEnabled(True)
+            self.sbNmaxPreAdamax.setEnabled(False)
 
 
     def switchIcon(self, *args):
