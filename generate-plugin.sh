@@ -59,12 +59,11 @@ mkdir -p $MODULE
 python build-help.py
 
 # Copy the DOOMERCAT module:
-cp doomercat/__init__.py doomercat/defs.py doomercat/hom.py \
-   doomercat/shapefile.py doomercat/lomerror.py \
-   doomercat/cppextensions.py doomercat/initial.py doomercat/messages.py \
-   doomercat/fisherbingham.py doomercat/enclosingsphere.py \
-   doomercat/hotineproject.py doomercat/hotine.py doomercat/geometry.py \
-   doomercat/config.py \
+cp doomercat/__init__.py doomercat/_typing.py doomercat/config.py \
+   doomercat/cppextensions.py doomercat/defs.py doomercat/enclosingsphere.py \
+   doomercat/fibonacci.py doomercat/geometry.py doomercat/hom.py \
+   doomercat/hotine.py doomercat/hotineproject.py doomercat/initial.py \
+   doomercat/lomerror.py doomercat/messages.py doomercat/shapefile.py \
    $MODULE
 #mv build/doomercat_plugin/__init__.py build/doomercat_plugin/doomercat.py
 
