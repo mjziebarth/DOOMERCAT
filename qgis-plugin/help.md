@@ -48,9 +48,9 @@ space.
 
 The **optimizer** row specifies the internal
 backend used to optimize the parameters of the
-projection. The default, 'Python', uses a
+projection. The default, `'Python'`, uses a
 Levenberg-Marquardt or Adam solver, depending
-on the *p*-norm. The alternative, 'C++', is
+on the *p*-norm. The alternative, `'C++'`, is
 available if the plugin has been delivered with
 compiled code suitable for this machine. It
 uses a BFGS solver. Both optimizers aim to

@@ -65,6 +65,18 @@ for s in help_html_s[1:]:
         help_html += "</i>" + s
     begin = not begin
 
+# Replace code:
+help_html_s = help_html.split("`")
+help_html = help_html_s[0]
+begin = True
+for s in help_html_s[1:]:
+    if begin:
+        help_html += "<span style='background-color:#eeeeee;'>" + s
+    else:
+        help_html += "</span>" + s
+    begin = not begin
+
+
 # Replace headlines:
 help_html_s = help_html.split("\\n")
 help_html = ""
