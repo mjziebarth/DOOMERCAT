@@ -150,7 +150,7 @@ T CostFunctionHotine<T>::compute_cost(const DS& data,
 	#pragma omp parallel for if(parallel)
 	for (size_t i=0; i<data.size(); ++i){
 		cost_vec[i] = AR::abs(hom.k(data.lambda(i), data.phi(i))
-		                      - data.k_e(i));
+		                      - 1.0 / data.k_e(i));
 	}
 
 	/* Compute the maximum distortion: */
@@ -274,14 +274,14 @@ T CostFunctionHotineInf<T>::compute_cost(const DS& data,
 		#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
 			cost_vec[i] = std::abs(hom.k(data.lambda(i), data.phi(i))
-			                       - data.k_e(i));
+			                       - 1.0 / data.k_e(i));
 		}
 	} else {
 		HotineObliqueMercator<numeric_t> homd(hom);
 		#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
 			cost_vec[i] = std::abs(homd.k(data.lambda(i), data.phi(i))
-			                       - data.k_e(i));
+			                       - 1.0 / data.k_e(i));
 		}
 	}
 

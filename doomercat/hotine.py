@@ -300,13 +300,7 @@ def lm_adamax_optimize(
 
     # Compute the local destination scale factor:
     e2 = 2*f - f**2
-    N = a / np.sqrt(1.0 - e2*np.sin(lat)**2)
-    x = (N+h)*np.cos(lat)
-    z = ((1.0-e2)*N + h) * np.sin(lat)
-    A = z / (x*(1.0-f))
-    r = np.sqrt(x**2 + z**2)
-    re = np.sqrt(1.0 - e2 * A**2 / (1.0 + A**2))
-    a_h_rel = r / (a*re)
+    one_over_k_e = (a+h) / a
 
     e = np.sqrt(e2)
 
@@ -365,13 +359,13 @@ def lm_adamax_optimize(
 
         if not isinf(pnorm) or not is_p2opt:
             fk,J = _f_d_k_cse(lon,lat,p[0],p[1],p[2],p[3],e)
-            yk = a_h_rel[:]
+            yk = one_over_k_e[:]
         else:
             I_batch = _subbatch(X,p)
 
             fk = _f_d_k_cse(lon[I_batch],lat[I_batch],p[0],p[1],
                            p[2],p[3],e,noJ = True)
-            yk = a_h_rel[I_batch]
+            yk = one_over_k_e[I_batch]
 
 
         if isinf(pnorm) and is_p2opt:
@@ -380,7 +374,7 @@ def lm_adamax_optimize(
             fk,J = _f_d_k_cse(lon[I_batch][iresmax],lat[I_batch][iresmax],
                              p[0],p[1],p[2],p[3],e)
             J.shape = (1,4)
-            yk = a_h_rel[I_batch][iresmax]
+            yk = one_over_k_e[I_batch][iresmax]
 
         if isinf(pnorm):
             if is_p2opt:
@@ -421,7 +415,7 @@ def lm_adamax_optimize(
                 neofk = _f_d_k_cse(lon[I_batch], lat[I_batch],
                                   neop[k,0], neop[k,1], neop[k,2],neop[k,3],
                                   e, noJ=True)
-                yk = a_h_rel[I_batch]
+                yk = one_over_k_e[I_batch]
 
                 Theta =  (np.sign(v_ap[3]-neop[k,3])+1)/2
                 S33[k,0] = (np.abs(w*(neofk-yk)).max()) \
@@ -475,7 +469,7 @@ def lm_adamax_optimize(
 
                     neofk = _f_d_k_cse(lon,lat,neop[j,k,0],neop[j,k,1],
                                       neop[j,k,2],neop[j,k,3],e,noJ=True)
-                    yk = a_h_rel[:]
+                    yk = one_over_k_e[:]
 
                     Theta = (np.sign(v_ap[3]-neop[j,k,3])+1)/2
                     if isinf(pnorm):

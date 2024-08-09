@@ -32,18 +32,10 @@ using doomercat::DataSetWithHeight;
 using doomercat::WeightedDataSet;
 using doomercat::WeightedDataSetWithHeight;
 
-static long double compute_k_e(double h, double a, double f, double phi)
+static long double compute_k_e(double h, double a, double f)
 {
-	/* Local half-axis derived by SvS: */
-	const long double e2 = f*(2-f);
-	const long double sphi = std::sin((long double)phi);
-	const long double N = a / std::sqrt(1.0 - e2 * sphi * sphi);
-	const long double x = (N + h)*std::cos((long double)phi);
-	const long double z = ((1-e2)*N + h) * sphi;
-	const long double A = z / (x * (1-f));
-	const long double r = std::sqrt(x*x + z*z);
-	const long double re = std::sqrt(1 - e2*A*A / (1 + A*A));
-	return r / (a * re);
+	/* The elevation scale factor: */
+	return a / (a + h);
 }
 
 SimpleDataSet::SimpleDataSet(const size_t N, const double* lon,
@@ -70,7 +62,7 @@ DataSetWithHeight::DataSetWithHeight(const size_t N, const double* lon,
 		data[i].phi = deg2rad(lat[i]);
 	}
 	for (size_t i=0; i<N; ++i){
-		data[i].k_e = compute_k_e(h[i], a, f, data[i].phi);
+		data[i].k_e = compute_k_e(h[i], a, f);
 	}
 }
 
@@ -102,7 +94,7 @@ WeightedDataSetWithHeight::WeightedDataSetWithHeight(const size_t N,
 		data[i].phi = deg2rad(lat[i]);
 	}
 	for (size_t i=0; i<N; ++i){
-		data[i].k_e = compute_k_e(h[i], a, f, data[i].phi);
+		data[i].k_e = compute_k_e(h[i], a, f);
 	}
 	for (size_t i=0; i<N; ++i){
 		data[i].w = w[i];
