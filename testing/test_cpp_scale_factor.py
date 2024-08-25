@@ -20,6 +20,7 @@
 # limitations under the Licence.
 
 import numpy as np
+from pathlib import Path
 from doomercat.cppextensions import compute_k_hotine
 
 
@@ -39,7 +40,7 @@ def test_k_code_cpp_phi_near_north():
     # Fibonacci-lattice, reference k computed with high precision arithmetic
     # (400 digits precision):
     LON, LAT, k_ref, _ = np.loadtxt(
-        'data/validation/k-cpp-validation-data.csv'
+        Path(__file__).parent / 'data/validation/k-cpp-validation-data.csv'
     ).T
 
     # Use C++ backend to compute scale factors:
@@ -67,7 +68,7 @@ def test_k_code_cpp_phi_near_south():
     # Fibonacci-lattice, reference k computed with high precision arithmetic
     # (400 digits precision):
     LON, LAT, _, k_ref = np.loadtxt(
-        'data/validation/k-cpp-validation-data.csv'
+        Path(__file__).parent / 'data/validation/k-cpp-validation-data.csv'
     ).T
 
     # Use C++ backend to compute scale factors:
