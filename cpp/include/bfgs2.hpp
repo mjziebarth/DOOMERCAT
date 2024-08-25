@@ -144,7 +144,6 @@ wolfe_linesearch(
     cost1 = evaluate_cost(Pp1);
 
     const real_t grad_fk_dot_pk = lina::dot(grad_fk, pk);
-    bool wolfe_success = false;
     bool wolfe_1 = false;
     bool wolfe_2 = false;
     bool strong_wolfe_2 = false;
