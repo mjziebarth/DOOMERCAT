@@ -1,4 +1,6 @@
-project('doomercat_cppextensions','cpp')
+project('doomercat_cppextensions','cpp',
+    default_options : ['buildtype=release', 'optimization=3']
+)
 
 add_project_arguments('--std=c++23', language: 'cpp')
 
