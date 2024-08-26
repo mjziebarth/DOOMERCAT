@@ -20,6 +20,7 @@
 # Imports:
 from setuptools import setup, Command
 from setuptools.command.build import build, SubCommand
+from setuptools.command.bdist_wheel import bdist_wheel
 
 
 import os
@@ -29,6 +30,10 @@ from glob import glob
 from pathlib import Path
 from shutil import copyfile
 
+try:
+    platform_tag = os.environ["MANYLINUX_PLATFORM_TAG"]
+except KeyError:
+    platform_tag = None
 
 DIR_LINUX = 'builddir'
 DIR_CROSS = 'builddir-mingw'
@@ -172,11 +177,21 @@ class DummyBuild(build):
         super().__init__(*args, **kwargs)
 
 
+class patched_bdist_wheel(bdist_wheel):
+    def finalize_options(self) -> None:
+        super().finalize_options()
+        self.root_is_pure = False
+        if platform_tag is not None:
+            self.plat_name = platform_tag
+            self.plat_name_supplied  =True
+
+
 # Setup:
 
 setup(
     cmdclass = {
         'build' : DummyBuild,
-        'build_doomercat' : BuildDoomercatCommand
+        'build_doomercat' : BuildDoomercatCommand,
+        'bdist_wheel' : patched_bdist_wheel
     }
 )
