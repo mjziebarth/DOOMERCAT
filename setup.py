@@ -23,7 +23,9 @@ from setuptools.command.build import build, SubCommand
 
 
 import os
+import tarfile
 import subprocess
+from glob import glob
 from pathlib import Path
 from shutil import copyfile
 
@@ -87,6 +89,16 @@ def setup_compile(build_lib: str):
         parent / DIR_CROSS / "lib_cppextensions.dll",
         destination / "doomercat" / "_cppextensions.dll"
     )
+
+    # Archive and copy the sources:
+    archive = destination/ "doomercat" / "_sources.tar.bz2"
+    with tarfile.open(archive, 'w:bz2') as tar:
+        for f in glob("*.hpp", root_dir=parent / "cpp" / "include"):
+            fp = parent / "cpp" / "include" / f
+            tar.add(fp, fp.relative_to(parent))
+        for f in glob("*.cpp", root_dir=parent / "cpp" / "src"):
+            fp = parent / "cpp" / "src" / f
+            tar.add(fp, fp.relative_to(parent))
 
     subprocess.run(("pwd"))
     subprocess.run(("ls",str((destination / "doomercat").resolve())))
