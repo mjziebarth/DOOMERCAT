@@ -45,24 +45,28 @@ def setup_compile(build_lib: str):
     destination = Path(build_lib)
     def meson_setup(*options: str, force=False):
         os.chdir(parent)
-        if not (parent / DIR_LINUX).is_dir() or force:
-            cmd = ('meson', 'setup', *options, DIR_LINUX)
-            subprocess.run(cmd, check=True)
-        if not (parent / DIR_CROSS).is_dir() or force:
-            cmd = ('meson','setup','--cross-file','x86_64-w64-mingw32.txt',
-                   *options, DIR_CROSS)
-            subprocess.run(cmd, check=True)
+        if os.name == 'posix':
+            if not (parent / DIR_LINUX).is_dir() or force:
+                cmd = ('meson', 'setup', *options, DIR_LINUX)
+                subprocess.run(cmd, check=True)
+        elif os.name == 'nt':
+            if not (parent / DIR_CROSS).is_dir() or force:
+                cmd = ('meson','setup','--cross-file','x86_64-w64-mingw32.txt',
+                    *options, DIR_CROSS)
+                subprocess.run(cmd, check=True)
 
     meson_setup()
 
     # Now compile:
     def compile():
-        os.chdir(parent / DIR_LINUX)
         cmd = ('meson','compile')
-        subprocess.run(cmd, check=True)
+        if os.name == 'posix':
+            os.chdir(parent / DIR_LINUX)
+            subprocess.run(cmd, check=True)
 
-        os.chdir(parent / DIR_CROSS)
-        subprocess.run(cmd, check=True)
+        elif os.name == 'nt':
+            os.chdir(parent / DIR_CROSS)
+            subprocess.run(cmd, check=True)
 
     recompile = True
     try:
@@ -81,14 +85,16 @@ def setup_compile(build_lib: str):
     os.chdir(parent)
 
     # Now copy the shared libraries:
-    copyfile(
-        parent / DIR_LINUX / "lib_cppextensions.so",
-        destination / "doomercat" / "_cppextensions.so"
-    )
-    copyfile(
-        parent / DIR_CROSS / "lib_cppextensions.dll",
-        destination / "doomercat" / "_cppextensions.dll"
-    )
+    if os.name == 'posix':
+        copyfile(
+            parent / DIR_LINUX / "lib_cppextensions.so",
+            destination / "doomercat" / "_cppextensions.so"
+        )
+    elif os.name == 'nt':
+        copyfile(
+            parent / DIR_CROSS / "lib_cppextensions.dll",
+            destination / "doomercat" / "_cppextensions.dll"
+        )
 
     # Archive and copy the sources:
     archive = destination/ "doomercat" / "_sources.tar.bz2"
