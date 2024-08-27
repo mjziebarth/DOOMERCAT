@@ -31,7 +31,7 @@ from pathlib import Path
 from shutil import copyfile
 
 try:
-    platform_tag = os.environ["MANYLINUX_PLATFORM_TAG"]
+    platform_tag = os.environ["DOOMERCAT_PLATFORM_TAG"]
 except KeyError:
     platform_tag = None
 
