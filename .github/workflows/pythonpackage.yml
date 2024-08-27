@@ -105,4 +105,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: doomercat-wheel-windows
-          path: ./wheels/*.whl
+          path: ./wheels/doomercat*.whl
