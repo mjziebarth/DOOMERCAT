@@ -39,24 +39,17 @@ jobs:
         cd testing
         pytest
 
-  # From cibuildwheel:
+  # Adapted from cibuildwheel:
   build_wheel:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
-#    env:
-#      CIBW_BUILD_VERBOSITY : 1
-#      CIBW_REPAIR_WHEEL_COMMAND : ''
-#      CIBW_MANYLINUX_X86_64_IMAGE : 'manylinux_2_28'
-#      CIBW_BUILD : 'cp312-manylinux_x86_64'
-#      CIBW_TEST_COMMAND : 'pytest {package}/testing'
 
     steps:
       - uses: actions/checkout@v4
 
-      # Used to host cibuildwheel
       - uses: actions/setup-python@v5
 
       - name: Install Podman
@@ -71,11 +64,8 @@ jobs:
           podman run --cidfile=doomercat-cid doomercat-build
           podman cp $(cat doomercat-cid):/doomercat/doomercat-1.0.0-cp313-cp313-manylinux_2_28_x86_64.whl \
             wheels/
-        # to supply options, put them in 'env', like:
-        # env:
-        #   CIBW_SOME_OPTION: value
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          name: doomercat-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheels/*.whl
