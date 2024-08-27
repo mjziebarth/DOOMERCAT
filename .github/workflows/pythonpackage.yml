@@ -9,7 +9,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.9]
+        python-version: ['3.10']
 
     steps:
     - uses: actions/checkout@v4
@@ -19,9 +19,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        sudo apt-get install libboost-all-dev
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
         pip install . --verbose
     - name: Lint with flake8
       run: |
@@ -39,3 +37,109 @@ jobs:
         pip install pyproj
         cd testing
         pytest
+
+  # Adapted from cibuildwheel:
+  build_python_wheel:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install podman
+
+      - name: Build wheels
+        run: |
+          mkdir wheels
+          podman build -t doomercat-build .
+          podman run --cidfile=doomercat-cid doomercat-build
+          # Obtain the destined file name for the wheel:
+          PLATFORM=$(head -1 Dockerfile)
+          PLATFORM=${PLATFORM//FROM quay.io\/pypa\/}
+          VERSION=$(cat pyproject.toml | grep "version = ")
+          VERSION=${VERSION%\"}
+          VERSION=${VERSION#version = \"}
+          FNAME=/doomercat/doomercat-$VERSION-py3-none-$PLATFORM.whl
+          podman cp $(cat doomercat-cid):$FNAME \
+            wheels/
+
+      - name: Install and test
+        run: |
+          pip install pytest pyproj
+          pip install wheels/doomercat*.whl
+          pytest testing/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doomercat-wheel-manylinux
+          path: ./wheels/*.whl
+
+  build_windows_wheel:
+    name: Build wheels on windows-latest
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build wheels
+        run: |
+          mkdir wheels
+          pip wheel --wheel-dir wheels --verbose .
+
+      - name: Install and test
+        run: |
+          pip install pytest pyproj
+          pip install (Get-ChildItem -Path wheels\doomercat*.whl | Select-Object -Expand FullName)
+          pytest testing/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doomercat-wheel-windows
+          path: ./wheels/doomercat*.whl
+
+
+  build_qgis_plugin:
+    name: Build QGIS plugin
+    needs: [build_python_wheel, build_windows_wheel]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      # Download the manylinux and windows wheels:
+      - uses: actions/download-artifact@v4
+
+      - name: Build plugin
+        run: |
+          ls
+          cd doomercat-wheel-manylinux
+          ls
+          unzip doomercat-*-manylinux*.whl
+          mv doomercat/_cppextensions.so ../doomercat/
+          cd ../doomercat-wheel-windows
+          unzip doomercat-*-win*.whl
+          mv doomercat/_cppextensions.dll ../doomercat/
+          cd ..
+          pip install PyQt5
+          ./generate-plugin.sh --portable
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doomercat-plugin
+          path: ./build/DOOMERCAT.zip

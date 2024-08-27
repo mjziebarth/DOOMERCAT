@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=62", "wheel", "meson", "ninja"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doomercat"
+version = "1.0.0"
+authors = [
+    {name = "Malte J. Ziebarth", email = "mjz.science@fmvkb.de"},
+    {name = "Sebastian von Specht", email = "s.von.specht@protonmail.com"}
+]
+description = "Data-Optimized Oblique MERCATor"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["map projection", "optimization", "cartography"]
+license = {file = "LICENSE"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "numpy"
+]
+
+[tool.setuptools]
+py-modules = []
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["doomercat*"]
+exclude = ["subprojects"]
+namespaces = false
+
+[tool.setuptools.package-data]
+doomercat = [
+    "doomercat/_sources.tar.bz2"
+]

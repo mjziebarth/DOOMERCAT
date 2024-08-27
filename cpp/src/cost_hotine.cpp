@@ -32,13 +32,6 @@ using doomercat::CostFunctionHotineInf;
 
 
 template<>
-long double
-CostFunctionHotine<long double>::sum(const std::vector<long double>& x)
-{
-	return recursive_sum<long double>(x);
-}
-
-template<>
 CostHotine<double>::operator double() const
 {
 	return cost;
