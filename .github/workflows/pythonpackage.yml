@@ -68,7 +68,7 @@ jobs:
           PLATFORM=$(head -1 Dockerfile)
           PLATFORM=${PLATFORM//FROM quay.io\/pypa\/}
           VERSION=$(cat pyproject.toml | grep "version = ")
-          VERSION=${STRING%\""}
+          VERSION=${STRING%\"}
           VERSION=${STRING#version = \"}
           FNAME=/doomercat/doomercat-$VERSION-py3-none-$PLATFORM.whl
           podman cp $(cat doomercat-cid):$FNAME \
