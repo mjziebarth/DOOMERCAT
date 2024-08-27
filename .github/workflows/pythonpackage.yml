@@ -137,4 +137,5 @@ jobs:
           unzip doomercat-*-win*.whl
           mv doomercat/_cppextensions.dll ../doomercat/
           cd ..
+          pip install PyQt5
           ./generate-plugin.sh --portable
