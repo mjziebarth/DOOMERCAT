@@ -62,7 +62,7 @@ jobs:
           mkdir wheels
           podman build -t doomercat-build .
           podman run --cidfile=doomercat-cid doomercat-build
-          podman cp $(cat doomercat-cid):/doomercat/doomercat-1.0.0-cp313-cp313-manylinux_2_28_x86_64.whl \
+          podman cp $(cat doomercat-cid):/doomercat/doomercat-*-py3-none-*.whl \
             wheels/
 
       - uses: actions/upload-artifact@v4
