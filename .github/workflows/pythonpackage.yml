@@ -137,4 +137,4 @@ jobs:
           unzip doomercat-*-win*.whl
           mv doomercat/_cppextensions.dll ../doomercat/
           cd ..
-          ./generate-plugin.sh
+          ./generate-plugin.sh --portable
