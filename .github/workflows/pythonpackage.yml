@@ -74,6 +74,11 @@ jobs:
           podman cp $(cat doomercat-cid):$FNAME \
             wheels/
 
+      - name: Install and test
+        run: |
+          pip install wheels/doomercat*.whl
+          pytest testing/
+
       - uses: actions/upload-artifact@v4
         with:
           name: doomercat-wheel-manylinux
@@ -101,6 +106,11 @@ jobs:
         run: |
           mkdir wheels
           pip wheel --wheel-dir wheels .
+
+      - name: Install and test
+        run: |
+          pip install wheels/doomercat*.whl
+          pytest testing/
 
       - uses: actions/upload-artifact@v4
         with:
