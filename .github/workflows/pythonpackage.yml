@@ -76,6 +76,7 @@ jobs:
 
       - name: Install and test
         run: |
+          pip install pytest
           pip install wheels/doomercat*.whl
           pytest testing/
 
@@ -109,6 +110,7 @@ jobs:
 
       - name: Install and test
         run: |
+          pip install pytest
           pip install wheels/doomercat*.whl
           pytest testing/
 
