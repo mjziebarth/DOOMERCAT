@@ -35,7 +35,7 @@ from .messages import info
 
 _cppextensions_so: Optional[CDLL] = None
 
-def find_cppextensions_file():
+def find_cppextensions_file() -> str:
     """
     Find the C++ extension object file.
     """
@@ -70,7 +70,7 @@ def load_cppextensions():
 
     # Now load:
     path = find_cppextensions_file()
-    _cppextensions_so = CDLL(path)
+    _cppextensions_so = CDLL(path, winmode=0)
     info("Loaded shared library \"" + str(path) + "\"")
 
 
