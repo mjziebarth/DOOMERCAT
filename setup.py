@@ -25,6 +25,7 @@ from setuptools.command.bdist_wheel import bdist_wheel
 
 import os
 import tarfile
+import sysconfig
 import subprocess
 from glob import glob
 from pathlib import Path
@@ -33,7 +34,10 @@ from shutil import copyfile
 try:
     platform_tag = os.environ["DOOMERCAT_PLATFORM_TAG"]
 except KeyError:
-    platform_tag = None
+    if "DOOMERCAT_PYTHON_ONLY" in os.environ:
+        platform_tag = None
+    else:
+        platform_tag = sysconfig.get_platform()
 
 BUILD_DIRECTORY = 'builddir'
 
