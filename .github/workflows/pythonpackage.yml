@@ -132,6 +132,10 @@ jobs:
         run: |
           ls
           cd wheels
+          ls
+          unzip doomercat-wheel-manylinux.zip
+          unzip doomercat-wheel-windows.zip
+          ls
           unzip doomercat-*-manylinux*.whl
           mv doomercat/_cppextensions.so ../doomercat/
           rm -r doomercat
