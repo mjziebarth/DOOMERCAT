@@ -111,3 +111,31 @@ jobs:
         with:
           name: doomercat-wheel-windows
           path: ./wheels/doomercat*.whl
+
+
+  build_qgis_plugin:
+    name: Build QGIS plugin
+    needs: [build_python_wheel, build_windows_wheel]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      # Download the manylinux and windows wheels:
+      - uses: actions/download-artifact@v4
+        with:
+          path: 'wheels'
+
+      - name: Build plugin
+        run: |
+          ls
+          cd wheels
+          unzip doomercat-*-manylinux*.whl
+          mv doomercat/_cppextensions.so ../doomercat/
+          rm -r doomercat
+          unzip doomercat-*-win*.whl
+          mv doomercat/_cppextensions.dll ../doomercat/
+          cd ..
+          ./generate-plugin.sh
