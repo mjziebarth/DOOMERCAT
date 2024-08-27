@@ -139,3 +139,8 @@ jobs:
           cd ..
           pip install PyQt5
           ./generate-plugin.sh --portable
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doomercat-plugin
+          path: ./build/DOOMERCAT.zip
