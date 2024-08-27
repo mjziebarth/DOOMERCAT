@@ -111,7 +111,7 @@ jobs:
       - name: Install and test
         run: |
           pip install pytest pyproj
-          for %%w in (wheels/doomercat*.whl) do pip install %%w
+          pip install (Get-ChildItem -Path wheels\doomercat*.whl | Select-Object -Expand FullName)
           pytest testing/
 
       - uses: actions/upload-artifact@v4
