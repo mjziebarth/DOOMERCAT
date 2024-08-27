@@ -125,20 +125,15 @@ jobs:
           python-version: '3.10'
       # Download the manylinux and windows wheels:
       - uses: actions/download-artifact@v4
-        with:
-          path: 'wheels'
 
       - name: Build plugin
         run: |
           ls
-          cd wheels
-          ls
-          unzip doomercat-wheel-manylinux.zip
-          unzip doomercat-wheel-windows.zip
+          cd doomercat-wheel-manylinux
           ls
           unzip doomercat-*-manylinux*.whl
           mv doomercat/_cppextensions.so ../doomercat/
-          rm -r doomercat
+          cd ../doomercat-wheel-windows
           unzip doomercat-*-win*.whl
           mv doomercat/_cppextensions.dll ../doomercat/
           cd ..
