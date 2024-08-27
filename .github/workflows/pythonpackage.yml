@@ -99,7 +99,7 @@ jobs:
       - name: Build wheels
         run: |
           mkdir wheels
-          pip wheel --wheel-dir wheels .
+          pip wheel --wheel-dir wheels --verbose .
 
       - name: Install and test
         run: |
