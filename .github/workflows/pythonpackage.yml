@@ -40,7 +40,7 @@ jobs:
         pytest
 
   # Adapted from cibuildwheel:
-  build_wheel:
+  build_python_wheel:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -67,5 +67,31 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: doomercat-wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          name: doomercat-wheel-manylinux
+          path: ./wheels/*.whl
+
+  build_windows_wheel:
+    name: Build wheels on windows-latest
+    runs-on: windows-latest
+    env:
+      DOOMERCAT_PLATFORM_TAG : "win32"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+
+#      - name: Install
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get -y install podman
+
+      - name: Build wheels
+        run: |
+          mkdir wheels
+          pip wheel .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doomercat-wheel-windows
           path: ./wheels/*.whl
