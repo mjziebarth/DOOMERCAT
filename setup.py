@@ -180,7 +180,6 @@ class DummyBuild(build):
 class patched_bdist_wheel(bdist_wheel):
     def finalize_options(self) -> None:
         super().finalize_options()
-        self.root_is_pure = False
         if platform_tag is not None:
             self.plat_name = platform_tag
             self.plat_name_supplied  =True
