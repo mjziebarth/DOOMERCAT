@@ -64,7 +64,14 @@ jobs:
           mkdir wheels
           podman build -t doomercat-build .
           podman run --cidfile=doomercat-cid doomercat-build
-          podman cp $(cat doomercat-cid):/doomercat/doomercat-*-py3-none-*.whl \
+          # Obtain the destined file name for the wheel:
+          PLATFORM=$(head -1 Dockerfile)
+          PLATFORM=${PLATFORM//FROM quay.io\/pypa\/}
+          VERSION=$(cat pyproject.toml | grep "version = ")
+          VERSION=${STRING%\""}
+          VERSION=${STRING#version = \"}
+          FNAME=/doomercat/doomercat-$VERSION-py3-none-$PLATFORM.whl
+          podman cp $(cat doomercat-cid):$FNAME \
             wheels/
 
       - uses: actions/upload-artifact@v4
