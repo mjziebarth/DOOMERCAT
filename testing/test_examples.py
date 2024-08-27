@@ -28,7 +28,7 @@ def read_geojson(filename):
     """
     Reads places from a geojson.
     """
-    with open(filename,'r') as f:
+    with open(filename,'r', encoding='utf-8') as f:
         geojson = json.load(f)
 
     lola = np.array([f["geometry"]['coordinates'] for f in geojson["features"]])
