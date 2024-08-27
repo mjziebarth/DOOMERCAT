@@ -76,7 +76,7 @@ jobs:
 
       - name: Install and test
         run: |
-          pip install pytest
+          pip install pytest pyproj
           pip install wheels/doomercat*.whl
           pytest testing/
 
@@ -110,8 +110,8 @@ jobs:
 
       - name: Install and test
         run: |
-          pip install pytest
-          pip install wheels/doomercat*.whl
+          pip install pytest pyproj
+          for %%w in (wheels/doomercat*.whl) do pip install %%w
           pytest testing/
 
       - uses: actions/upload-artifact@v4
