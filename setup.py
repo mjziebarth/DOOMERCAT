@@ -35,8 +35,7 @@ try:
 except KeyError:
     platform_tag = None
 
-DIR_LINUX = 'builddir'
-DIR_CROSS = 'builddir-mingw'
+BUILD_DIRECTORY = 'builddir'
 
 # Compile the C++ code:
 def setup_compile(build_lib: str):
@@ -50,28 +49,18 @@ def setup_compile(build_lib: str):
     destination = Path(build_lib)
     def meson_setup(*options: str, force=False):
         os.chdir(parent)
-        if os.name == 'posix':
-            if not (parent / DIR_LINUX).is_dir() or force:
-                cmd = ('meson', 'setup', *options, DIR_LINUX)
-                subprocess.run(cmd, check=True)
-        elif os.name == 'nt':
-            if not (parent / DIR_CROSS).is_dir() or force:
-                cmd = ('meson','setup','--cross-file','x86_64-w64-mingw32.txt',
-                    *options, DIR_CROSS)
-                subprocess.run(cmd, check=True)
+        if not (parent / BUILD_DIRECTORY).is_dir() or force:
+            cmd = ('meson', 'setup', *options, BUILD_DIRECTORY)
+            subprocess.run(cmd, check=True)
 
     meson_setup()
 
     # Now compile:
     def compile():
         cmd = ('meson','compile')
-        if os.name == 'posix':
-            os.chdir(parent / DIR_LINUX)
-            subprocess.run(cmd, check=True)
+        os.chdir(parent / BUILD_DIRECTORY)
+        subprocess.run(cmd, check=True)
 
-        elif os.name == 'nt':
-            os.chdir(parent / DIR_CROSS)
-            subprocess.run(cmd, check=True)
 
     recompile = True
     try:
@@ -92,12 +81,12 @@ def setup_compile(build_lib: str):
     # Now copy the shared libraries:
     if os.name == 'posix':
         copyfile(
-            parent / DIR_LINUX / "lib_cppextensions.so",
+            parent / BUILD_DIRECTORY / "lib_cppextensions.so",
             destination / "doomercat" / "_cppextensions.so"
         )
     elif os.name == 'nt':
         copyfile(
-            parent / DIR_CROSS / "lib_cppextensions.dll",
+            parent / BUILD_DIRECTORY / "lib_cppextensions.dll",
             destination / "doomercat" / "_cppextensions.dll"
         )
 
@@ -155,9 +144,9 @@ class BuildDoomercatCommand(SubCommand, Command):
 
     def get_outputs(self, include_bytecode=True) -> list[str]:
         outputs = [
-            str((self.parent / DIR_LINUX / "lib_cppextensions.so")
+            str((self.parent / BUILD_DIRECTORY / "lib_cppextensions.so")
                  .relative_to(self.parent)),
-            str((self.parent / DIR_CROSS / "lib_cppextensions.dll")
+            str((self.parent / BUILD_DIRECTORY / "lib_cppextensions.dll")
                  .relative_to(self.parent))
         ]
         return outputs
