@@ -2,7 +2,8 @@
 #
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
-# Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam
+# Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam,
+#               2024 Technical University of Munich
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,9 +35,11 @@ from .help import help_html
 from .messages import info
 from .moduleloader import HAS_CPPEXTENSIONS, _ellipsoids
 from .pointvalidator import CoordinateValidator
+from .wkt import WktCRS
 
 import numpy as np
 import os.path
+from numpy.typing import NDArray
 
 
 # Some GUI strings:
@@ -45,6 +48,14 @@ _ORIENT_NORTH_DATA_CENTER = "data center"
 _ORIENT_NORTH_CUSTOM = "custom"
 _ALGORITHM_CPP = "C++"
 _ALGORITHM_PY = "Python"
+
+_WKT_PARSER_NOTE = "<br><br>Note: DOOMERCAT's WKT parser is built partially " \
+    "but not fully to OGC 18-010r11 standard. If you think that " \
+    "the parser's assessment is incorrect, you may well be " \
+    "correct. As a short-term fix, you might adjust the data's " \
+    "CRS WKT to something the parser can handle. You might " \
+    "wish to consider a bug report to improve the standard " \
+    "coverage of the parser."
 
 
 class DOOMERCATPlugin:
@@ -59,7 +70,6 @@ class DOOMERCATPlugin:
         self._weighted_raster_layers = []
         self._weighted_vector_layers = []
         self._icon_path = ":/plugins/doomercat/icon"
-        self._crs_geo = QgsCoordinateReferenceSystem("EPSG:4326")
 
     def initGui(self):
         # create action that will start plugin configuration
@@ -88,12 +98,6 @@ class DOOMERCATPlugin:
 
         # Populate the configuration dialog:
         self.tbHelp = QTextBrowser(self.dialog)
-        self.leEllipsoidA = QLineEdit(self.dialog)
-        self.leEllipsoidA.setEnabled(False)
-        self.leEllipsoidA.setMaximumWidth(75)
-        self.leEllipsoidInverseFlattening = QLineEdit(self.dialog)
-        self.leEllipsoidInverseFlattening.setEnabled(False)
-        self.leEllipsoidInverseFlattening.setMaximumWidth(60)
         self.leResult = QLineEdit(self.dialog)
         self.leResult.setReadOnly(True)
         self.leResult.setEnabled(False)
@@ -116,13 +120,6 @@ class DOOMERCATPlugin:
             self.cbAlgorithm.addItem(_ALGORITHM_CPP)
         self.cbUseHeight = QCheckBox(self.dialog)
         self.cbUseHeight.setCheckState(Qt.Checked)
-        self.cbEllipsoid = QComboBox(self.dialog)
-        self.cbEllipsoid.addItem('WGS84')
-        self.cbEllipsoid.addItem('GRS80')
-        self.cbEllipsoid.addItem('IERS2003')
-        self.cbEllipsoid.addItem('custom')
-        self.cbEllipsoid.currentTextChanged.connect(self.cbEllipsoidChanged)
-        self.cbEllipsoidChanged('WGS84')
         self.cbOrientNorth = QCheckBox(self.dialog)
         self.cbOrientNorth.setCheckState(Qt.Checked)
         self.cbOrientNorth.stateChanged.connect(self.orientNorthClicked)
@@ -183,21 +180,6 @@ class DOOMERCATPlugin:
         label.setAlignment(Qt.AlignRight | Qt.AlignCenter)
         dialog_layout.addWidget(label, row,0)
         dialog_layout.addWidget(self.sb_k0_std, row, 1)
-
-        # Selecting the ellipsoid to use for the optimization:
-        row += 1
-        dialog_layout.addWidget(QLabel("Ellipsoid (a in km):",
-                                self.dialog), row, 0)
-        dialog_layout.addWidget(self.cbEllipsoid, row, 1)
-        hbox = QWidget(self.dialog)
-        dialog_layout.addWidget(hbox, row, 2, 1, 2)
-        hbox_layout = QHBoxLayout(hbox)
-        hbox_layout.setSpacing(0)
-        hbox.setLayout(hbox_layout)
-        hbox_layout.addWidget(QLabel("a:"))
-        hbox_layout.addWidget(self.leEllipsoidA)
-        hbox_layout.addWidget(QLabel("1/f:"))
-        hbox_layout.addWidget(self.leEllipsoidInverseFlattening)
 
         # Algorithm selection:
         row += 1
@@ -365,28 +347,54 @@ class DOOMERCATPlugin:
         self.leResult.setText("")
         self.leResult.setEnabled(False)
 
-        # Obtain the ellipsoid parameters:
-        ellps = self.cbEllipsoid.currentText()
-        try:
-            a = float(self.leEllipsoidA.text())
-            f = 1.0 / float(self.leEllipsoidInverseFlattening.text())
-        except:
-            self.errorDialog.showMessage("Could not convert the ellipsoid "
-                                         "parameters to numbers.")
-            return
-
 
         ci = self.tabLayout.currentIndex()
         if ci == 0:
             # Optimize for selection:
-            self.optimizeForSelection(a,f,ellps)
+            self.optimizeForSelection()
         elif ci == 1:
-            self.optimizeWeightedRaster(a,f,ellps)
+            self.optimizeWeightedRaster()
         elif ci == 2:
-            self.optimizeWeightedVectorLayer(a,f,ellps)
+            self.optimizeWeightedVectorLayer()
 
 
-    def optimizeForSelection(self, a, f, ellps):
+    def _get_geographic_crs(self,
+            crs: QgsCoordinateReferenceSystem
+        ) -> WktCRS:
+        """
+        Convenience function to obtain the WktCRS instance corresponding to
+        a QgsCoordinateReferenceSystem instance. This function adds a bit of
+        error-catching and reporting around that task.
+        """
+        try:
+            wkt = crs.toWkt(Qgis.CrsWktVariant.Wkt2_2019)
+        except:
+            raise RuntimeError(
+                "Failed to obtain WKT from layer " + layer.name()
+            )
+        try:
+            parsed_crs = WktCRS(wkt)
+        except (RuntimeError, TypeError) as e:
+            msg = e.args[0]
+            raise RuntimeError(
+                msg + "\n(in layer " + layer.name() + ")"
+                + _WKT_PARSER_NOTE
+            )
+
+        # Needs to be a geographic CRS (lat-lon):
+        if not parsed_crs.is_geographic:
+            raise RuntimeError(
+                "At least one layer with selected features is not a "
+                "geographic CRS.<br><br>Offending layer: " + layer.name() +
+                ".<br><br>Offending CRS: " + crs.toWkt()
+                + _WKT_PARSER_NOTE
+            )
+
+        return parsed_crs
+
+
+
+    def optimizeForSelection(self):
         """
         Create an optimized Laborde oblique Mercator projection for
         the currently selected features.
@@ -403,46 +411,71 @@ class DOOMERCATPlugin:
             self.leResult.setEnabled(False)
             return
 
+        # TODO: Display the ellipsoid in a status message after DOOM was run.
+        geo_crs: QgsCoordinateReferenceSystem | None = None
+        parsed_geo_crs: WktCRS | None = None
+
+        def ensure_geo_crs(
+                layer: QgsMapLayer
+            ) -> tuple[QgsCoordinateReferenceSystem, WktCRS]:
+            """
+            This function handles setting the geographic reference system
+            for all layers (`geo_crs`) as well as ensuring that all layers
+            with selected geometries have that same CRS.
+            The latter is ensured by return value; if `True` is returned,
+            the input CRS `crs` is compatible with `geo_crs` (this may also
+            mean that it is the first CRS encountered).
+            """
+            crs = layer.crs()
+            parsed_crs = self._get_geographic_crs(crs)
+
+            # If it's the first geographic CRS, automatic accept and set the
+            # geo_crs for the following layers:
+            nonlocal geo_crs, parsed_geo_crs
+            if geo_crs is None or parsed_geo_crs is None:
+                parsed_geo_crs = parsed_crs
+                return crs, parsed_crs
+
+            # Otherwise require the same CRS:
+            if geo_crs != crs:
+                raise RuntimeError(
+                    "At least one layer with selected features does not have "
+                    "the same geographic CRS as other layers.<br><br>Offending "
+                    "layer: " + layer.name() +
+                    "<br><br>Offending CRS: " + crs.toWkt() +
+                    "<br><br>Other CRS: " + geo_crs.toWkt()
+                )
+
+            return geo_crs, parsed_geo_crs
+
+        #
+        # Main loop: iterate over all vector layers and check if the selection
+        #            is empty.
+        #
+        layer: QgsMapLayer | None
+        coordinates: list[tuple[float,float,float]] = []
         for layer in canvas.layers():
             if layer is None:
                 continue
 
-            # Obtain first some information about the layer:
-            crs = layer.crs()
-
-            # Continue depending on layer type:
-            if isinstance(layer, QgsRasterLayer):
-                # TODO : For now, skip raster layers:
-                continue
-
-                # Obtain the data provider which contains the extents of the
-                # raster file:
-                provider = layer.constDataProvider()
-                if hasattr(provider,"ignoreExtents") and \
-                    provider.ignoreExtents():
-                    continue
-
-                # Obtain extents and generate the pixel coordinates:
-                extent = provider.extent()
-
-                # Use all pixels of the raster layer:
-                X = np.linspace(extent.xMinimum(), extent.xMaximum(),
-                                layer.width())
-                Y = np.linspace(extent.yMinimum(), extent.yMaximum(),
-                                layer.height())
-
-                coordinates = np.stack(np.meshgrid(X, Y), axis=2)\
-                                .reshape((-1,2))
-                h.append(np.zeros(coordinates.shape[0] * coordinates.shape[1]))
-
-            elif isinstance(layer, QgsVectorLayer):
+            # Handle only vector layers:
+            if isinstance(layer, QgsVectorLayer):
                 features = layer.selectedFeatures()
 
                 if len(features) == 0:
                     # Empty selection: Nothing to be done.
                     continue
 
-                coordinates = []
+                # Now that we have coordinates, ensure that the CRS is
+                # geographic:
+                try:
+                    geo_crs, parsed_geo_crs = ensure_geo_crs(layer)
+                except (RuntimeError, TypeError) as e:
+                    self.errorDialog.showMessage(
+                        e.args[0]
+                    )
+                    return
+
                 for feat in features:
                     # Obtain the coordinates of the feature:
                     geom = feat.geometry()
@@ -451,41 +484,41 @@ class DOOMERCATPlugin:
                     vertices = geom.vertices()
                     while vertices.hasNext():
                         p = vertices.next()
-                        coordinates.append((p.x(), p.y()))
-                        h.append([p.z()])
-
-            # Obtain geographic coordinates using WGS84 CRS:
-            transform = QgsCoordinateTransform(crs, self._crs_geo,
-                                               QgsProject.instance())
-            lonlat = [transform.transform(QgsPointXY(c[0],c[1]))
-                      for c in coordinates]
-            lon.append(np.array([l.x() for l in lonlat]))
-            lat.append(np.array([l.y() for l in lonlat]))
+                        coordinates.append((p.x(), p.y(), p.z()))
 
         # Early exit if no selection:
-        if len(lon) == 0:
+        if len(coordinates) == 0:
             self.leResult.setText("")
             self.leResult.setEnabled(False)
             return
 
         # Merge all coordinates of selected features across the
         # layers:
-        lon = np.concatenate(lon)
-        lat = np.concatenate(lat)
-        h = np.concatenate(h)
-
-        # Now check if there are any coordinates.
-        # Otherwise, reset:
-        if lon.size == 0:
-            self.leResult.setText("")
-            self.leResult.setEnabled(False)
+        xyz = np.array(coordinates, dtype=np.double)
+        if parsed_geo_crs is None:
+            # This is just for keeping the type checker happy.
+            # If len(coordinates) > 0, we have also ensured a geo_crs.
+            self.errorDialog.showMessage(
+                "Impossible error: len(coordinates) > 0 but geo_crs is None."
+            )
             return
+        if parsed_geo_crs.has_axis_inverted:
+            lon = xyz[:,0].copy()
+            lat = xyz[:,1].copy()
+        else:
+            lon = xyz[:,0].copy()
+            lat = xyz[:,1].copy()
+
+        if parsed_geo_crs.has_elevation:
+            h = xyz[:,2].copy()
+        else:
+            h = None
 
         # Optimize:
-        self.optimizeLonLat(lon, lat, h, None, a, f, ellps)
+        self.optimizeLonLat(lon, lat, h, None, parsed_geo_crs)
 
 
-    def optimizeWeightedRaster(self, a, f, ellps):
+    def optimizeWeightedRaster(self):
         """
         Optimize for raster coordinates weighted by a raster channel.
         """
@@ -493,6 +526,9 @@ class DOOMERCATPlugin:
         l_id = self.cbWeightedRasterLayer.currentIndex()
         b_id = self.cbWeightingBand.currentIndex()+1
         layer = self._weighted_raster_layers[l_id]
+
+        # Ensure that CRS is geographic:
+        crs = self._get_geographic_crs(layer.crs())
 
         # Obtain a raster block:
         provider = layer.dataProvider()
@@ -515,7 +551,6 @@ class DOOMERCATPlugin:
         array = np.frombuffer(data, dtype=dtype).astype(float)
 
         # Get raster coordinates:
-        crs = layer.crs()
         dx = extent.width() / w
         dy = extent.height() / h
         x = extent.xMinimum() + (0.5 + np.arange(w)) * dx
@@ -524,15 +559,19 @@ class DOOMERCATPlugin:
         xf = x.reshape(-1)
         yf = y.reshape(-1)
 
-        # Project to WGS84:
-        dest_crs = QgsCoordinateReferenceSystem(4326)
-        lon, lat = project(xf, yf, crs, dest_crs)
+        # Check the order and assign lat/lon:
+        if crs.has_axis_inverted:
+            lon = yf
+            lat = xf
+        else:
+            lon = xf
+            lat = xf
 
         # Call the optimization routine:
-        self.optimizeLonLat(lon, lat, np.zeros_like(lon), array, a, f, ellps)
+        self.optimizeLonLat(lon, lat, np.zeros_like(lon), array, crs)
 
 
-    def optimizeWeightedVectorLayer(self, a, f, ellps):
+    def optimizeWeightedVectorLayer(self):
         """
         Optimize for the selected weighted vector layer.
         """
@@ -548,8 +587,10 @@ class DOOMERCATPlugin:
             self.leResult.setEnabled(False)
             return
 
-        xyz = []
-        weight = []
+        # Ensure that CRS is geographic:
+        crs = self._get_geographic_crs(layer.crs())
+
+        xyzw: list[tuple[float,float,float,float]] = []
         for feat in layer.getFeatures():
             if not feat.isValid():
                 continue
@@ -564,20 +605,35 @@ class DOOMERCATPlugin:
             vertices = geom.vertices()
             while vertices.hasNext():
                 p = vertices.next()
-                xyz.append((p.x(), p.y(), p.z()))
-                weight.append(w)
+                xyzw.append((p.x(), p.y(), p.z(), w))
 
-        xyz = np.array(xyz)
-        weight = np.array(weight)
+        xyzw_np: NDArray[np.double] = np.array(xyzw)
+        weight = xyzw_np[:,3].copy()
+        if crs.has_elevation:
+            h = xyzw_np[:,2].copy()
+        else:
+            h = None
 
-        # Project to geographic coordinate system:
-        lon, lat = project(xyz[:,0], xyz[:,1], layer.crs(), self._crs_geo)
+        # Check the order and assign lat/lon:
+        if crs.has_axis_inverted:
+            lon = xyzw_np[:,1]
+            lat = xyzw_np[:,0]
+        else:
+            lon = xyzw_np[:,0]
+            lat = xyzw_np[:,1]
+
 
         # Call the optimization routine:
-        self.optimizeLonLat(lon, lat, xyz[:,2], weight, a, f, ellps)
+        self.optimizeLonLat(lon, lat, h, weight, crs)
 
 
-    def optimizeLonLat(self, lon, lat, h, weight, a_km, f, ellps):
+    def optimizeLonLat(self,
+            lon: NDArray[np.double],
+            lat: NDArray[np.double],
+            h: NDArray[np.double] | None,
+            weight: NDArray[np.double] | None,
+            crs: WktCRS
+        ):
         """
         Optimize for numpy arrays of lon and lat:
         """
@@ -633,9 +689,9 @@ class DOOMERCATPlugin:
             pnorm=pnorm,
             k0_ap=k0_ap,
             sigma_k0=self.sb_k0_std.value(),
-            ellipsoid= None if ellps == 'custom' else ellps,
-            f = f if ellps == 'custom' else None,
-            a = 1e3*a_km if ellps == 'custom' else None,
+            ellipsoid= None,
+            f = crs.f,
+            a = crs.a,
             Nmax=self.sb_Nmax.value(),
             fisher_bingham_use_weight = fb_weighted,
             bfgs_epsilon = float(self.leBFGSEpsilon.text()),
