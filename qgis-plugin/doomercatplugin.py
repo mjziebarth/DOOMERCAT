@@ -856,7 +856,7 @@ class DOOMERCATPlugin:
             del self._res_crs
             QgsCoordinateReferenceSystem.invalidateCache()
         self._res_crs \
-           = QgsCoordinateReferenceSystem("PROJ4:" + self.leResult.text())
+           = QgsCoordinateReferenceSystem(self.wkt)
 
         # Rename and save the CRS:
         name = self.nameDialog.text()
