@@ -18,7 +18,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from numpy._core.defchararray import isalpha, isspace
+from numpy.typing import NDArray
+from doomercat.enclosingsphere import bounding_sphere
+from doomercat.hom import HotineObliqueMercator
 
 def _wkt_level(wkt: str) -> list[int]:
     """
@@ -224,7 +226,6 @@ def _parse_a_f(wkt_dict: dict[str, list[WktNode]], crs_tag: str):
         if not (isinstance(a, (int,float))
                 and isinstance(finv, (int,float))
         ):
-            print(a, finv)
             raise TypeError("Wrong type in a or inverse f")
 
         # Handle possibly given length unit:
@@ -258,7 +259,7 @@ def _parse_a_f(wkt_dict: dict[str, list[WktNode]], crs_tag: str):
     # section of the GEOGCRS (latter, for instance, in the ubiquitous EPSG:4326)
     for ellpskey in ("ELLIPSOID","SPHEROID"):
         # Might be a datum or a datum ensemble:
-        for datum in ("DATUM","ENSEMBLE"):
+        for datum in ("DATUM","TRF","GEODETICDATUM","ENSEMBLE"):
             key = ".".join((crs_tag,datum,ellpskey))
             if key in wkt_dict:
                 return handle_ellipsoid_node(key)
@@ -383,6 +384,9 @@ class WktCRS:
     lon_index: int
     lat_index: int
     elev_index: int | None
+    _wkt_dict: dict[str, list[WktNode]]
+    _root: WktNode
+    wkt: str
 
     def __init__(self, wkt: str):
         # Parse:
@@ -392,6 +396,9 @@ class WktCRS:
         self.has_axis_inverted = False
         self.has_elevation = False
         self.elev_index = None
+        self._wkt_dict = wkt_dict
+        self._root = root
+        self.wkt = wkt
 
         # Ellipsoid & axis order parameters:
         GEOCRS_KEYWORDS = set(("GEOGCRS", "GEOGCS"))
@@ -418,3 +425,145 @@ class WktCRS:
 
         else:
             raise RuntimeError("Only geographic CRS supported.")
+
+
+    def get_projcrs_wkt(self,
+            hom: HotineObliqueMercator,
+            gamma: float,
+            name: str,
+            lon: NDArray[np.double],
+            lat: NDArray[np.double]
+        ) -> str:
+        """
+        Returns the Well-Known Text describing a DOOM.
+
+        Note: lon/lat coordinates are required for assembling the bbox.
+        """
+        basecrs = self.get_basecrs_string()
+        omerc = WktCRS.get_omerc_string(
+            hom.lonc(), hom.lat_0(), hom.alpha(), hom.k0(), gamma, name
+        )
+
+        cs = 'CS[Cartesian,2],AXIS["(X)",east,ORDER[1]],'\
+            'AXIS["(Y)",north,ORDER[2]],LENGTHUNIT["metre",1.0]'
+
+        # Here we assemble a geographic bounding box based on the input data.
+        # That's of course a very crude approximation of the area of usage:
+        # the projection is usable nearly globally, albeit with high
+        # distortion, and the actual optimized scope is generally oblique.
+        # Nevertheless, the BBOX will be a helpful indication of where the
+        # data, for which the projection is optimized, is located.
+        #
+        # Computing a geographic bounding box is not trivial: we have the
+        # longitude discontinuity and we might have to span the 180th meridian
+        # to achieve what one would intuitively draw as a bounding box!
+        esc = hom.enclosing_sphere_center()
+        if esc is None:
+            # This should hopefully not be called at all.
+            esc = bounding_sphere(lon, lat, self.a, self.f)
+        anchor_lon = esc[0]
+        lon_anchored = (lon - anchor_lon + 180.0) % 360.0
+        lon_min = lon_anchored.min() - 180.0 + anchor_lon
+        lon_max = lon_anchored.max() - 180.0 + anchor_lon
+
+        scope = 'BBOX[' + "%.2f" % (lat.min(),) + ',' + "%.2f" % (lon_min,) \
+            + ',' + "%.2f" % (lat.max(),) + ',' + "%.2f" % (lon_max,) + ']'
+
+        return (
+            'PROJCRS["' + name + '",'
+                + basecrs + ',' + omerc + ',' + cs + ',' + scope +
+            ']'
+        )
+
+
+
+    def get_basecrs_string(self) -> str:
+        """
+
+        """
+        root_tag = self._root.tag
+        wkt_dict = self._wkt_dict
+        # Datum or geodetic reference frame:
+        datum_str = None
+        for datkey in ('DATUM','TRF','GEODETICDATUM','ENSEMBLE'):
+            key = root_tag + '.' + datkey
+            if key in wkt_dict:
+                datum_str = wkt_dict[key][0].wkt + ']'
+                break
+
+        if datum_str is None:
+            raise RuntimeError(
+                "Do not have reference frame or datum in WKT '" + self.wkt
+                + "'."
+            )
+
+        # CRS name:
+        crs_name = self._root.content[0]
+        if not isinstance(crs_name, str):
+            raise RuntimeError(
+                "Invalid CRS name type in WKT '" + self.wkt + "' (not str)."
+            )
+
+        # ID:
+        id_key = root_tag + '.ID'
+        if id_key in wkt_dict:
+            id_str = ',' + wkt_dict[id_key][0].wkt + ']'
+        else:
+            id_str = ''
+
+        return (
+            'BASE' + self._root.tag + '["'
+            + crs_name + '",'
+            + datum_str
+            + id_str
+            + ']'
+        )
+
+
+    @staticmethod
+    def get_omerc_string(
+            lonc: float, lat_0: float, alpha: float, k_0: float, gamma: float,
+            name: str
+        ) -> str:
+        """
+        Assemble the CONVERSION string for the oblique Mercator projection.
+        """
+        lat_0_str = "%.16f" % (lat_0,)
+        lonc_str = "%.16f" % (lonc,)
+        alpha_str = "%.16f" % (alpha,)
+        k0_str = "%.16f" % (k_0,)
+        gamma_str = "%.16f" % (gamma,)
+
+        # This follows tables F.2 and F.3 of OGC 18-010r11,
+        # and Example 1 of section 9.3 Map projection.
+        # Table F.3:
+        #   8811 : latitude of projection centre
+        #   8812 : longitude of projection centre
+        #   8813 : azimuth of initial line
+        #   8814 : angle from rectified to skew grid
+        #   8815 : scale factor on initial line
+        #   8816 : easting at projection centre (false easting)
+        #   8817 : northing at projection centre (false northing)
+        # We don't use 8816 and 8817 so far.
+        return (
+            'CONVERSION["' + name + '",'
+                'METHOD["Hotine Oblique Mercator (variant B)",'
+                    'ID["EPSG",9815]],'
+                'PARAMETER["Latitude of projection center",' + lat_0_str + ','
+                    'ANGLEUNIT["degree",0.0174532925199433],'
+                    'ID["EPSG",8811]],'
+                'PARAMETER["Longitude of projection center",' + lonc_str + ','
+                    'ANGLEUNIT["degree",0.0174532925199433],'
+                    'ID["EPSG",8812]],'
+                'PARAMETER["Azimuth of initial line",' + alpha_str + ','
+                    'ANGLEUNIT["degree",0.0174532925199433],'
+                    'ID["EPSG",8813]],'
+                'PARAMETER["Scale factor on initial line",' + k0_str + ','
+                    'SCALEUNIT["unity",1.0],'
+                    'ID["EPSG",8815]],'
+                'PARAMETER["Angle from rectified to skew grid",'
+                    + gamma_str + ','
+                    'ANGLEUNIT["degree",0.0174532925199433],'
+                    'ID["EPSG",8814]]'
+            + "]"
+        )

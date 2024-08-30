@@ -60,6 +60,11 @@ _WKT_PARSER_NOTE = "<br><br>Note: DOOMERCAT's WKT parser is built partially " \
 
 class DOOMERCATPlugin:
 
+    wkt: str | None
+    optimization_input: tuple[
+        WktCRS, NDArray[np.double], NDArray[np.double]
+    ] | None
+
     def __init__(self, iface):
         # save reference to the QGIS interface
         self.iface = iface
@@ -101,6 +106,11 @@ class DOOMERCATPlugin:
         self.leResult = QLineEdit(self.dialog)
         self.leResult.setReadOnly(True)
         self.leResult.setEnabled(False)
+        self.teWktResult = QTextEdit(self.dialog)
+        self.teWktResult.setReadOnly(True)
+        self.teWktResult.setEnabled(False)
+        self.wkt = None
+        self.optimization_input = None
         self.leCentralPoint = QLineEdit(self.dialog)
         self.leCentralPoint.setEnabled(False)
         self.leCentralPoint.setValidator(CoordinateValidator())
@@ -287,6 +297,8 @@ class DOOMERCATPlugin:
         row += 1
         dialog_layout.addWidget(self.leResult, row, 0, 1, 5)
         row += 1
+        dialog_layout.addWidget(self.teWktResult, row, 0, 1, 5)
+        row += 1
 
         # Only set up the buttons here since otherwise, their focus might be
         # covered by something else:
@@ -346,6 +358,9 @@ class DOOMERCATPlugin:
         self.btnSave.setEnabled(False)
         self.leResult.setText("")
         self.leResult.setEnabled(False)
+        self.teWktResult.setText("")
+        self.teWktResult.setEnabled(False)
+        self.wkt = None
 
 
         ci = self.tabLayout.currentIndex()
@@ -409,6 +424,9 @@ class DOOMERCATPlugin:
         if canvas is None:
             self.leResult.setText("")
             self.leResult.setEnabled(False)
+            self.teWktResult.setText("")
+            self.teWktResult.setEnabled(False)
+            self.wkt = None
             return
 
         # TODO: Display the ellipsoid in a status message after DOOM was run.
@@ -490,6 +508,9 @@ class DOOMERCATPlugin:
         if len(coordinates) == 0:
             self.leResult.setText("")
             self.leResult.setEnabled(False)
+            self.teWktResult.setText("")
+            self.teWktResult.setEnabled(False)
+            self.wkt = None
             return
 
         # Merge all coordinates of selected features across the
@@ -585,6 +606,9 @@ class DOOMERCATPlugin:
         if layer.featureCount() == 0:
             self.leResult.setText("")
             self.leResult.setEnabled(False)
+            self.teWktResult.setText("")
+            self.teWktResult.setEnabled(False)
+            self.wkt = None
             return
 
         # Ensure that CRS is geographic:
@@ -673,6 +697,9 @@ class DOOMERCATPlugin:
         # Disable optimization button:
         self.btnOptimize.setDisabled(True)
 
+        # Save the input CRS:
+        self.optimization_input = (crs, lon, lat)
+
         # Obtain optimzied HOM:
         k0_ap = self.sb_k0.value() if self.cb_k0.checkState() == Qt.Checked \
                 else 0.0
@@ -732,37 +759,48 @@ class DOOMERCATPlugin:
         if self._hom is None:
             self.leResult.setText("")
             self.leResult.setEnabled(False)
+            self.teWktResult.setText("")
+            self.teWktResult.setEnabled(False)
+            self.wkt = None
         else:
             # Compose the proj str:
             proj_str = self._hom.proj4_string()
 
             reset_palette = True
+            gamma = None
+            lon_c = lat_c = None
             if self.cbOrientNorth.checkState() == Qt.Checked:
                 # Choose a point where to orient North=Up:
                 current = self.cbOrientCenter.currentText()
                 if current == _ORIENT_NORTH_PROJ_CENTER:
-                    # Gamma will be chosen automatically by Proj.
-                    pass
+                    # Don't use the auto-assignment feature of gamma from Proj;
+                    # be more explicit!
+                    # It's also very simple in this case: alpha = gamma since
+                    # alpha is relative to north in the projection center.
+                    # lon_c, lat_c = self._hom.lonc(), self._hom.lat_0()
+                    gamma = self._hom.alpha()
                 elif current == _ORIENT_NORTH_DATA_CENTER:
                     # Use the center of the smallest enclosing sphere.
-                    gamma = self._hom.north_gamma(*self._hom.
-                                           enclosing_sphere_center())
-                    proj_str += " +gamma=%.8f" % (gamma,)
+                    lon_c, lat_c = self._hom.enclosing_sphere_center()
                 elif current == _ORIENT_NORTH_CUSTOM:
                     # Use the center given by the user:
                     text = self.leCentralPoint.text()
                     validator = self.leCentralPoint.validator()
                     if validator.validate(text, 0)[0] == QValidator.Acceptable:
-                        lon,lat = [float(x) for x in
-                                   text.split(',')]
-                        gamma = self._hom.north_gamma(lon, lat)
-                        proj_str += " +gamma=%.8f" % (gamma,)
+                        lon_c, lat_c = (float(x) for x in text.split(','))
                     else:
                         self.leCentralPoint.setStyleSheet(
                             "QLineEdit { background : rgb(240,128,128) };"
                         )
                         reset_palette = False
+
+                if lon_c is not None and lat_c is not None:
+                    gamma = self._hom.north_gamma(lon_c, lat_c)
+                if gamma is not None:
+                    proj_str += " +gamma=%.8f" % (gamma,)
+
             else:
+                gamma = 0.0
                 proj_str += " +no_rot +no_off"
 
             if reset_palette:
@@ -770,6 +808,18 @@ class DOOMERCATPlugin:
 
             self.leResult.setText(proj_str)
             self.leResult.setEnabled(True)
+
+            # Generate the WKT:
+            if self.optimization_input is not None and gamma is not None:
+                crs, lon, lat = self.optimization_input
+                self.wkt = crs.get_projcrs_wkt(
+                    self._hom, gamma, "<unnamed DOOMERCAT>", lon, lat
+                )
+                self.teWktResult.setText(self.wkt)
+                self.teWktResult.setEnabled(True)
+            else:
+                self.teWktResult.setText("")
+                self.teWktResult.setEnabled(False)
 
 
     def workerFinished(self):
