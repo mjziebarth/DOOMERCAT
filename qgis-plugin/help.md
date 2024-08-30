@@ -41,11 +41,6 @@ augmented by a half-sided quadratic potential
 for k0 < k0min **with bandwidth** as
 given.
 
-The **ellipsoid** row specifies the ellipsoid
-according to which geographic coordinates
-will internally be projected to 3D Euclidean
-space.
-
 The **optimizer** row specifies the internal
 backend used to optimize the parameters of the
 projection. The default, `'Python'`, uses a
@@ -82,7 +77,14 @@ simple manual selection. **Weighted raster**
 allows using all points of a raster layer
 weighted by the absolute value a selectable
 raster band. **Weighted points** provides the
-same mechanism for vector layers.
+same mechanism for vector layers. The datum,
+and thereby the reference ellipsoid, to which
+the data are tied is read from the layers.
+This implies that all layers from which point
+data are extracted have to be (1) in geographic
+coordinate reference systems (CRS) and
+(2) of the same CRS if data is extracted from
+multiple layers via the selection mechanism.
 
 The next row, **Use data height**, toggles
 whether the height of the data points is
@@ -114,8 +116,12 @@ manually chosen point.
 
 After optimization, the **projection string**
 line is filled with the PROJ string
-representation of the resulting projection. A
-user CRS can be created from this string
+representation of the resulting projection, and
+the **projected CRS WKT** is filled with a
+Well-Known Text representation of the projected
+CRS (preferable over the PROJ string since it
+references the datum). A user CRS can be created
+from the WKT string
 using the **save** button and, afterwards,
 this CRS can be **apply**-ed to the current
 project. Unchecking the **orient north** box
@@ -128,4 +134,4 @@ an affine transformation is performed that
 ensures that north is upwards at the
 projection center.
 
-[1] von Specht, Ziebarth, Veh (in prep.)
+[1] von Specht, Ziebarth (in prep.)
