@@ -65,7 +65,7 @@ linux by executing the ```generate-plugin.sh``` shell script. This will
 create the file ```build/DOOMERCAT.zip``` that can be installed in the QGIS
 plugin menu.
 
-The plugin is developed for QGIS version 3.24.0.
+The plugin is developed for QGIS version 3.38.1.
 
 ## License
 The ```doomercat``` package is licensed under the European Public License (EUPL)
@@ -75,4 +75,15 @@ derivative work created by the ```generate-plugin.sh```, is licensed under the
 GNU General Public License (GPL), version 3 or (at your option) later.
 
 ## References
-[1] von Specht, Ziebarth, and Veh (in prep.)
+[1] von Specht, Ziebarth (in prep.)
+
+
+## Changelog
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
+### [1.0.0] - 2024-08-30
+#### Added
+- First release; begin of the versioning.
