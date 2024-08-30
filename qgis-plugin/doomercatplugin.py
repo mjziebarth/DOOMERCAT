@@ -297,6 +297,9 @@ class DOOMERCATPlugin:
         row += 1
         dialog_layout.addWidget(self.leResult, row, 0, 1, 5)
         row += 1
+        dialog_layout.addWidget(QLabel("Projected CRS WKT:", self.dialog),
+                                row, 0, 1, 3)
+        row += 1
         dialog_layout.addWidget(self.teWktResult, row, 0, 1, 5)
         row += 1
 
@@ -330,7 +333,7 @@ class DOOMERCATPlugin:
         self.errorDialog = QErrorMessage(self.dialog)
 
         # Help dialog:
-        dialog_layout.addWidget(self.tbHelp, 0, 4, row-1, 1)
+        dialog_layout.addWidget(self.tbHelp, 0, 4, row-3, 1)
         self.tbHelp.setHtml(help_html)
         self.tbHelp.setMinimumWidth(280)
 
