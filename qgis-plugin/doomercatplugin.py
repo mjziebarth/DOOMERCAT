@@ -60,10 +60,10 @@ _WKT_PARSER_NOTE = "<br><br>Note: DOOMERCAT's WKT parser is built partially " \
 
 class DOOMERCATPlugin:
 
-    wkt: str | None
-    optimization_input: tuple[
-        WktCRS, NDArray[np.double], NDArray[np.double]
-    ] | None
+    wkt: "str | None"
+    optimization_input: "tuple[\
+        WktCRS, NDArray[np.double], NDArray[np.double]\
+    ] | None"
 
     def __init__(self, iface):
         # save reference to the QGIS interface
@@ -377,7 +377,8 @@ class DOOMERCATPlugin:
 
 
     def _get_geographic_crs(self,
-            crs: QgsCoordinateReferenceSystem
+            crs: QgsCoordinateReferenceSystem,
+            layer: QgsMapLayer,
         ) -> WktCRS:
         """
         Convenience function to obtain the WktCRS instance corresponding to
@@ -385,7 +386,15 @@ class DOOMERCATPlugin:
         error-catching and reporting around that task.
         """
         try:
-            wkt = crs.toWkt(Qgis.CrsWktVariant.Wkt2_2019)
+            try:
+                variant = Qgis.CrsWktVariant.Wkt2_2019
+            except AttributeError:
+                # The above is only available starting from
+                # QGIS 3.36.
+                # This version has been tested to work on
+                # QGIS 3.32:
+                variant = QgsCoordinateReferenceSystem.WktVariant.WKT2_2019
+            wkt = crs.toWkt(variant)
         except:
             raise RuntimeError(
                 "Failed to obtain WKT from layer " + layer.name()
@@ -433,8 +442,8 @@ class DOOMERCATPlugin:
             return
 
         # TODO: Display the ellipsoid in a status message after DOOM was run.
-        geo_crs: QgsCoordinateReferenceSystem | None = None
-        parsed_geo_crs: WktCRS | None = None
+        geo_crs: "QgsCoordinateReferenceSystem | None" = None
+        parsed_geo_crs: "WktCRS | None" = None
 
         def ensure_geo_crs(
                 layer: QgsMapLayer
@@ -448,7 +457,7 @@ class DOOMERCATPlugin:
             mean that it is the first CRS encountered).
             """
             crs = layer.crs()
-            parsed_crs = self._get_geographic_crs(crs)
+            parsed_crs = self._get_geographic_crs(crs, layer)
 
             # If it's the first geographic CRS, automatic accept and set the
             # geo_crs for the following layers:
@@ -473,7 +482,7 @@ class DOOMERCATPlugin:
         # Main loop: iterate over all vector layers and check if the selection
         #            is empty.
         #
-        layer: QgsMapLayer | None
+        layer: "QgsMapLayer | None"
         coordinates: list[tuple[float,float,float]] = []
         for layer in canvas.layers():
             if layer is None:
@@ -552,7 +561,7 @@ class DOOMERCATPlugin:
         layer = self._weighted_raster_layers[l_id]
 
         # Ensure that CRS is geographic:
-        crs = self._get_geographic_crs(layer.crs())
+        crs = self._get_geographic_crs(layer.crs(), layer)
 
         # Obtain a raster block:
         provider = layer.dataProvider()
@@ -615,7 +624,7 @@ class DOOMERCATPlugin:
             return
 
         # Ensure that CRS is geographic:
-        crs = self._get_geographic_crs(layer.crs())
+        crs = self._get_geographic_crs(layer.crs(), layer)
 
         xyzw: list[tuple[float,float,float,float]] = []
         for feat in layer.getFeatures():
@@ -657,8 +666,8 @@ class DOOMERCATPlugin:
     def optimizeLonLat(self,
             lon: NDArray[np.double],
             lat: NDArray[np.double],
-            h: NDArray[np.double] | None,
-            weight: NDArray[np.double] | None,
+            h: "NDArray[np.double] | None",
+            weight: "NDArray[np.double] | None",
             crs: WktCRS
         ):
         """

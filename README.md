@@ -84,6 +84,11 @@ and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+### Unreleased
+#### Changed
+- QGIS Plugin: Change some type info to be compatible with Python versions before 3.10
+- QGIS Plugin: Fallback `WktVariant` for QGIS versions before 3.36
+
 ### [1.0.0] - 2024-08-30
 #### Added
 - First release; begin of the versioning.

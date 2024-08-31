@@ -203,8 +203,8 @@ def parse_wkt(wkt: str) -> tuple[WktNode, dict[str, list[WktNode]]]:
 
 def _find_tag(
         tag: str,
-        nodes: list[str | float | int | WktNode]
-    ) -> WktNode | None:
+        nodes: "list[str | float | int | WktNode]"
+    ) -> "WktNode | None":
     """
     This function finds a tag of a certain name within a list of WktNodes
     and values (str | float | int).
@@ -379,11 +379,11 @@ class WktCRS:
     is_geographic: bool
     has_axis_inverted: bool
     has_elevation: bool
-    projection: str | None
-    ellipsoid_wkt: str | None
+    projection: "str | None"
+    ellipsoid_wkt: "str | None"
     lon_index: int
     lat_index: int
-    elev_index: int | None
+    elev_index: "int | None"
     _wkt_dict: dict[str, list[WktNode]]
     _root: WktNode
     wkt: str
