@@ -18,7 +18,7 @@ jobs:
           python check-version.py
           python check-version.py >> version.txt
           echo "DOOMERCAT_VERSION=$(cat version.txt)" >> "$GITHUB_OUTPUT"
-          echo $DOOMERCAT_VERSION
+          cat $GITHUB_OUTPUT
 
 
   build:
