@@ -225,5 +225,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: doomercat-release
+          name: doomercat-release-${{ env.DOOMERCAT_VERSION }}
           path: ./doomercat-${{ env.DOOMERCAT_VERSION }}
