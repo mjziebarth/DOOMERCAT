@@ -6,14 +6,17 @@ jobs:
   check_version:
     name: Check version
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check-version.outputs.DOOMERCAT_VERSION }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
       - name: Check and save version
+        id: check-version
         run: |
           # Call this explicitly here:
           python check-version.py >> version.txt
-          echo "DOOMERCAT_VERSION=$(cat version.txt)" >> "$GITHUB_ENV"
+          echo "DOOMERCAT_VERSION=$(cat version.txt)" >> "$GITHUB_OUTPUT"
           echo $GITHUB_ENV
 
 
@@ -188,8 +191,10 @@ jobs:
 
   joint_artifact:
     name: Build joint artifact.
-    needs: [build_qgis_plugin]
+    needs: [build_qgis_plugin,check_version]
     runs-on: ubuntu-latest
+    env:
+      DOOMERCAT_VERSION: ${{ needs.check_version.outputs.DOOMERCAT_VERSION }}
 
     steps:
       - uses: actions/setup-python@v5
