@@ -84,6 +84,10 @@ and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+### [1.0.2] - 2024-09-02
+#### Added
+- Add source code archive to QGIS plugin.
+
 ### [1.0.1] - 2024-09-02
 #### Added
 - Added workflow steps to build the source distribution and a pure Python package.
