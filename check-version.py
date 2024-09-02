@@ -84,6 +84,14 @@ with open('meson.build','r') as f:
             if openparen == closeparen:
                 break
 
+# Version in the QGIS plugin metadata:
+version_qgis = None
+with open('qgis-plugin/metadata.txt','r') as f:
+    for line in f:
+        if line.startswith("version=version "):
+            version_qgis = line.split("version=version ")[-1].strip()
+
+
 # Check if any could not be determined:
 if version_readme is None:
     raise RuntimeError("Version in 'README.md' could not be determined.")
@@ -93,18 +101,30 @@ if version_sphinx is None:
     raise RuntimeError("Version in 'docs/conf.py' could not be determined.")
 if version_meson is None:
     raise RuntimeError("Version in 'meson.build' could not be determined.")
+if version_qgis is None:
+    raise RuntimeError("Version in 'qgis-plugin/metadata' could not be "
+                       "determined.")
 
 # Compare:
 if version_readme != version_toml:
     raise RuntimeError("Versions given in 'README.md' and 'pyproject.toml' "
-                       "differ.")
+                       "differ ('" + version_readme + "' vs '"
+                       + version_toml + "').")
 
 if version_readme != version_sphinx:
     raise RuntimeError("Versions given in 'README.md' and 'docs/conf.py' "
-                       "differ.")
+                       "differ ('" + version_readme + "' vs '"
+                       + version_sphinx + "').")
 
 if version_readme != version_meson:
     raise RuntimeError("Versions given in 'README.md' and 'meson.build' "
-                       "differ.")
+                       "differ ('" + version_readme + "' vs '"
+                       + version_meson + "').")
+
+if version_readme != version_qgis:
+    raise RuntimeError("Versions given in 'README.md' and "
+                       "'qgis-plugin/metadata' differ ('"
+                       + version_readme + "' vs '"
+                       + version_qgis + "').")
 
 print(version_readme)
