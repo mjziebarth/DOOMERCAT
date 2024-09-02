@@ -1,6 +1,15 @@
+# This workflow does the checks of 'testbuild.yml' and, on success, builds
+# the DOOMERCAT sdist, pure Python wheel, manylinux and windows binary wheels,
+# and the QGIS plugin.
+# The results are uploaded into a 'doomercat-release-X.Y.Z.zip' artifact,
+# where 'X.Y.Z' is the version that corresponds to the tagged version 'vX.Y.Z'
+
 name: Python package
 
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   check_version:
