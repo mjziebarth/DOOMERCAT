@@ -55,7 +55,7 @@ with open('pyproject.toml','r') as f:
 
 # Version in the Sphinx documentation:
 version_sphinx = None
-with open('docs/conf.py','r') as f:
+with open('doc/conf.py','r') as f:
     for line in f:
         stripped = line.strip()
         if stripped[:10] == "release = ":
