@@ -11,7 +11,9 @@ jobs:
       - uses: actions/setup-python@v5
       - name: Check and save version
         run: |
-          echo "doomercat_version=$(python check-version.py)" >> "$GITHUB_ENV"
+          # Call this explicitly here:
+          python check-version.py >> version.txt
+          echo "doomercat_version=$(cat version.txt)" >> "$GITHUB_ENV"
           echo $GITHUB_ENV
 
 
