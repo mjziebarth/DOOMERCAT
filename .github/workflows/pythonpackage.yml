@@ -200,13 +200,14 @@ jobs:
 
       - name: Create joint archive
         run: |
-          ls
+          echo $DOOMERCAT_VERSION
           mkdir doomercat-$DOOMERCAT_VERSION
+          ls
           mv doomercat-plugin/DOOMERCAT.zip \
             doomercat-$DOOMERCAT_VERSION/DOOMERCAT-QGIS-$DOOMERCAT_VERSION.zip
           mv doomercat-pure-python/* doomercat-$DOOMERCAT_VERSION/
           mv doomercat-wheel-manylinux/* doomercat-$DOOMERCAT_VERSION/
-          mv doomeract-wheel-windows/* doomercat-$DOOMERCAT_VERSION/
+          mv doomercat-wheel-windows/* doomercat-$DOOMERCAT_VERSION/
           ls doomercat-$DOOMERCAT_VERSION
 
       - uses: actions/upload-artifact@v4
