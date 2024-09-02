@@ -15,6 +15,7 @@ jobs:
         id: check-version
         run: |
           # Call this explicitly here:
+          python check-version.py
           python check-version.py >> version.txt
           echo "DOOMERCAT_VERSION=$(cat version.txt)" >> "$GITHUB_OUTPUT"
           echo $DOOMERCAT_VERSION
