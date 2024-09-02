@@ -38,8 +38,37 @@ jobs:
         cd testing
         pytest
 
-  # Adapted from cibuildwheel:
   build_python_wheel:
+    name: Build pure Python wheel and source distribution
+    runs-on: ubuntu-latest
+    env:
+      # This environment variable ensures that platform_tag is set to
+      # None in setup.py, which will then prevent patched_bdist_wheel
+      # from emposing a platform dependency.
+      DOOMERCAT_PYTHON_ONLY: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Build pure Python wheel and sdist
+        run: |
+          mkdir wheel_dist
+          pip install --upgrade build
+          python3 -m build --outdir wheel_dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doomercat-pure-python
+          path: |
+            ./wheel_dist/*.whl
+            ./wheel_dist/*.tar.gz
+
+
+
+  # Adapted from cibuildwheel:
+  build_manylinux_wheel:
+    needs: [build_python_wheel]
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -85,6 +114,7 @@ jobs:
           path: ./wheels/*.whl
 
   build_windows_wheel:
+    needs: [build_python_wheel]
     name: Build wheels on windows-latest
     runs-on: windows-latest
 
@@ -114,7 +144,7 @@ jobs:
 
   build_qgis_plugin:
     name: Build QGIS plugin
-    needs: [build_python_wheel, build_windows_wheel]
+    needs: [build_manylinux_wheel, build_windows_wheel]
     runs-on: ubuntu-latest
 
     steps:
@@ -143,3 +173,20 @@ jobs:
         with:
           name: doomercat-plugin
           path: ./build/DOOMERCAT.zip
+
+
+  joint_artifact:
+    name: Build joint artifact.
+    needs: [build_qgis_plugin]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      # Download the manylinux and windows wheels:
+      - uses: actions/download-artifact@v4
+
+      - name: Create joint archive
+        run: |
+          ls
