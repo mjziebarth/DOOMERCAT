@@ -193,6 +193,7 @@ jobs:
           ls
           unzip doomercat-*-manylinux*.whl
           mv doomercat/_cppextensions.so ../doomercat/
+          mv doomercat/_sources.tar.bz2 ../
           cd ../doomercat-wheel-windows
           unzip doomercat-*-win*.whl
           mv doomercat/_cppextensions.dll ../doomercat/

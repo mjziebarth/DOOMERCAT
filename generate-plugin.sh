@@ -53,6 +53,11 @@ else
     fi
 fi
 
+# Copy the source code archive (this is generated in the Github Action jobs):
+if [ -f _sources.tar.bz2 ]; then
+    cp _sources.tar.bz2 $MODULE/_sources.tar.bz2
+fi
+
 # Copy the relevant python and config files for the plugin:
 cp qgis-plugin/__init__.py qgis-plugin/doomercatplugin.py \
    qgis-plugin/metadata.txt qgis-plugin/dialogs.py qgis-plugin/worker.py \
