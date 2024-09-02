@@ -19,8 +19,10 @@
 
 project = 'DOOMERCAT'
 copyright = '2022, Deutsches GeoForschungsZentrum Potsdam GFZ, '\
-            'Sebastian von Specht, Malte J. Ziebarth'
-author = 'Malte J. Ziebarth, Sebastian von Specht, Georg Veh'
+            'Sebastian von Specht, Malte J. Ziebarth; ' \
+            '2024 Technical University of Munich'
+author = 'Malte J. Ziebarth, Sebastian von Specht'
+release = '1.0.1'
 
 
 # -- General configuration ---------------------------------------------------

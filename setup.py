@@ -31,10 +31,12 @@ from glob import glob
 from pathlib import Path
 from shutil import copyfile
 
+PYTHON_ONLY = "DOOMERCAT_PYTHON_ONLY" in os.environ
+
 try:
     platform_tag = os.environ["DOOMERCAT_PLATFORM_TAG"]
 except KeyError:
-    if "DOOMERCAT_PYTHON_ONLY" in os.environ:
+    if PYTHON_ONLY:
         platform_tag = None
     else:
         platform_tag = sysconfig.get_platform()
@@ -179,11 +181,18 @@ class patched_bdist_wheel(bdist_wheel):
 
 
 # Setup:
-
-setup(
+if PYTHON_ONLY:
+    cmdclass = {
+        'build' : build,
+        'bdist_wheel' : bdist_wheel
+    }
+else:
     cmdclass = {
         'build' : DummyBuild,
         'build_doomercat' : BuildDoomercatCommand,
         'bdist_wheel' : patched_bdist_wheel
     }
+
+setup(
+    cmdclass = cmdclass
 )

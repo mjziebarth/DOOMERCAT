@@ -1,0 +1,7 @@
+# Include source files in the sdist.
+include cpp/src/*.cpp
+include cpp/include/*.hpp
+include subprojects/boost-subset.wrap
+include subprojects/packagefiles/boost-subset.tar.xz
+include meson.build
+include generate-plugin.sh
