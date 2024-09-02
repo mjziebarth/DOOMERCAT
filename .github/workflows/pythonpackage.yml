@@ -13,7 +13,7 @@ jobs:
         run: |
           # Call this explicitly here:
           python check-version.py >> version.txt
-          echo "doomercat_version=$(cat version.txt)" >> "$GITHUB_ENV"
+          echo "DOOMERCAT_VERSION=$(cat version.txt)" >> "$GITHUB_ENV"
           echo $GITHUB_ENV
 
 
@@ -201,3 +201,15 @@ jobs:
       - name: Create joint archive
         run: |
           ls
+          mkdir doomercat-$DOOMERCAT_VERSION
+          mv doomercat-plugin/DOOMERCAT.zip \
+            doomercat-$DOOMERCAT_VERSION/DOOMERCAT-QGIS-$DOOMERCAT_VERSION.zip
+          mv doomercat-pure-python/* doomercat-$DOOMERCAT_VERSION/
+          mv doomercat-wheel-manylinux/* doomercat-$DOOMERCAT_VERSION/
+          mv doomeract-wheel-windows/* doomercat-$DOOMERCAT_VERSION/
+          ls doomercat-$DOOMERCAT_VERSION
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: doomercat-release
+          path: ./doomercat-$DOOMERCAT_VERSION
