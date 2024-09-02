@@ -58,21 +58,26 @@ jobs:
     needs: [check_version]
     name: Build pure Python wheel and source distribution
     runs-on: ubuntu-latest
-    env:
-      # This environment variable ensures that platform_tag is set to
-      # None in setup.py, which will then prevent patched_bdist_wheel
-      # from emposing a platform dependency.
-      DOOMERCAT_PYTHON_ONLY: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Build pure Python wheel and sdist
+      - name: Build sdist
+          # We want to build the sdist first separately because otherwise the
+          # .egg-info considers the package pure Python.
         run: |
           mkdir wheel_dist
           pip install --upgrade build
-          python3 -m build --outdir wheel_dist
+          python3 -m build --sdist
+      - name: Build pure Python wheel
+        env:
+          # This environment variable ensures that platform_tag is set to
+          # None in setup.py, which will then prevent patched_bdist_wheel
+          # from emposing a platform dependency.
+          DOOMERCAT_PYTHON_ONLY: 1
+        run: |
+          pip wheel --wheel-dir wheel_dist --verbose .
 
       - uses: actions/upload-artifact@v4
         with:
