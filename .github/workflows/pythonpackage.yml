@@ -195,7 +195,7 @@ jobs:
     needs: [build_qgis_plugin,check_version]
     runs-on: ubuntu-latest
     env:
-      DOOMERCAT_VERSION: ${{ needs.check_version.outputs.DOOMERCAT_VERSION }}
+      DOOMERCAT_VERSION: ${{ needs.check_version.outputs.version }}
 
     steps:
       - uses: actions/setup-python@v5
