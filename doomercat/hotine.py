@@ -295,7 +295,7 @@ def lm_adamax_optimize(
         debug_prints: bool = False
     ):
 
-    # normalize data weights to sum(wdata) = number of data points
+    # normalize data weights to sum(wdata) = 1
     wdata /= wdata.sum()
 
     # Compute the local destination scale factor:
@@ -391,7 +391,7 @@ def lm_adamax_optimize(
             w = np.abs(fk-yk)**(pnorm-2)
             w *= wdata
 
-        w /= w.sum()
+        #w /= w.sum()
 
         if isinf(pnorm) and is_p2opt:
 
@@ -442,6 +442,10 @@ def lm_adamax_optimize(
 
         else:
 
+            # prefactor: formally reqired but not necessary here, as 1) it's a constant and it cancels almost out in the derivative, 2) the gradient is scaled at each step as required
+            # prefac = np.sum(wdata*np.abs(fk-yk)**pnorm)**(1/pnorm-1)
+            # w *= prefac
+
             JTJ = (J.T*w)@J
             D = np.diag(np.diag(JTJ)) # Preconditioner
 
@@ -462,7 +466,7 @@ def lm_adamax_optimize(
                     error_flag = "LinAlgError"
                     break
 
-                neodp[j] = neodp[j]
+                # neodp[j] = neodp[j]
 
                 for k in range(x.size):
                     neop[j,k] = _confine(p-x[k]*al*neodp[j])
@@ -473,10 +477,10 @@ def lm_adamax_optimize(
 
                     Theta = (np.sign(v_ap[3]-neop[j,k,3])+1)/2
                     if isinf(pnorm):
-                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm_p0) \
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm_p0)**(1/pnorm_p0) \
                                     + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
                     else:
-                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm) \
+                        S33[j,k] = np.sum(wdata*np.abs(neofk-yk)**pnorm)**(1/pnorm) \
                                     + P_ap[3,3]*(neop[j,k,3]-v_ap[3])**2 * Theta
 
                     if np.isnan(S33[j,k]):
@@ -527,7 +531,8 @@ def lm_adamax_optimize(
 
             if not isinf(pnorm) and Ssd<Ssd_th:
                 break
-            elif isinf(pnorm) and (Ssd<Ssd_th or i == Nmax_pre_adamax):
+            # elif isinf(pnorm) and (Ssd<Ssd_th or i == Nmax_pre_adamax):
+            elif isinf(pnorm) and (Ssd<Ssd_th or (switch_to_p0 and i == Nmax_pre_adamax)):
                 is_p2opt = True
 
                 if switch_to_p0:
