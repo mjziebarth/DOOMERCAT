@@ -4,7 +4,8 @@
  *
  * Authors: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
  *
- * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam
+ * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
+ *               2024 Technical University of Munich
  *
  * Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
  * the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -77,7 +78,7 @@ class DataSet {
  */
 
 public:
-	DataSet(size_t N) : data(N)
+	DataSet(size_t N, double W) : data(N), W(W)
 	{};
 
 	size_t size() const {
@@ -96,11 +97,18 @@ public:
 		return data[i].phi;
 	};
 
+	/* This function sums up all weights: */
+	double summed_weight() const
+	{
+		return W;
+	}
+
 protected:
 	typedef data_entry_t<has_height,has_weight> entry_t;
 
 	std::vector<entry_t> data;
 
+	double W;
 };
 
 

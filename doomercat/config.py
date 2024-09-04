@@ -35,7 +35,6 @@ def _generate_default_config():
     _default["a"] = None
     _default["f"] = None
     _default["Nmax"] = 1000
-    _default["proot"] = False
     _default["fisher_bingham_use_weight"] = False
     _default["compute_enclosing_sphere"] = True
     _default["bfgs_epsilon"] = 0.0
@@ -75,7 +74,6 @@ try:
         defaults["f"] = float(f) if f != "None" else None
         defaults["Nmax"] = int(defaults["nmax"])
         del defaults["nmax"]
-        defaults["proot"] = to_bool(defaults["proot"])
         defaults["fisher_bingham_use_weight"] \
            = to_bool(defaults["fisher_bingham_use_weight"])
         defaults["compute_enclosing_sphere"] \

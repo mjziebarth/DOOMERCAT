@@ -49,7 +49,7 @@ def test_chile_places():
     HOM = HotineObliqueMercator(
             lon=lon, lat=lat, pnorm=2, k0_ap=0.98,
             sigma_k0=0.98, ellipsoid=None, a=None, f=None,
-            Nmax=1000, backend="Python", proot=False,
+            Nmax=1000, backend="Python",
             fisher_bingham_use_weight=False,
             compute_enclosing_sphere=True,
             bfgs_epsilon=1e-3

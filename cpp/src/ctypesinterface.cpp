@@ -50,7 +50,7 @@ using doomercat::WeightedDataSetWithHeight;
 
 template<bool wrap_plane, typename numeric_t, typename T>
 void cost_batch(const T& data, double pnorm, double k0_ap, double sigma_k0,
-                unsigned short proot, bool logarithmic, const size_t M,
+                bool logarithmic, const size_t M,
                 const double* lonc, const double* lat0, const double* alpha,
                 const double* k0, double f, double* result)
 {
@@ -91,8 +91,7 @@ void cost_batch(const T& data, double pnorm, double k0_ap, double sigma_k0,
 
 	} else {
 		const CostFunctionHotine<numeric_t> cfun(pnorm, k0_ap, sigma_k0,
-		                                         proot > 0u, logarithmic,
-		                                         false);
+		                                         logarithmic, false);
 
 		/* Compute the Hotine Mercator projections now: */
 		#pragma omp parallel for
@@ -131,7 +130,7 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
         const double* lat, const double* h, const double* w, const size_t M,
         const double* lonc, const double* lat0, const double* alpha,
         const double* k0, double a, double f, double pnorm, double k0_ap,
-        double sigma_k0, unsigned short proot,
+        double sigma_k0,
         unsigned short logarithmic, unsigned short wrap_plane,
         unsigned short precision,
         double* result)
@@ -179,14 +178,14 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
 				{
 				case 0:
 					cost_batch<true, double>(
-					    data_, pnorm, k0_ap, sigma_k0, proot,
+					    data_, pnorm, k0_ap, sigma_k0,
 					    logarithmic > 0u, M, lonc, lat0, alpha,
 					    k0, f, result
 					);
 					break;
 				case 1:
 					cost_batch<true, long double>(
-					    data_, pnorm, k0_ap, sigma_k0, proot,
+					    data_, pnorm, k0_ap, sigma_k0,
 					    logarithmic > 0u, M, lonc, lat0, alpha,
 					    k0, f, result
 					);
@@ -202,14 +201,14 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
 				{
 				case 0:
 					cost_batch<false, double>(
-					    data_, pnorm, k0_ap, sigma_k0, proot,
+					    data_, pnorm, k0_ap, sigma_k0,
 					    logarithmic > 0u, M, lonc, lat0, alpha,
 					    k0, f, result
 					);
 					break;
 				case 1:
 					cost_batch<false, long double>(
-					    data_, pnorm, k0_ap, sigma_k0, proot,
+					    data_, pnorm, k0_ap, sigma_k0,
 					    logarithmic > 0u, M, lonc, lat0, alpha,
 					    k0, f, result
 					);
@@ -231,7 +230,7 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
 template<bool wrap_plane, typename T>
 void cost_gradient_batch(
     const T& data, double pnorm, double k0_ap, double sigma_k0,
-    unsigned short proot, bool logarithmic, const size_t M,
+    bool logarithmic, const size_t M,
     const double* lonc, const double* lat0, const double* alpha,
     const double* k0, double f, double* result
 )
@@ -302,7 +301,7 @@ int compute_cost_gradient_hotine_batch(const size_t N, const double* lon,
         const double* lat, const double* h, const double* w, const size_t M,
         const double* lonc, const double* lat0, const double* alpha,
         const double* k0, double a, double f, double pnorm, double k0_ap,
-        double sigma_k0, unsigned short proot,
+        double sigma_k0,
         unsigned short logarithmic, unsigned short wrap_plane,
         double* result)
 {
@@ -345,11 +344,11 @@ int compute_cost_gradient_hotine_batch(const size_t N, const double* lon,
 		[=](auto&& data_)
 		{
 			if (wrap_plane != 0){
-				cost_gradient_batch<true>(data_, pnorm, k0_ap, sigma_k0, proot,
+				cost_gradient_batch<true>(data_, pnorm, k0_ap, sigma_k0,
 				    logarithmic > 0u, M, lonc, lat0, alpha, k0, f, result
 				);
 			} else {
-				cost_gradient_batch<false>(data_, pnorm, k0_ap, sigma_k0, proot,
+				cost_gradient_batch<false>(data_, pnorm, k0_ap, sigma_k0,
 				    logarithmic > 0u, M, lonc, lat0, alpha, k0, f, result
 				);
 			}
@@ -460,7 +459,7 @@ int hotine_damped_bfgs(
     const double* h, const double* w, double a, double f,
     double pnorm, double k0_ap, double sigma_k0, double lonc_0,
     double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
-    unsigned short proot, double epsilon, double* result,
+    double epsilon, double* result,
     unsigned int* n_steps, uint64_t* n_fun_eval
 )
 {
@@ -548,7 +547,7 @@ int hotine_backtrack_GD(
     const double* h, const double* w, double a, double f,
     double pnorm, double k0_ap, double sigma_k0, double lonc_0,
     double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
-    unsigned short proot, double epsilon, double* result,
+    double epsilon, double* result,
     unsigned int* n_steps, unsigned long* n_fun_eval)
 {
 	// Sanity check on weights (probably very much redundant):

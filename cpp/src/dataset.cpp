@@ -6,7 +6,8 @@
  *          Sebastian von Specht
  *
  * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
- *                    Sebastian von Specht
+ *                    Sebastian von Specht,
+ *               2024 Technische Universität München
  *
  * Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
  * the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -23,6 +24,7 @@
  */
 
 #include <../include/dataset.hpp>
+#include <../include/sum.hpp>
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
@@ -40,7 +42,7 @@ static long double compute_k_e(double h, double a, double f)
 
 SimpleDataSet::SimpleDataSet(const size_t N, const double* lon,
                              const double* lat)
-    : DataSet<false,false>(N)
+    : DataSet<false,false>(N, N)
 {
 	for (size_t i=0; i<N; ++i){
 		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);
@@ -53,7 +55,7 @@ SimpleDataSet::SimpleDataSet(const size_t N, const double* lon,
 DataSetWithHeight::DataSetWithHeight(const size_t N, const double* lon,
                                      const double* lat, const double* h,
                                      double a, double f)
-    : DataSet<true,false>(N)
+    : DataSet<true,false>(N, N)
 {
 	for (size_t i=0; i<N; ++i){
 		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);
@@ -68,7 +70,7 @@ DataSetWithHeight::DataSetWithHeight(const size_t N, const double* lon,
 
 WeightedDataSet::WeightedDataSet(const size_t N, const double* lon,
                                  const double* lat, const double* w)
-    : DataSet<false,true>(N)
+    : DataSet<false,true>(N, recursive_sum(w, w+N))
 {
 	for (size_t i=0; i<N; ++i){
 		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);
@@ -85,7 +87,7 @@ WeightedDataSetWithHeight::WeightedDataSetWithHeight(const size_t N,
                                  const double* lon, const double* lat,
                                  const double* h, const double* w,
                                  double a, double f)
-    : DataSet<true,true>(N)
+    : DataSet<true,true>(N, recursive_sum(w, w+N))
 {
 	for (size_t i=0; i<N; ++i){
 		data[i].lambda = deg2rad(std::fmod((lon[i]+180.0), 360.) - 180.0);

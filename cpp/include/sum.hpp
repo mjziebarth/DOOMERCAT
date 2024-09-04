@@ -29,9 +29,11 @@
 
 namespace doomercat {
 
-template<typename real>
-real recursive_sum(const std::vector<real>& x)
+template<typename real_iterator>
+typename std::iterator_traits<real_iterator>::value_type
+recursive_sum(real_iterator begin, real_iterator end)
 {
+    typedef typename std::iterator_traits<real_iterator>::value_type real;
     /*
      * This function performs recursive pairwise summation of a vector of
      * real numbers.
@@ -40,28 +42,59 @@ real recursive_sum(const std::vector<real>& x)
      * (https://en.wikipedia.org/wiki/Pairwise_summation), slightly worse than
      * Kahan summation but better than simple linear aggregation.
      */
-    if (x.empty())
+    const std::ptrdiff_t size = end - begin;
+    if (size < 0)
+        throw std::runtime_error(
+            "Negative size: pointers/iterators are corrupt in recursive_sum."
+        );
+    if (size == 0)
         return real();
-    if (x.size() == 1)
-        return x.front();
+    if (size == 1)
+        return *begin;
 
     /* Create a temporary array that is always filled continuously from the
      * front with the results of the previous pairwise summation.
      * Hence, we can always use step width 1 and only need to adjust the
      * end iterator.
      */
-    std::vector<real> tmp((x.size() / 2) + (x.size() % 2));
+    std::vector<real> tmp((size / 2) + (size % 2));
     auto out = tmp.begin();
 
     /* When we first start this routine, nothing has been written to tmp
-     * yet. A neat way to handle the start is to use the constant iterators
-     * of the input vector here:
+     * yet. So, the first iteration is special in that it pulls from the
+     * input iterator rather than from the previous output:
      */
-    auto it = x.cbegin();
-    auto end = x.cend();
-    while (end - it > 1)
+    auto it_in = begin;
+    for (; it_in < end; ++it_in){
+        if (out == tmp.end()){
+            std::cerr << "ERROR out == end!!!\n";
+            return tmp[0];
+        }
+        /* Set the output variable to the first summand: */
+        *out = *it_in;
+
+        /* Go for the second summand, if it exists: */
+        ++it_in;
+
+        /* If a second summand is in the vector, add it to the output
+         * variable: */
+        if (it_in != end)
+            *out += *it_in;
+
+        /* Go to the next output position: */
+        ++out;
+    }
+
+    /* The end of the current output is the next iteration's input end: */
+    auto out_end = out;
+
+    /* Restart the input and output from/to the beginning of the temporary
+     * vector: */
+    auto it = tmp.cbegin();
+    out = tmp.begin();
+    while (out_end - it > 1)
     {
-        for (; it < end; ++it){
+        for (; it < out_end; ++it){
             if (out == tmp.end()){
                 std::cerr << "ERROR out == end!!!\n";
                 return tmp[0];
@@ -74,15 +107,15 @@ real recursive_sum(const std::vector<real>& x)
 
             /* If a second summand is in the vector, add it to the output
              * variable: */
-            if (it != end)
+            if (it != out_end)
                 *out += *it;
 
             /* Go to the next output position: */
             ++out;
         }
 
-        /* The end of the current output is the next iteration's start: */
-        end = out;
+        /* The end of the current output is the next iteration's input end: */
+        out_end = out;
 
         /* Restart the input and output from/to the beginning of the temporary
          * vector: */
@@ -91,6 +124,12 @@ real recursive_sum(const std::vector<real>& x)
     }
 
     return tmp.front();
+}
+
+template<typename real>
+real recursive_sum(const std::vector<real>& x)
+{
+    return recursive_sum(x.cbegin(), x.cend());
 }
 
 }

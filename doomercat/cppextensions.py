@@ -4,7 +4,7 @@
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
 # Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
-#               2024 Technical University of Munich
+#               2024 Technische Universität München
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -131,7 +131,6 @@ def damped_bfgs_optimize(
         alpha_0,
         k_0_0,
         Nmax,
-        proot,
         return_full_history=False,
         epsilon=1e-7):
     """
@@ -163,7 +162,6 @@ def damped_bfgs_optimize(
     Nmax = int(Nmax)
     assert Nmax > 0
     epsilon = float(epsilon)
-    proot = bool(proot)
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
@@ -189,7 +187,6 @@ def damped_bfgs_optimize(
         c_double(alpha_0),
         c_double(k_0_0),
         c_uint(Nmax),
-        c_ushort(1 if proot else 0),
         c_double(epsilon),
         result.ctypes.data_as(POINTER(c_double)),
         M.ctypes.data_as(POINTER(c_uint)),
@@ -244,7 +241,6 @@ def truong2020_optimize(
         alpha_0,
         k_0_0,
         Nmax,
-        proot,
         return_full_history=False,
         epsilon=1e-7):
     """
@@ -276,7 +272,6 @@ def truong2020_optimize(
     Nmax = int(Nmax)
     assert Nmax > 0
     epsilon = float(epsilon)
-    proot = bool(proot)
 
     # Make sure that we have loaded the CDLL:
     load_cppextensions()
@@ -302,7 +297,6 @@ def truong2020_optimize(
         c_double(alpha_0),
         c_double(k_0_0),
         c_uint(Nmax),
-        c_ushort(1 if proot else 0),
         c_double(epsilon),
         result.ctypes.data_as(POINTER(c_double)),
         M.ctypes.data_as(POINTER(c_uint)),
@@ -343,11 +337,11 @@ def truong2020_optimize(
 
 
 def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
-                        alpha: ndarray64, k_0: ndarray64,
+                        alpha_c: ndarray64, k_0: ndarray64,
                         lon: ndarray64, lat: ndarray64,
                         h: ndarray64, w: ndarray64,
                         a: float, f: float, pnorm: float, k0_ap: float,
-                        sigma_k0: float, proot: bool,
+                        sigma_k0: float,
                         logarithmic: bool, wrap_plane: bool,
                         precision: Literal['double','long double']):
     """
@@ -356,7 +350,7 @@ def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
     # Input sanitization.
     lonc = np.ascontiguousarray(lonc, dtype=np.double)
     lat_0 = np.ascontiguousarray(lat_0, dtype=np.double)
-    alpha = np.ascontiguousarray(alpha, dtype=np.double)
+    alpha = np.ascontiguousarray(alpha_c, dtype=np.double)
     k_0 = np.ascontiguousarray(k_0, dtype=np.double)
     lon = np.ascontiguousarray(lon, dtype=np.double)
     lat = np.ascontiguousarray(lat, dtype=np.double)
@@ -406,7 +400,6 @@ def compute_cost_hotine(lonc: ndarray64, lat_0: ndarray64,
             alpha.ctypes.data_as(POINTER(c_double)),
             k_0.ctypes.data_as(POINTER(c_double)),
             c_double(a), c_double(f), c_double(pnorm), c_double(k0_ap),
-            c_double(sigma_k0), c_ushort(1 if proot else 0),
             c_ushort(1 if logarithmic else 0),
             c_ushort(1 if wrap_plane else 0),
             c_prec,
@@ -421,7 +414,7 @@ def compute_cost_gradient_hotine(
         lon: ndarray64, lat: ndarray64,
         h: ndarray64, w: ndarray64,
         a: float, f: float, pnorm: float, k0_ap: float,
-        sigma_k0: float, proot: bool,
+        sigma_k0: float,
         logarithmic: bool, wrap_plane: bool):
     """
     Computes the cost function for different k0.
@@ -473,7 +466,6 @@ def compute_cost_gradient_hotine(
             alpha.ctypes.data_as(POINTER(c_double)),
             k_0.ctypes.data_as(POINTER(c_double)),
             c_double(a), c_double(f), c_double(pnorm), c_double(k0_ap),
-            c_double(sigma_k0), c_ushort(1 if proot else 0),
             c_ushort(1 if logarithmic else 0),
             c_ushort(1 if wrap_plane else 0),
             grad.ctypes.data_as(POINTER(c_double)));

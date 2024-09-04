@@ -4,7 +4,8 @@
  *
  * Authors: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
  *
- * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam
+ * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
+ *               2024 Technische Universität München
  *
  * Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
  * the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -30,7 +31,7 @@ int compute_cost_hotine_batch(const size_t N, const double* lon,
         const double* lat, const double* h, const double* w, const size_t M,
         const double* lonc, const double* lat0, const double* alpha,
         const double* k0, double a, double f, double pnorm, double k0_ap,
-        double sigma_k0, unsigned short proot, unsigned short logarithmic,
+        double sigma_k0, unsigned short logarithmic,
         unsigned short wrap_plane, unsigned short precision,
         double* result);
 
@@ -38,7 +39,7 @@ int compute_cost_gradient_hotine_batch(const size_t N, const double* lon,
         const double* lat, const double* h, const double* w, const size_t M,
         const double* lonc, const double* lat0, const double* alpha,
         const double* k0, double a, double f, double pnorm, double k0_ap,
-        double sigma_k0, unsigned short proot, unsigned short logarithmic,
+        double sigma_k0, unsigned short logarithmic,
         unsigned short wrap_plane,
         double* result);
 
@@ -64,7 +65,7 @@ int hotine_damped_bfgs(
     const double* h, const double* w, double a, double f,
     double pnorm, double k0_ap, double sigma_k0, double lonc_0,
     double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
-    unsigned short proot, double epsilon, double* result,
+    double epsilon, double* result,
     unsigned int* n_steps, uint64_t* n_fun_eval
 );
 
@@ -73,7 +74,7 @@ int hotine_backtrack_GD(
     const double* h, const double* w, double a, double f,
     double pnorm, double k0_ap, double sigma_k0, double lonc_0,
     double lat_0_0, double alpha_0, double k_0_0, unsigned int Nmax,
-    unsigned short proot, double epsilon, double* result,
+    double epsilon, double* result,
     unsigned int* n_steps,uint64_t* n_fun_eval);
 
 int hotine_parameters_debug(double lonc, double lat0, double alpha,

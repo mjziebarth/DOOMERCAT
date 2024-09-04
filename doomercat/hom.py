@@ -4,7 +4,7 @@
 # Author: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
 #
 # Copyright (C) 2019-2022 Deutsches GeoForschungsZentrum Potsdam,
-#               2024      Technical University of Munich
+#                    2024 Technische Universität München
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -186,7 +186,6 @@ class HotineObliqueMercator:
                  alpha: Optional[float] = None,
                  k0: Optional[float] = None,
                  Nmax: int = _default["Nmax"],
-                 proot: bool = _default["proot"],
                  logger: object = None,
                  backend: str = _default["backend"],
                  fisher_bingham_use_weight: bool
@@ -294,7 +293,6 @@ class HotineObliqueMercator:
                             alpha0,
                             k00,
                             Nmax,
-                            proot,
                             epsilon=bfgs_epsilon
                         )
                     lonc0  = pre_res.lonc
@@ -319,7 +317,6 @@ class HotineObliqueMercator:
                         alpha0,
                         k00,
                         Nmax,
-                        proot,
                         epsilon=bfgs_epsilon,
                         return_full_history=return_full_history
                     )
@@ -350,7 +347,6 @@ class HotineObliqueMercator:
                         alpha0,
                         k00,
                         Nmax,
-                        proot,
                         epsilon=bfgs_epsilon,
                         return_full_history=return_full_history
                     )

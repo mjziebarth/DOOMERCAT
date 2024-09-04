@@ -5,6 +5,7 @@
  * Authors: Malte J. Ziebarth (ziebarth@gfz-potsdam.de)
  *
  * Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
+ *               2024 Technische Universität München
  *
  * Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
  * the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -90,7 +91,7 @@ class CostFunctionHotine {
  */
 public:
 	CostFunctionHotine(double pnorm, double k0_ap, double sigma_k0,
-	                   bool proot, bool logarithmic, bool parallel=true);
+	                   bool logarithmic, bool parallel=true);
 
 	template<typename DS>
 	CostHotine<T> operator()(const DS& data,
@@ -107,7 +108,6 @@ private:
 	number_t sigma_k0;
 	bool logarithmic;
 	bool parallel = true;
-	bool proot = true;
 
 	static T sum(const std::vector<T>& x)
 	{
@@ -124,11 +124,10 @@ template<typename T>
 CostFunctionHotine<T>::CostFunctionHotine(double pnorm,
                                           double k0_ap,
                                           double sigma_k0,
-                                          bool proot,
                                           bool logarithmic,
                                           bool parallel)
     : pnorm(pnorm), k0_ap(k0_ap), sigma_k0(sigma_k0),
-      logarithmic(logarithmic), parallel(parallel), proot(proot)
+      logarithmic(logarithmic), parallel(parallel)
 {
 	if (pnorm <= 0)
 		throw std::runtime_error("pnorm too small");
@@ -161,52 +160,35 @@ T CostFunctionHotine<T>::compute_cost(const DS& data,
 	}
 
 	/* Extract the factor (distmax)**pnorm and calculate the cost: */
+	const number_t iW = 1 / data.summed_weight();
 	if (pnorm == static_cast<double>(static_cast<int>(pnorm)) && pnorm < 5){
 		const int ipnorm = static_cast<int>(pnorm);
-		//#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
-			const number_t wi = data.w(i);
+			const number_t wi = data.w(i) * iW;
 			cost_vec[i] = wi * AR::pow(cost_vec[i] / distmax, ipnorm);
 		}
 	} else {
-		//#pragma omp parallel for if(parallel)
 		for (size_t i=0; i<data.size(); ++i){
-			const number_t wi = data.w(i);
+			const number_t wi = data.w(i) * iW;
 			cost_vec[i] = wi * AR::pow(cost_vec[i] / distmax, pnorm);
 		}
 	}
 
-	if (proot){
-		T cost(AR::pow(sum(cost_vec), 1.0/pnorm));
+	T cost(AR::pow(sum(cost_vec), 1.0/pnorm));
 
 
-		/* Add the k0  prior: */
-		if (hom.k0() < k0_ap){
-			cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
-			        / distmax;
-		}
-
-		if (logarithmic){
-				return AR::log(cost) + AR::log(distmax);
-		}
-
-		return cost * distmax;
-
-	} else {
-		T cost(CostFunctionHotine::sum(cost_vec));
-
-		/* Add the k0  prior: */
-		if (hom.k0() < k0_ap){
-			cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
-				    * AR::pow(distmax, -pnorm);
-		}
-
-		if (logarithmic){
-			return AR::log(cost) + pnorm*AR::log(distmax);
-		}
-
-		return cost * AR::pow(distmax,pnorm);
+	/* Add the k0  prior: */
+	if (hom.k0() < k0_ap){
+		cost += AR::pow2((hom.k0() - k0_ap)/sigma_k0)
+		        / distmax;
 	}
+
+	if (logarithmic){
+		return AR::log(cost) + AR::log(distmax);
+	}
+
+	return cost * distmax;
+
 }
 
 

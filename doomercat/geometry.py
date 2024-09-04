@@ -6,7 +6,7 @@
 #
 # Copyright (C) 2022 Deutsches GeoForschungsZentrum Potsdam,
 #               2022 Sebastian von Specht,
-#               2024 Technical University of Munich
+#               2024 Technische Universität München
 #
 # Licensed under the EUPL, Version 1.2 or – as soon they will be approved by
 # the European Commission - subsequent versions of the EUPL (the "Licence");
@@ -63,9 +63,9 @@ def _lola2xyz(lo: ndarray64, la: ndarray64, f: float) -> ndarray64:
 def latitude2parametric(la,f,transform='forward'):
     '''
     Conversion between geographic latitude and parametric latitude to
-    solve problems for geodesics on the ellipsoid by transforming them 
+    solve problems for geodesics on the ellipsoid by transforming them
     to an equivalent problem for spherical geodesics.
-    
+
     'forward'  : from geographic to parametric latitude (in rad)
     'backward' : from parametric to geographic latitude (in rad)
     '''
@@ -153,8 +153,8 @@ def desired_scale_factor(
     """
     # Make this code suitable for very large input arrays by
     # batch calling (on the expense of a little overhead)
-    h = np.array(h, copy=False)
-    lat = np.array(lat, copy=False)
+    h = np.asarray(h)
+    lat = np.asarray(lat)
     n = max(h.size, lat.size)
     if n > batch:
         bc = np.broadcast(h,lat)
