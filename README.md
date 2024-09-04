@@ -84,6 +84,11 @@ and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+### [2.0.0] - 2024-09-04
+#### Changed
+- Remove the `proot` parameter. The cost function has been reworked and now
+  uses the *p*th root by default.
+
 ### [1.0.3] - 2024-09-02
 #### Added
 - Add version to `qgis-plugin/metadata.txt`.
