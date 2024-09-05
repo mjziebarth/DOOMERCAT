@@ -862,6 +862,18 @@ autodouble<d,real> autodouble<d,real>::log_move(autodouble&& x)
 template<dim_t d, typename real>
 autodouble<d,real> autodouble<d,real>::sqrt(const autodouble& x)
 {
+	/* If we've got a zero x, the sqrt's derivative is not finite.
+	 * This may lead to NaNs if the derivative is previously zero.
+	 * The more digestable thing to do for the numerics is to
+	 * return a flat zero in this case. Usually, the leading-order
+	 * derivative appears somewhere else in the cost function. */
+	if (x.x == 0.0){
+		std::array<real,d> deriv_new;
+		for (dim_t i=0; i<d; ++i)
+			deriv_new[i] = 0.0;
+		return autodouble(x.x, deriv_new);
+	}
+
 	std::array<real,d> deriv_new;
 	const real sqrt = std::sqrt(x.x);
 	const real f = 0.5 / sqrt;
@@ -874,6 +886,17 @@ autodouble<d,real> autodouble<d,real>::sqrt(const autodouble& x)
 template<dim_t d, typename real>
 autodouble<d,real> autodouble<d,real>::sqrt(autodouble&& x)
 {
+	/* If we've got a zero x, the sqrt's derivative is not finite.
+	 * This may lead to NaNs if the derivative is previously zero.
+	 * The more digestable thing to do for the numerics is to
+	 * return a flat zero in this case. Usually, the leading-order
+	 * derivative appears somewhere else in the cost function. */
+	if (x.x == 0.0){
+		for (dim_t i=0; i<d; ++i)
+			x.deriv[i] = 0.0;
+		return x;
+	}
+
 	x.x = std::sqrt(x.x);
 	const real f = 0.5 / x.x;
 	for (dim_t i=0; i<d; ++i)

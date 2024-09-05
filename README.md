@@ -84,6 +84,12 @@ and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+### [2.0.1] - 2024-09-05
+#### Changed
+- Modified the `autodouble::sqrt` methods to default to zero derivative at
+  $x=0$. This fixes some difficulties for the special starting values with
+  $\phi_0=\lambda_c=0$.
+
 ### [2.0.0] - 2024-09-04
 #### Changed
 - Remove the `proot` parameter. The cost function has been reworked and now
