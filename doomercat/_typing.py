@@ -24,8 +24,8 @@ import numpy as np
 from typing import Any
 
 def _get_dtype64():
-    from numpy.typing import NDArray
     try:
+        from numpy.typing import NDArray
         return NDArray[np.double]
     except TypeError:
         return Any
