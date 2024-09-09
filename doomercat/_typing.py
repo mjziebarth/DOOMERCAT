@@ -24,9 +24,10 @@ import numpy as np
 from typing import Any
 
 def _get_dtype64():
+    from numpy.typing import NDArray
     try:
-        return np.ndarray[Any, np.dtype[np.float64]]
+        return NDArray[np.double]
     except TypeError:
-        return np.ndarray
+        return Any
 
 ndarray64 = _get_dtype64()

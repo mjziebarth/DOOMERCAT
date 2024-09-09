@@ -39,7 +39,6 @@ from .wkt import WktCRS
 
 import numpy as np
 import os.path
-from numpy.typing import NDArray
 
 
 # Some GUI strings:
@@ -62,7 +61,7 @@ class DOOMERCATPlugin:
 
     wkt: "str | None"
     optimization_input: "tuple[\
-        WktCRS, NDArray[np.double], NDArray[np.double]\
+        WktCRS, ndarray64, ndarray64\
     ] | None"
 
     def __init__(self, iface):
@@ -643,7 +642,7 @@ class DOOMERCATPlugin:
                 p = vertices.next()
                 xyzw.append((p.x(), p.y(), p.z(), w))
 
-        xyzw_np: NDArray[np.double] = np.array(xyzw)
+        xyzw_np: ndarray64 = np.array(xyzw)
         weight = xyzw_np[:,3].copy()
         if crs.has_elevation:
             h = xyzw_np[:,2].copy()
@@ -664,10 +663,10 @@ class DOOMERCATPlugin:
 
 
     def optimizeLonLat(self,
-            lon: NDArray[np.double],
-            lat: NDArray[np.double],
-            h: "NDArray[np.double] | None",
-            weight: "NDArray[np.double] | None",
+            lon: ndarray64,
+            lat: ndarray64,
+            h: "ndarray64 | None",
+            weight: "ndarray64 | None",
             crs: WktCRS
         ):
         """

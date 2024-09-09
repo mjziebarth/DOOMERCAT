@@ -18,9 +18,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import numpy as np
-from numpy.typing import NDArray
-from doomercat.enclosingsphere import bounding_sphere
-from doomercat.hom import HotineObliqueMercator
+from .moduleloader import ndarray64, bounding_sphere, HotineObliqueMercator
 
 def _wkt_level(wkt: str) -> list[int]:
     """
@@ -431,8 +429,8 @@ class WktCRS:
             hom: HotineObliqueMercator,
             gamma: float,
             name: str,
-            lon: NDArray[np.double],
-            lat: NDArray[np.double]
+            lon: ndarray64,
+            lat: ndarray64
         ) -> str:
         """
         Returns the Well-Known Text describing a DOOM.
