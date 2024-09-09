@@ -27,7 +27,7 @@ def _get_dtype64():
     try:
         from numpy.typing import NDArray
         return NDArray[np.double]
-    except TypeError:
+    except:
         return Any
 
 ndarray64 = _get_dtype64()
