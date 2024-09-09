@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "doomercat"
-version = "2.0.3"
+version = "2.0.4"
 authors = [
     {name = "Malte J. Ziebarth", email = "mjz.science@fmvkb.de"},
     {name = "Sebastian von Specht", email = "s.von.specht@protonmail.com"}
