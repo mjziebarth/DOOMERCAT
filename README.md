@@ -84,6 +84,12 @@ and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+### [2.0.2] - 2024-09-09
+#### Changed
+- Update typing to rely on `numpy.typing.NDArray` in a central position and
+  fall back to `Any`.
+
+
 ### [2.0.1] - 2024-09-05
 #### Changed
 - Modified the `autodouble::sqrt` methods to default to zero derivative at
