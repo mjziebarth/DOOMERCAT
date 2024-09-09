@@ -22,7 +22,7 @@ copyright = '2022, Deutsches GeoForschungsZentrum Potsdam GFZ, '\
             'Sebastian von Specht, Malte J. Ziebarth; ' \
             '2024 Technical University of Munich'
 author = 'Malte J. Ziebarth, Sebastian von Specht'
-release = '2.0.2'
+release = '2.0.3'
 
 
 # -- General configuration ---------------------------------------------------

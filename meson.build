@@ -1,6 +1,6 @@
 project('doomercat_cppextensions','cpp',
     default_options : ['buildtype=release', 'optimization=3'],
-    version : '2.0.2'
+    version : '2.0.3'
 )
 
 add_project_arguments('--std=c++23', language: 'cpp')
