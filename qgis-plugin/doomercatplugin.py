@@ -33,7 +33,7 @@ from .worker import OptimizationWorker
 from .qgisproject import project
 from .help import help_html
 from .messages import info
-from .moduleloader import HAS_CPPEXTENSIONS, _ellipsoids
+from .moduleloader import HAS_CPPEXTENSIONS, _ellipsoids, ndarray64
 from .pointvalidator import CoordinateValidator
 from .wkt import WktCRS
 

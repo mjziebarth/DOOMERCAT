@@ -21,8 +21,9 @@
 # limitations under the Licence.
 
 import numpy as np
+from ._typing import ndarray64
 
-def bounding_sphere(lon: np.ndarray, lat: np.ndarray, a: float , f: float,
+def bounding_sphere(lon: ndarray64, lat: ndarray64, a: float , f: float,
                     N: int = 100):
     '''
     Iterative search for center of bounding sphere for points on an ellipsoid in
