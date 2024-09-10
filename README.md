@@ -52,7 +52,7 @@ the parameter results of the failed optimization can be obtained.
 ### Call Signatures
 ```python
 HotineObliqueMercator(
-    # Specify the data (optionally with weight):
+    # Specify the data (optionally with height and weight):
     lon=None,
     lat=None,
     h=None,
