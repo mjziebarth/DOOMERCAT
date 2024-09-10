@@ -51,12 +51,29 @@ the parameter results of the failed optimization can be obtained.
 
 ### Call Signatures
 ```python
-HotineObliqueMercator(lon=None, lat=None, weight=None, pnorm=2, k0_ap=0.98,
-                      sigma_k0=0.002, ellipsoid=None, f=None, a=None,
-                      lonc0=None, lat_00=None, alpha0=None, k00=None, lonc=None,
-                      lat_0=None, alpha=None, k0=None, Nmax=1000, proot=False,
-                      logger=None, backend='C++', fisher_bingham_use_weight=False,
-                      compute_enclosing_sphere=False, bfgs_epsilon=1e-3)
+HotineObliqueMercator(
+    # Specify the data (optionally with weight):
+    lon=None,
+    lat=None,
+    h=None,
+    weight=None,
+    # Cost function exponent (pnorm) and k_0 prior:
+    pnorm=2,
+    k0_ap=0.98,
+    sigma_k0=0.002,
+    # Datum:
+    ellipsoid=None,
+    f=None,
+    a=None,
+    # Technical algorithm costraints:
+    Nmax=1000,
+    Nmax_pre_adamax=50,
+    backend='Python',
+    bfgs_epsilon=1e-3,
+    # Further arguments:
+    compute_enclosing_sphere=False,
+    fisher_bingham_use_weight=False
+)
 ```
 
 ## The DOOMERCAT QGIS plugin
